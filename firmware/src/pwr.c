@@ -1,0 +1,102 @@
+#include <naos.h>
+#include <naos_sys.h>
+#include <driver/adc.h>
+#include <esp_sleep.h>
+#include <art32/numbers.h>
+
+#include "pwr.h"
+
+#define PWR_USB_CC1 ADC1_CHANNEL_6
+#define PWR_USB_CC2 ADC1_CHANNEL_7
+#define PWR_BAT_LVL ADC1_CHANNEL_4
+#define PWR_CHG_SEL GPIO_NUM_27
+#define PWR_CHG_MOD GPIO_NUM_14
+#define PWR_ON_OFF GPIO_NUM_15
+#define PWR_DEBUG false
+
+// TODO: Switch to fast charging if available.
+
+static naos_mutex_t pwr_mutex;
+static pwr_state_t pwr_state = {0};
+
+void pwr_check() {
+  // acquire mutex
+  naos_lock(pwr_mutex);
+
+  // read inputs
+  int cc1 = adc1_get_raw(PWR_USB_CC1) * 3300 / 4096;
+  int cc2 = adc1_get_raw(PWR_USB_CC2) * 3300 / 4096;
+  int bat = adc1_get_raw(PWR_BAT_LVL) * 3300 / 4096 * 2;
+  if (PWR_DEBUG) {
+    naos_log("bat: inputs cc1=%dmV cc2=%dmV bat=%dmV", cc1, cc2, bat);
+  }
+
+  // set state
+  pwr_state.battery = a32_safe_map_f((float)bat, 3000.f, 4000.f, 0.f, 1.f);
+  pwr_state.usb = cc1 || cc2;
+  pwr_state.fast = (cc1 ? cc1 : cc2) > 350;
+  if (PWR_DEBUG) {
+    naos_log("pwr: battery=%f usb=%d fast=%d", pwr_state.battery, pwr_state.usb, pwr_state.fast);
+  }
+
+  // release mutex
+  naos_unlock(pwr_mutex);
+}
+
+void pwr_init() {
+  // create mutex
+  pwr_mutex = naos_mutex();
+
+  // configure ADC (4096 = ~2.45V)
+  ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
+  ESP_ERROR_CHECK(adc1_config_channel_atten(PWR_USB_CC1, ADC_ATTEN_DB_11));
+  ESP_ERROR_CHECK(adc1_config_channel_atten(PWR_USB_CC2, ADC_ATTEN_DB_11));
+  ESP_ERROR_CHECK(adc1_config_channel_atten(PWR_BAT_LVL, ADC_ATTEN_DB_11));
+
+  // configure pins
+  gpio_config_t cfg = {
+      .mode = GPIO_MODE_OUTPUT,
+      .pin_bit_mask = BIT64(PWR_CHG_SEL) | BIT64(PWR_CHG_MOD) | BIT64(PWR_ON_OFF),
+  };
+  ESP_ERROR_CHECK(gpio_config(&cfg));
+  ESP_ERROR_CHECK(gpio_set_level(PWR_CHG_SEL, 0));  // USB
+  ESP_ERROR_CHECK(gpio_set_level(PWR_CHG_MOD, 1));  // 500mA
+  ESP_ERROR_CHECK(gpio_set_level(PWR_ON_OFF, 1));   // on
+
+  // run check
+  naos_repeat("pwr", 1000, pwr_check);
+}
+
+pwr_state_t pwr_get() {
+  // acquire mutex
+  naos_lock(pwr_mutex);
+
+  // get state
+  pwr_state_t state = pwr_state;
+
+  // release mutex
+  naos_unlock(pwr_mutex);
+
+  return state;
+}
+
+void pwr_off() {
+  // set pin
+  gpio_set_level(PWR_ON_OFF, 0);  // off
+
+  // delay
+  naos_delay(60000);  // 60s
+}
+
+void pwr_sleep(bool deep) {
+  // configure sleep hold
+  ESP_ERROR_CHECK(gpio_hold_en(PWR_ON_OFF));
+  gpio_deep_sleep_hold_en();
+
+  // perform sleep
+  if (deep) {
+    esp_deep_sleep_start();
+  } else {
+    ESP_ERROR_CHECK(esp_light_sleep_start());
+  }
+}

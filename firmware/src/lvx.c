@@ -1,0 +1,277 @@
+#include <naos.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+
+#include "lvx.h"
+#include "gfx.h"
+#include "fnt.h"
+#include "img.h"
+
+/* Helpers */
+
+static int lvx_num_digits(int n) {
+  // calculate digits
+  return n == 0 ? 1 : (int)(floor(log10(abs(n)))) + 1;
+}
+
+static lv_coord_t lvx_text_width(lv_obj_t* obj, const char* text) {
+  const lv_font_t* font = lv_obj_get_style_text_font(obj, 0);
+  lv_coord_t ls = lv_obj_get_style_text_letter_space(obj, 0);
+  return lv_txt_get_width(text, strlen(text), font, ls, 0);
+}
+
+/* Wheel */
+
+static void lvx_wheel_refocus(lvx_wheel_t* wheel, bool focused) {
+  // handle defocused
+  if (!focused) {
+    lv_obj_set_style_opa(wheel->_up, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_opa(wheel->_down, LV_OPA_TRANSP, LV_PART_MAIN);
+    return;
+  }
+
+  // handle focused
+  if (wheel->value > wheel->min) {
+    lv_obj_set_style_opa(wheel->_down, LV_OPA_COVER, LV_PART_MAIN);
+  } else {
+    lv_obj_set_style_opa(wheel->_down, LV_OPA_TRANSP, LV_PART_MAIN);
+  }
+  if (wheel->value < wheel->max) {
+    lv_obj_set_style_opa(wheel->_up, LV_OPA_COVER, LV_PART_MAIN);
+  } else {
+    lv_obj_set_style_opa(wheel->_up, LV_OPA_TRANSP, LV_PART_MAIN);
+  }
+}
+
+static void lvx_wheel_key(lv_event_t* event) {
+  // get value
+  lvx_wheel_t* wheel = event->user_data;
+
+  // handle key
+  switch (lv_event_get_key(event)) {
+    case LV_KEY_UP:
+      if (wheel->value < wheel->max) {
+        wheel->value++;
+      }
+      break;
+    case LV_KEY_DOWN:
+      if (wheel->value > wheel->min) {
+        wheel->value--;
+      }
+      break;
+    default:
+      return;
+  }
+
+  // update text
+  char text[32];
+  snprintf(text, 32, wheel->format, wheel->value);
+  lv_label_set_text(event->target, text);
+
+  // update arrows
+  lvx_wheel_refocus(wheel, true);
+}
+
+static void lvx_wheel_focus(lv_event_t* event) {
+  // get wheel
+  lvx_wheel_t* wheel = event->user_data;
+
+  // handle event
+  switch (event->code) {
+    case LV_EVENT_FOCUSED:
+      lvx_wheel_refocus(wheel, true);
+      break;
+    case LV_EVENT_DEFOCUSED:
+      lvx_wheel_refocus(wheel, false);
+      break;
+    default:
+      break;
+  }
+}
+
+void lvx_wheel_create(lvx_wheel_t* wheel, lv_obj_t* parent) {
+  // prepare static variables
+  static lv_style_t base;
+  static lv_style_t focused;
+  static bool initialized = false;
+
+  // initialize styles
+  if (!initialized) {
+    lv_style_init(&base);
+    lv_style_set_bg_color(&base, lv_color_white());
+    lv_style_set_bg_opa(&base, LV_OPA_COVER);
+    lv_style_set_border_width(&base, 2);
+    lv_style_set_border_color(&base, lv_color_black());
+    lvx_style_set_pad(&base, 2, 2 - FNT_OFF, 5, 5 - FNT_OFF);
+    lv_style_set_text_align(&base, LV_TEXT_ALIGN_CENTER);
+    lv_style_init(&focused);
+    lv_style_set_bg_color(&focused, lv_color_black());
+    lv_style_set_text_color(&focused, lv_color_white());
+    initialized = true;
+  }
+
+  // ensure format
+  if (wheel->format == NULL) {
+    wheel->format = "%d";
+  }
+
+  // add column
+  wheel->_col = lv_obj_create(parent);
+  lv_obj_set_size(wheel->_col, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_set_flex_flow(wheel->_col, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(wheel->_col, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_border_width(wheel->_col, 0, LV_PART_MAIN);
+
+  // prepare text
+  char text[32];
+  snprintf(text, 32, wheel->format, wheel->value);
+
+  // add up arrow
+  wheel->_up = lv_img_create(wheel->_col);
+  lv_img_set_src(wheel->_up, &img_arrow_up);
+
+  // add label
+  wheel->_lbl = lv_label_create(wheel->_col);
+  lv_label_set_text(wheel->_lbl, text);
+  lv_obj_add_style(wheel->_lbl, &base, LV_PART_MAIN);
+  lv_obj_add_style(wheel->_lbl, &focused, LV_PART_MAIN | LV_STATE_FOCUSED);
+  lv_obj_add_event_cb(wheel->_lbl, lvx_wheel_key, LV_EVENT_KEY, wheel);
+  lv_group_add_obj(gfx_get_group(), wheel->_lbl);
+
+  // handle size
+  if (wheel->fixed) {
+    snprintf(text, 32, "%0*d", lvx_num_digits(wheel->max), 0);
+    lv_coord_t width = lvx_text_width(wheel->_lbl, text);
+    width += lv_obj_get_style_pad_left(wheel->_lbl, 0);
+    width += lv_obj_get_style_pad_right(wheel->_lbl, 0);
+    width += lv_obj_get_style_border_width(wheel->_lbl, 0) * 2;
+    lv_obj_set_width(wheel->_lbl, width);
+  }
+
+  // add down arrow
+  wheel->_down = lv_img_create(wheel->_col);
+  lv_img_set_src(wheel->_down, &img_arrow_down);
+
+  // handle arrow focuses
+  lv_obj_add_event_cb(wheel->_lbl, lvx_wheel_focus, LV_EVENT_ALL, wheel);
+  lvx_wheel_refocus(wheel, lv_group_get_focused(gfx_get_group()) == wheel->_lbl);
+}
+
+/* Sign */
+
+void lvx_sign_create(lvx_sign_t* sign, lv_obj_t* parent) {
+  // prepare static variables
+  static lv_style_t base;
+  static lv_style_t title;
+  static bool initialized = false;
+
+  // initialize styles
+  if (!initialized) {
+    lv_style_init(&base);
+    lv_style_set_bg_color(&base, lv_color_white());
+    lv_style_set_bg_opa(&base, LV_OPA_COVER);
+    lv_style_set_text_align(&base, LV_TEXT_ALIGN_CENTER);
+    lvx_style_set_pad(&base, 2, 2 - FNT_OFF, 3, 3 - FNT_OFF);
+    lv_style_init(&title);
+    lv_style_set_bg_color(&title, lv_color_black());
+    lv_style_set_text_color(&title, lv_color_white());
+    initialized = true;
+  }
+
+  // add row
+  sign->_row = lv_obj_create(parent);
+  lv_obj_set_size(sign->_row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_set_flex_align(sign->_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_border_width(sign->_row, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(sign->_row, 0, LV_PART_MAIN);
+
+  // add title
+  sign->_title = lv_label_create(sign->_row);
+  lv_obj_set_size(sign->_title, 18, 18);
+  lv_label_set_text(sign->_title, sign->title);
+  lv_obj_add_style(sign->_title, &base, LV_PART_MAIN);
+  lv_obj_add_style(sign->_title, &title, LV_PART_MAIN);
+
+  // add text
+  sign->_text = lv_label_create(sign->_row);
+  lv_label_set_text(sign->_text, sign->text);
+  lv_obj_add_style(sign->_text, &base, LV_PART_MAIN);
+
+  // apply alignment
+  lv_obj_set_align(sign->_row, sign->align);
+  switch (sign->align) {
+    case LV_ALIGN_BOTTOM_LEFT:
+      lv_obj_set_pos(sign->_row, 5, -5 + sign->offset);
+      lv_obj_set_flex_flow(sign->_row, LV_FLEX_FLOW_ROW);
+      break;
+    case LV_ALIGN_BOTTOM_RIGHT:
+      lv_obj_set_pos(sign->_row, -5, -5 + sign->offset);
+      lv_obj_set_flex_flow(sign->_row, LV_FLEX_FLOW_ROW_REVERSE);
+      break;
+    default:
+      break;
+  }
+}
+
+/* Helpers */
+
+static uint32_t lvx_keys[] = {
+    [SIG_ENTER] = LV_KEY_ENTER, [SIG_ESCAPE] = LV_KEY_ESC, [SIG_UP] = LV_KEY_UP,
+    [SIG_DOWN] = LV_KEY_DOWN,   [SIG_LEFT] = LV_KEY_LEFT,  [SIG_RIGHT] = LV_KEY_RIGHT,
+};
+
+bool lvx_handle(sig_event_t event, bool focus) {
+  // handle focus
+  if (focus) {
+    if (event == SIG_LEFT) {
+      lv_group_focus_prev(gfx_get_group());
+      return true;
+    } else if (event == SIG_RIGHT) {
+      lv_group_focus_next(gfx_get_group());
+      return true;
+    }
+  }
+
+  // send event as key to group
+  lv_group_send_data(gfx_get_group(), lvx_keys[event]);
+
+  return false;
+}
+
+void lvx_log_event(lv_event_t* event) {
+  // prepare names
+  static const char* names[] = {
+      [LV_EVENT_PRESSED] = "PRESSED",
+      [LV_EVENT_PRESSING] = "PRESSING",
+      [LV_EVENT_PRESS_LOST] = "PRESS_LOST",
+      [LV_EVENT_SHORT_CLICKED] = "SHORT_CLICKED",
+      [LV_EVENT_LONG_PRESSED] = "LONG_PRESSED",
+      [LV_EVENT_LONG_PRESSED_REPEAT] = "LONG_PRESSED_REPEAT",
+      [LV_EVENT_CLICKED] = "CLICKED",
+      [LV_EVENT_RELEASED] = "RELEASED",
+      [LV_EVENT_SCROLL_BEGIN] = "SCROLL_BEGIN",
+      [LV_EVENT_SCROLL_END] = "SCROLL_END",
+      [LV_EVENT_SCROLL] = "SCROLL",
+      [LV_EVENT_GESTURE] = "GESTURE",
+      [LV_EVENT_KEY] = "KEY",
+      [LV_EVENT_FOCUSED] = "FOCUSED",
+      [LV_EVENT_DEFOCUSED] = "DEFOCUSED",
+      [LV_EVENT_LEAVE] = "LEAVE",
+      [LV_EVENT_HIT_TEST] = "HIT_TEST",
+  };
+
+  // check and log event
+  if (event->code > 0 && event->code <= LV_EVENT_HIT_TEST) {
+    naos_log("event: %s (%d)", names[event->code], event->code);
+  }
+}
+
+void lvx_style_set_pad(lv_style_t* style, lv_coord_t top, lv_coord_t bottom, lv_coord_t left, lv_coord_t right) {
+  lv_style_set_pad_top(style, top);
+  lv_style_set_pad_bottom(style, bottom);
+  lv_style_set_pad_left(style, left);
+  lv_style_set_pad_right(style, right);
+}

@@ -1,0 +1,32 @@
+{
+  "version": "278df0c8",
+  "fix_serial": true,
+  "baud_rate": "",
+  "embeds": null,
+  "overrides": {
+    "CONFIG_ESPTOOLPY_FLASHSIZE_4MB": null,
+    "CONFIG_ESPTOOLPY_FLASHSIZE_8MB": "y",
+    "CONFIG_ESPTOOLPY_FLASHSIZE": "8MB",
+    "CONFIG_LV_COLOR_DEPTH_16": null,
+    "CONFIG_LV_COLOR_DEPTH_1": "y",
+    "CONFIG_LV_COLOR_DEPTH": "1",
+    "CONFIG_LV_USE_THEME_BASIC": null,
+    "CONFIG_LV_USE_THEME_MONO": "y",
+    "CONFIG_LV_USE_LOG": "y",
+    "CONFIG_LV_LOG_LEVEL_WARN": null,
+    "CONFIG_LV_LOG_LEVEL_INFO": "y",
+    "CONFIG_LV_LOG_LEVEL": "1"
+  },
+  "components": {
+    "lvgl": {
+      "repository": "https://github.com/lvgl/lvgl.git",
+      "version": "v8.3.4"
+    },
+    "art32": {
+      "repository": "https://github.com/256dpi/art32.git",
+      "version": "ba0f6fb"
+    }
+  },
+  "broker": "mqtts://key:secret@example.org",
+  "devices": {}
+}

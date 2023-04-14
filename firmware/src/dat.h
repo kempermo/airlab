@@ -1,0 +1,41 @@
+#include <stdint.h>
+#include <stddef.h>
+
+#define DAT_ATTR __attribute__((packed, aligned(2)))
+
+typedef struct {
+  uint16_t num;
+  int64_t start;  // ms since 1970
+} DAT_ATTR dat_head_t;
+
+typedef struct {
+  int32_t offset;  // ms since start (24d)
+  float co2;       // ppm
+  float tmp;       // °C
+  float hum;       // %rH
+} DAT_ATTR dat_point_t;
+
+typedef struct {
+  dat_head_t head;
+  size_t size;     // points
+  int32_t stop;    // ms since start
+  char title[14];  // "Messung XXX"
+  char date[12];   // "01.01.2023"
+} dat_file_t;
+
+void dat_init();
+
+size_t dat_num_files();
+dat_file_t *dat_file_list();
+
+uint16_t dat_next();
+dat_file_t *dat_create(int64_t start);
+
+void dat_append(uint16_t num, dat_point_t *points, size_t count);
+void dat_read(uint16_t num, dat_point_t *points, size_t count, size_t start);
+void dat_delete(uint16_t num);
+
+size_t dat_search(uint16_t num, int32_t *needle);
+size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start, int32_t resolution);
+
+void dat_reset();
