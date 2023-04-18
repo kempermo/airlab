@@ -753,7 +753,7 @@ static void* scr_menu() {
 
   // add fan
   lv_obj_t* fan = lv_img_create(lv_scr_act());
-  lv_obj_align(fan, LV_ALIGN_BOTTOM_RIGHT, -23, -39);
+  lv_obj_align(fan, LV_ALIGN_BOTTOM_RIGHT, -19, -35);
 
   // end draw
   gfx_end();
