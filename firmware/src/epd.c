@@ -11,7 +11,6 @@
 #define EPD_OTP_LUT true
 #define EPD_BUFFER (EPD_FRAME / 8 * 9 + 2)
 #define EPD_SLEEP 5000
-#define EPD_PARTIALS 20
 
 // See: https://github.com/ZinggJM/GxEPD2/blob/master/src/epd/GxEPD2_290_T94_V2.cpp.
 
@@ -42,7 +41,6 @@ static bool epd_awake = false;
 static uint32_t epd_updated = 0;
 static uint8_t epd_buffer[EPD_BUFFER] = {0};
 static uint8_t epd_frame[EPD_FRAME] = {0};
-static uint8_t epd_partials = EPD_PARTIALS;
 
 // TODO: Reduce buffer copying.
 //  => Accept 9bit aligned data from outside?
@@ -340,18 +338,6 @@ void epd_update(uint8_t *data, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y
   if (y1 % 8) y1 = y1 / 8 * 8;
   if (x2 % 8) x2 = (x2 + 7) / 8 * 8;
   if (y2 % 8) y2 = (y2 + 7) / 8 * 8;
-
-  // check partial
-  if (partial) {
-    if (epd_partials >= EPD_PARTIALS) {
-      partial = false;
-      epd_partials = 0;
-    } else {
-      epd_partials++;
-    }
-  } else {
-    epd_partials = 0;
-  }
 
   // rearrange partial data
   if (partial) {
