@@ -511,6 +511,13 @@ static void* scr_explore() {
   // get total length
   size_t total = dat_num_files();
 
+  // handle empty
+  if (total == 0) {
+    scr_message_text = "Keine gespeicherte\nMessungen...";
+    scr_message_next = scr_menu;
+    return scr_message;
+  }
+
   // begin draw
   gfx_begin(false, false);
 
@@ -522,6 +529,8 @@ static void* scr_explore() {
     rects[i] = lv_obj_create(lv_scr_act());
     names[i] = lv_label_create(lv_scr_act());
     dates[i] = lv_label_create(lv_scr_act());
+    lv_label_set_text(names[i], "");
+    lv_label_set_text(dates[i], "");
     lv_obj_set_size(rects[i], lv_pct(100), 25);
     lv_obj_align(rects[i], LV_ALIGN_TOP_LEFT, 0, 0 + i * 25);
     lv_obj_align(names[i], LV_ALIGN_TOP_LEFT, 5, 5 + i * 25);
@@ -533,10 +542,8 @@ static void* scr_explore() {
   // add signs
   lvx_sign_t back = {.title = "B", .text = "Zurück", .align = LV_ALIGN_BOTTOM_LEFT};
   lvx_sign_create(&back, lv_scr_act());
-  if (total > 0) {
-    lvx_sign_t open = {.title = "A", .text = "Öffnen", .align = LV_ALIGN_BOTTOM_RIGHT};
-    lvx_sign_create(&open, lv_scr_act());
-  }
+  lvx_sign_t open = {.title = "A", .text = "Öffnen", .align = LV_ALIGN_BOTTOM_RIGHT};
+  lvx_sign_create(&open, lv_scr_act());
 
   // add info
   lv_obj_t* info = lv_label_create(lv_scr_act());
@@ -584,7 +591,7 @@ static void* scr_explore() {
     }
 
     // update info
-    lv_label_set_text(info, scr_fmt("%d/%d", total > 0 ? selected + 1 : 0, (int)total));
+    lv_label_set_text(info, scr_fmt("%d/%d", selected + 1, (int)total));
 
     // end draw
     gfx_end();
