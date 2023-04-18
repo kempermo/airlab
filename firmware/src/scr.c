@@ -33,6 +33,16 @@ static const char* scr_fmt(const char* fmt, ...) {
   return str;
 }
 
+static const char* scr_ms2str(int32_t ms) {
+  if (ms > 1000 * 60 * 60) {  // hours
+    return scr_fmt("%dh", ms / 1000 / 60 / 60);
+  } else if (ms > 1000 * 60) {  // minutes
+    return scr_fmt("%dm", ms / 1000 / 60);
+  } else {  // seconds
+    return scr_fmt("%ds", ms / 1000);
+  }
+}
+
 static void scr_cleanup(bool flush) {
   // clear group and screen
   gfx_begin(flush, false);
@@ -448,6 +458,11 @@ static void* scr_edit() {
   lv_obj_t* date = lv_label_create(lv_scr_act());
   lv_label_set_text(date, scr_file->date);
   lv_obj_align(date, LV_ALIGN_TOP_LEFT, 5, 26);
+
+  // add length
+  lv_obj_t* length = lv_label_create(lv_scr_act());
+  lv_label_set_text(length, scr_ms2str(scr_file->stop));
+  lv_obj_align(length, LV_ALIGN_TOP_MID, 0, 26);
 
   // add signs
   lvx_sign_t analyze = {.title = "A", .text = "Analyse", .align = LV_ALIGN_BOTTOM_RIGHT};
