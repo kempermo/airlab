@@ -822,7 +822,7 @@ static void* scr_menu() {
 
   // add power
   lv_obj_t* pwr = lv_img_create(lv_scr_act());
-  lv_obj_align(pwr, LV_ALIGN_TOP_LEFT, 50, 4);
+  lv_obj_align(pwr, LV_ALIGN_TOP_LEFT, 50, 3);
 
   // add value
   lv_obj_t* value = lv_label_create(lv_scr_act());
@@ -885,8 +885,7 @@ static void* scr_menu() {
 
     // set power
     if (power.usb) {
-      // TODO: Set powered icon.
-      lv_img_set_src(pwr, &img_bat3);
+      lv_img_set_src(pwr, &img_power);
     } else if (power.battery > 0.75) {
       lv_img_set_src(pwr, &img_bat3);
     } else if (power.battery > 0.5) {

@@ -13,5 +13,6 @@ extern const lv_img_dsc_t img_bat0;
 extern const lv_img_dsc_t img_bat1;
 extern const lv_img_dsc_t img_bat2;
 extern const lv_img_dsc_t img_bat3;
+extern const lv_img_dsc_t img_power;
 extern const lv_img_dsc_t img_lock;
 extern const lv_img_dsc_t img_record;
