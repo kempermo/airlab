@@ -212,6 +212,8 @@ void lvx_sign_create(lvx_sign_t* sign, lv_obj_t* parent) {
       lv_obj_set_flex_flow(sign->_row, LV_FLEX_FLOW_ROW_REVERSE);
       break;
     default:
+      lv_obj_set_pos(sign->_row, 0, sign->offset);
+      lv_obj_set_flex_flow(sign->_row, LV_FLEX_FLOW_ROW);
       break;
   }
 }
