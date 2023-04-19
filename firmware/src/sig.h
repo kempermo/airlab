@@ -1,8 +1,8 @@
-#include <stdbool.h>
-#include <stdint.h>
-
 #ifndef SIG_H
 #define SIG_H
+
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef enum {
   SIG_ANY = 0,

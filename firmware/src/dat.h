@@ -1,3 +1,6 @@
+#ifndef DAT_H
+#define DAT_H
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -39,3 +42,5 @@ size_t dat_search(uint16_t num, int32_t *needle);
 size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start, int32_t resolution);
 
 void dat_reset();
+
+#endif  // DAT_H

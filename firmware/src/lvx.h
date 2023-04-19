@@ -1,3 +1,6 @@
+#ifndef LVX_H
+#define LVX_H
+
 #include <lvgl.h>
 
 #include "sig.h"
@@ -41,3 +44,5 @@ bool lvx_handle(sig_event_t event, bool focus);
 void lvx_log_event(lv_event_t *event);
 
 void lvx_style_set_pad(lv_style_t *style, lv_coord_t top, lv_coord_t bottom, lv_coord_t left, lv_coord_t right);
+
+#endif  // LVX_H
