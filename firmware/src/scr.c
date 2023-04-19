@@ -134,10 +134,15 @@ static void* scr_debug() {
       // log
       naos_log("power off...");
 
+      // cleanup screen
+      scr_cleanup(true);
+      naos_delay(5000);
+
       // power off
       pwr_off();
+      naos_delay(5000);
 
-      continue;
+      return scr_debug;
     }
 
     // handle up and down
