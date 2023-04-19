@@ -19,8 +19,6 @@
 static dat_file_t* scr_file = NULL;
 static bool scr_record = false;
 static dat_point_t scr_points[SCR_CHART_POINTS] = {0};
-static const char* scr_message_text = NULL;
-static void* scr_message_next = NULL;
 
 /* Helpers */
 
@@ -49,6 +47,22 @@ static void scr_cleanup(bool flush) {
   lv_group_remove_all_objs(gfx_get_group());
   lv_obj_clean(lv_scr_act());
   gfx_end();
+}
+
+static void scr_message(const char* text) {
+  // show heart and title
+  gfx_begin(false, false);
+  lv_obj_t* lbl = lv_label_create(lv_scr_act());
+  lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(lbl, text);
+  lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  gfx_end();
+
+  // wait some time
+  naos_delay(2000);
+
+  // cleanup
+  scr_cleanup(false);
 }
 
 /* Screens */
@@ -170,24 +184,6 @@ static void* scr_debug() {
   }
 }
 
-static void* scr_message() {
-  // show heart and title
-  gfx_begin(false, false);
-  lv_obj_t* lbl = lv_label_create(lv_scr_act());
-  lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
-  lv_label_set_text(lbl, scr_message_text);
-  lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-  gfx_end();
-
-  // wait some time
-  naos_delay(2000);
-
-  // cleanup
-  scr_cleanup(false);
-
-  return scr_message_next;
-}
-
 static void* scr_saver() {
   // prepare variables
   bool right = false;
@@ -283,11 +279,10 @@ static void* scr_exit() {
     // clear flag
     scr_record = false;
 
-    // prepare message
-    scr_message_text = scr_fmt("Messung %d\n gespeichert!", scr_file->head.num);
-    scr_message_next = scr_menu;
+    // show message
+    scr_message(scr_fmt("Messung %d\n gespeichert!", scr_file->head.num));
 
-    return scr_message;
+    return scr_menu;
   }
 
   return scr_menu;
@@ -553,14 +548,16 @@ static void* scr_delete() {
 
   /* handle enter */
 
+  // capture num
+  uint16_t num = scr_file->head.num;
+
   // delete file
   dat_delete(scr_file->head.num);
 
-  // configure message
-  scr_message_text = "Messung\nerfolgreich gelöscht!";
-  scr_message_next = scr_explore;
+  // show message
+  scr_message(scr_fmt("Messung %d\nerfolgreich gelöscht!", num));
 
-  return scr_message;
+  return scr_explore;
 }
 
 static void* scr_edit() {
@@ -631,9 +628,10 @@ static void* scr_explore() {
 
   // handle empty
   if (total == 0) {
-    scr_message_text = "Keine gespeicherte\nMessungen...";
-    scr_message_next = scr_menu;
-    return scr_message;
+    // show message
+    scr_message("Keine gespeicherte\nMessungen...");
+
+    return scr_menu;
   }
 
   // begin draw
@@ -796,11 +794,10 @@ static void* scr_reset() {
   // reset data
   dat_reset();
 
-  // configure message
-  scr_message_text = "Air Lab\nerfolgreich zurückgesetzt!";
-  scr_message_next = scr_intro;
+  // show message
+  scr_message("Air Lab\nerfolgreich zurückgesetzt!");
 
-  return scr_message;
+  return scr_intro;
 }
 
 static void* scr_settings() {
@@ -1079,11 +1076,10 @@ static void* scr_time() {
       return scr_date;
     }
 
-    // configure message
-    scr_message_text = "Einstellungen\ngespeichert!";
-    scr_message_next = scr_menu;
+    // show message
+    scr_message("Einstellungen\ngespeichert!");
 
-    return scr_message;
+    return scr_menu;
   }
 }
 
