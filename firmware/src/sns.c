@@ -11,6 +11,7 @@
 // TODO: Support low power measurement mode (30s).
 
 static naos_mutex_t sns_mutex;
+static naos_signal_t sns_signal;
 static sns_state_t sns_state = {0};
 static uint16_t sns_write[8];
 static uint16_t sns_read[8];
@@ -102,6 +103,9 @@ static void sns_check() {
     // release mutex
     naos_unlock(sns_mutex);
 
+    // trigger signal
+    naos_trigger(sns_signal, 1, false);
+
     // dispatch event
     sig_dispatch(SIG_SENSOR);
   }
@@ -110,6 +114,9 @@ static void sns_check() {
 void sns_init() {
   // create mutex
   sns_mutex = naos_mutex();
+
+  // create signal
+  sns_signal = naos_signal();
 
   // wait at least one second
   uint32_t ms = naos_millis();
@@ -166,6 +173,16 @@ sns_state_t sns_get() {
 
   // release mutex
   naos_unlock(sns_mutex);
+
+  return state;
+}
+
+sns_state_t sns_next() {
+  // await signal
+  naos_await(sns_signal, 1, true);
+
+  // get state
+  sns_state_t state = sns_get();
 
   return state;
 }

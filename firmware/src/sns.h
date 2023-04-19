@@ -8,8 +8,8 @@ typedef struct {
 } sns_state_t;
 
 void sns_init();
-
 void sns_set(bool on);
 sns_state_t sns_get();
+sns_state_t sns_next();
 
 #endif  // SNS_H
