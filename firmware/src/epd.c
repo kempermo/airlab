@@ -2,6 +2,7 @@
 #include <naos_sys.h>
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
+#include <memory.h>
 
 #include "epd.h"
 
@@ -339,7 +340,7 @@ void epd_update(uint8_t *data, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y
   if (x2 % 8) x2 = (x2 + 7) / 8 * 8;
   if (y2 % 8) y2 = (y2 + 7) / 8 * 8;
 
-  // rearrange partial data
+  // copy data
   if (partial) {
     size_t i = 0;
     for (size_t y = y1; y < y2; y++) {
@@ -347,6 +348,8 @@ void epd_update(uint8_t *data, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y
         epd_bmp_set(epd_frame, i++, epd_bmp_get(data, y * EPD_WIDTH + x));
       }
     }
+  } else {
+    memcpy(epd_frame, data, EPD_FRAME / 8);
   }
 
   // awake display
