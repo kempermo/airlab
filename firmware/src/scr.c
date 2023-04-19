@@ -53,6 +53,7 @@ static void scr_cleanup(bool flush) {
 
 /* Screens */
 
+static void* scr_saver();
 static void* scr_edit();
 static void* scr_explore();
 static void* scr_menu();
@@ -73,13 +74,15 @@ static void* scr_debug() {
   // add signs
   lvx_sign_t start = {.title = "A", .text = "Menu", .align = LV_ALIGN_BOTTOM_LEFT};
   lvx_sign_t white = {.title = "B", .text = "White", .align = LV_ALIGN_BOTTOM_RIGHT};
-  lvx_sign_t light = {.title = "↑", .text = "Light", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
-  lvx_sign_t deep = {.title = "↓", .text = "Deep", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -50};
+  lvx_sign_t light = {.title = "↑", .text = "Light", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -50};
+  lvx_sign_t deep = {.title = "↓", .text = "Deep", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
+  lvx_sign_t save = {.title = "<", .text = "Save", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -50};
   lvx_sign_t off = {.title = ">", .text = "Off", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -25};
   lvx_sign_create(&start, lv_scr_act());
   lvx_sign_create(&white, lv_scr_act());
   lvx_sign_create(&light, lv_scr_act());
   lvx_sign_create(&deep, lv_scr_act());
+  lvx_sign_create(&save, lv_scr_act());
   lvx_sign_create(&off, lv_scr_act());
 
   // end draw
@@ -106,14 +109,14 @@ static void* scr_debug() {
     gfx_end();
 
     // await event
-    sig_event_t event = sig_await(SIG_SENSOR | SIG_META | SIG_UP | SIG_DOWN | SIG_RIGHT, 5000);
+    sig_event_t event = sig_await(SIG_SENSOR | SIG_KEYS, 5000);
 
     // loop on sensor
     if (event == SIG_SENSOR) {
       continue;
     }
 
-    // handle off
+    // handle right
     if (event == SIG_RIGHT) {
       // log
       naos_log("power off...");
@@ -124,7 +127,7 @@ static void* scr_debug() {
       continue;
     }
 
-    // handle sleep
+    // handle up and down
     if (event == SIG_UP || event == SIG_DOWN) {
       // log sleep
       naos_log("sleeping... (deep=%d)", event == SIG_DOWN);
@@ -152,6 +155,11 @@ static void* scr_debug() {
     // cleanup
     scr_cleanup(event == SIG_ESCAPE);
 
+    // handle left
+    if (event == SIG_LEFT) {
+      return scr_saver;
+    }
+
     // handle enter and escape
     if (event == SIG_ENTER) {
       return scr_menu;
@@ -178,6 +186,77 @@ static void* scr_message() {
   scr_cleanup(false);
 
   return scr_message_next;
+}
+
+static void* scr_saver() {
+  // prepare variables
+  bool right = false;
+
+  // begin draw
+  gfx_begin(false, false);
+
+  // TODO: Add record icon.
+
+  // add icons
+  lv_obj_t* lock = lv_img_create(lv_scr_act());
+  lv_obj_t* record = lv_img_create(lv_scr_act());
+  lv_img_set_src(lock, &img_lock);
+  lv_img_set_src(record, &img_record);
+
+  // add values
+  lv_obj_t* time = lv_label_create(lv_scr_act());
+  lv_obj_t* co2 = lv_label_create(lv_scr_act());
+  lv_obj_t* tmp = lv_label_create(lv_scr_act());
+  lv_obj_t* hum = lv_label_create(lv_scr_act());
+
+  // end draw
+  gfx_end();
+
+  for (;;) {
+    // get time
+    uint16_t hour, minute;
+    sys_get_time(&hour, &minute);
+
+    // read sensor
+    sns_state_t sensor = sns_get();
+
+    // begin draw
+    gfx_begin(false, false);
+
+    // update values
+    lv_label_set_text(time, scr_fmt("%02d:%02d", hour, minute));
+    lv_label_set_text(co2, scr_fmt("%d ppm CO2", sensor.co2));
+    lv_label_set_text(tmp, scr_fmt("%.1f °C", sensor.tmp));
+    lv_label_set_text(hum, scr_fmt("%.1f% RH", sensor.hum));
+
+    // align objects
+    lv_align_t align = right ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT;
+    lv_obj_align(lock, align, right ? -19 : 19, 19);
+    lv_obj_align(record, align, right ? -39 : 39, 20);
+    lv_obj_align(time, align, right ? -19 : 19, 41);
+    lv_obj_align(co2, align, right ? -19 : 19, 59);
+    lv_obj_align(tmp, align, right ? -19 : 19, 77);
+    lv_obj_align(hum, align, right ? -19 : 19, 95);
+
+    // end draw
+    gfx_end();
+
+    // wait some time
+    sig_event_t event = sig_await(SIG_TIMEOUT | SIG_ENTER, 5000);
+
+    // handle enter
+    if (event == SIG_ENTER) {
+      break;
+    }
+
+    // flip side
+    right = !right;
+  }
+
+  // cleanup
+  scr_cleanup(false);
+
+  return scr_menu;
 }
 
 static void* scr_view() {
