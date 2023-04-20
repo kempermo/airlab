@@ -12,6 +12,9 @@
 #include "scr.h"
 
 static void setup() {
+  // log
+  naos_log("setup");
+
   // initialize
   dev_init();
   sig_init();
