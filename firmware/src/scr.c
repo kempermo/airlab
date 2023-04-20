@@ -141,8 +141,9 @@ static void* scr_debug() {
     sys_get_time(&hour, &minute);
 
     // prepare text
-    const char* text = scr_fmt("%llds - %.0f%% - P%d - F%d\n%04d-%02d-%02d %02d:%02d", naos_millis() / 1000,
-                               bat.battery * 100, bat.usb, bat.fast, year, month, day, hour, minute);
+    const char* text =
+        scr_fmt("%llds - %.0f%% - P%d - F%d\n%04d-%02d-%02d %02d:%02d\n%lu B", naos_millis() / 1000, bat.battery * 100,
+                bat.usb, bat.fast, year, month, day, hour, minute, esp_get_free_heap_size());
 
     // update label
     gfx_begin(false, false);
