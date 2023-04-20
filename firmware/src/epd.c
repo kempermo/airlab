@@ -44,10 +44,6 @@ static uint32_t epd_updated = 0;
 static uint8_t epd_buffer[EPD_BUFFER] = {0};
 static uint8_t epd_frame[EPD_FRAME] = {0};
 
-// TODO: Reduce buffer copying.
-//  => Accept 9bit aligned data from outside?
-//  => GFX could directly write data in 9bit format.
-
 /* bitmap manipulation */
 
 static void epd_bmp_set(uint8_t *buf, size_t pos, bool val) {

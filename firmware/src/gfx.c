@@ -12,10 +12,7 @@
 #define GFX_DEBUG false
 #define GFX_TRACE false
 
-// TODO: Only run display task on request.
-//  Dispatch an event on gfx_end()?
-
-// Docs: https://docs.lvgl.io/master/index.html.
+// Docs: https://docs.lvgl.io/master/index.html
 
 static naos_mutex_t gfx_mutex;
 static lv_disp_draw_buf_t gfx_draw_buffer;
