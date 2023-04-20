@@ -12,15 +12,16 @@
 #include "sys.h"
 #include "rec.h"
 #include "epd.h"
+#include "dev.h"
 
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
 #define SCR_CHART_POINTS 72
 #define SCR_POSITION_STEP 300000
 
-static void* scr_return = NULL;
 static dat_file_t* scr_file = NULL;
 static dat_point_t scr_points[SCR_CHART_POINTS] = {0};
+DEV_KEEP static void * scr_return = NULL;
 
 /* Helpers */
 
@@ -83,6 +84,9 @@ static void scr_power_off() {
   // cleanup screen
   scr_cleanup(true);
   naos_delay(5000);
+
+  // clear return
+  scr_return = NULL;
 
   // power off
   pwr_off();
@@ -171,6 +175,9 @@ static void* scr_debug() {
 
       // sleep display
       epd_sleep();
+
+      // set return
+      scr_return = scr_debug;
 
       // perform sleep
       pwr_sleep(event == SIG_DOWN);
@@ -1196,6 +1203,11 @@ void scr_task() {
   // check settings
   if (!sys_has_date() || !sys_has_time()) {
     handler = scr_intro;
+  }
+
+  // handle return
+  if (scr_return != NULL) {
+    handler = scr_return;
   }
 
   // call handlers
