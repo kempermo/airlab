@@ -13,9 +13,12 @@
 #include "rec.h"
 #include "epd.h"
 
+#define SCR_ACTION_TIMEOUT 10000
+#define SCR_IDLE_TIMEOUT 30000
 #define SCR_CHART_POINTS 72
 #define SCR_POSITION_STEP 300000
 
+static void* scr_return = NULL;
 static dat_file_t* scr_file = NULL;
 static dat_point_t scr_points[SCR_CHART_POINTS] = {0};
 
@@ -78,6 +81,7 @@ static void scr_power_off() {
 /* Screens */
 
 static void* scr_saver();
+static void* scr_view();
 static void* scr_edit();
 static void* scr_explore();
 static void* scr_menu();
@@ -133,7 +137,7 @@ static void* scr_debug() {
     gfx_end();
 
     // await event
-    sig_event_t event = sig_await(SIG_SENSOR | SIG_KEYS, 5000);
+    sig_event_t event = sig_await(SIG_SENSOR | SIG_KEYS, 0);
 
     // loop on sensor
     if (event == SIG_SENSOR) {
@@ -176,6 +180,7 @@ static void* scr_debug() {
 
     // handle left
     if (event == SIG_LEFT) {
+      scr_return = scr_debug;
       return scr_saver;
     }
 
@@ -246,7 +251,7 @@ static void* scr_saver() {
     gfx_end();
 
     // wait some time
-    sig_event_t event = sig_await(SIG_TIMEOUT | SIG_ENTER, 5000);
+    sig_event_t event = sig_await(SIG_ENTER, 15000);
 
     // handle enter
     if (event == SIG_ENTER) {
@@ -260,7 +265,7 @@ static void* scr_saver() {
   // cleanup
   scr_cleanup(false);
 
-  return scr_menu;
+  return scr_return;
 }
 
 static void* scr_exit() {
@@ -277,10 +282,15 @@ static void* scr_exit() {
   gfx_end();
 
   // await event
-  sig_event_t event = sig_await(SIG_META, 0);
+  sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
 
   // cleanup
   scr_cleanup(false);
+
+  // go back to view on timeout
+  if (event == SIG_TIMEOUT) {
+    return scr_view;
+  }
 
   // handle enter
   if (event == SIG_ENTER) {
@@ -406,7 +416,18 @@ static void* scr_view() {
     if (rec_running() && rec_file() == scr_file) {
       filter |= SIG_APPEND;
     }
-    sig_event_t event = sig_await(filter, 0);
+    sig_event_t event = sig_await(filter, SCR_IDLE_TIMEOUT);
+
+    // handle idle timeout
+    if (event == SIG_TIMEOUT) {
+      // cleanup
+      scr_cleanup(false);
+
+      // set return
+      scr_return = scr_view;
+
+      return scr_saver;
+    }
 
     // handle escape
     if (event == SIG_ESCAPE) {
@@ -486,13 +507,13 @@ static void* scr_create() {
 
   for (;;) {
     // await event
-    sig_event_t event = sig_await(SIG_META, 0);
+    sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
 
     // cleanup
     scr_cleanup(false);
 
-    // handle escape
-    if (event == SIG_ESCAPE) {
+    // handle escape and timeout
+    if (event == SIG_ESCAPE || event == SIG_TIMEOUT) {
       return scr_menu;
     }
 
@@ -528,13 +549,13 @@ static void* scr_delete() {
   gfx_end();
 
   // await event
-  sig_event_t event = sig_await(SIG_META, 0);
+  sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
 
   // cleanup
   scr_cleanup(false);
 
-  // handle escape
-  if (event == SIG_ESCAPE) {
+  // handle escape and timeout
+  if (event == SIG_ESCAPE || event == SIG_TIMEOUT) {
     return scr_edit;
   }
 
@@ -584,7 +605,7 @@ static void* scr_edit() {
 
   for (;;) {
     // await event
-    sig_event_t event = sig_await(SIG_META | SIG_LEFT, 0);
+    sig_event_t event = sig_await(SIG_META | SIG_LEFT, SCR_ACTION_TIMEOUT);
 
     // cleanup
     scr_cleanup(false);
@@ -592,6 +613,7 @@ static void* scr_edit() {
     // handle event
     switch (event) {
       case SIG_ESCAPE:
+      case SIG_TIMEOUT:
         return scr_explore;
       case SIG_LEFT:
         return scr_delete;
@@ -704,7 +726,7 @@ static void* scr_explore() {
     gfx_end();
 
     // await event
-    sig_event_t event = sig_await(SIG_VERT | SIG_META, 0);
+    sig_event_t event = sig_await(SIG_VERT | SIG_META, SCR_ACTION_TIMEOUT);
 
     // handle arrows
     if (event == SIG_UP) {
@@ -726,18 +748,13 @@ static void* scr_explore() {
       continue;
     }
 
-    /* handle meta keys */
-
-    // ignore enter if there are no measurements
-    if (total == 0 && event == SIG_ENTER) {
-      continue;
-    }
+    /* handle meta and timeout */
 
     // cleanup
     scr_cleanup(false);
 
-    // handle escape
-    if (event == SIG_ESCAPE) {
+    // handle escape and timeout
+    if (event == SIG_ESCAPE || event == SIG_TIMEOUT) {
       return scr_menu;
     }
 
@@ -770,13 +787,13 @@ static void* scr_reset() {
   gfx_end();
 
   // await event
-  sig_event_t event = sig_await(SIG_META, 0);
+  sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
 
   // cleanup
   scr_cleanup(false);
 
   // handle escape
-  if (event == SIG_ESCAPE) {
+  if (event == SIG_ESCAPE || event == SIG_TIMEOUT) {
     return scr_settings;
   }
 
@@ -813,7 +830,7 @@ static void* scr_settings() {
 
   for (;;) {
     // await event
-    sig_event_t event = sig_await(SIG_UP | SIG_LEFT | SIG_ESCAPE | SIG_ENTER, 0);
+    sig_event_t event = sig_await(SIG_UP | SIG_LEFT | SIG_ESCAPE | SIG_ENTER, SCR_ACTION_TIMEOUT);
 
     // cleanup
     scr_cleanup(false);
@@ -825,6 +842,7 @@ static void* scr_settings() {
       case SIG_LEFT:
         return scr_reset;
       case SIG_ESCAPE:
+      case SIG_TIMEOUT:
         return scr_menu;
       case SIG_ENTER:
         return scr_debug;
@@ -900,6 +918,9 @@ static void* scr_menu() {
   // end draw
   gfx_end();
 
+  // prepare deadline
+  int64_t deadline = naos_millis() + SCR_IDLE_TIMEOUT;
+
   for (;;) {
     // get time
     uint16_t hour, minute;
@@ -962,6 +983,13 @@ static void* scr_menu() {
     // await event
     sig_event_t event = sig_await(SIG_SENSOR | SIG_ENTER | SIG_ARROWS, 0);
 
+    // handle deadline
+    if (event == SIG_SENSOR && naos_millis() > deadline) {
+      event = SIG_TIMEOUT;
+    } else if (event != SIG_SENSOR) {
+      deadline = naos_millis() + SCR_IDLE_TIMEOUT;
+    }
+
     // loop on sensor
     if (event == SIG_SENSOR) {
       continue;
@@ -999,6 +1027,12 @@ static void* scr_menu() {
 
     // cleanup
     scr_cleanup(false);
+
+    // enter screen saver on timeout
+    if (event == SIG_TIMEOUT) {
+      scr_return = scr_menu;
+      return scr_saver;
+    }
 
     // handle enter
     if (event == SIG_ENTER) {
@@ -1061,7 +1095,7 @@ static void* scr_time() {
 
   for (;;) {
     // await event
-    sig_event_t event = sig_await(SIG_KEYS, 0);
+    sig_event_t event = sig_await(SIG_KEYS, SCR_ACTION_TIMEOUT);
 
     // forward arrows
     if ((event & SIG_ARROWS) != 0) {
@@ -1069,7 +1103,7 @@ static void* scr_time() {
       continue;
     }
 
-    /* handle meta keys */
+    /* handle meta and timeout */
 
     // save time
     sys_set_time(hour.value, minute.value);
@@ -1078,7 +1112,7 @@ static void* scr_time() {
     scr_cleanup(false);
 
     // handle escape event
-    if (event == SIG_ESCAPE) {
+    if (event == SIG_ESCAPE || event == SIG_TIMEOUT) {
       return scr_date;
     }
 
@@ -1131,7 +1165,7 @@ static void* scr_date() {
 
   for (;;) {
     // await event
-    sig_event_t event = sig_await(SIG_META | SIG_ARROWS, 0);
+    sig_event_t event = sig_await(SIG_META | SIG_ARROWS, SCR_ACTION_TIMEOUT);
 
     // handle arrows
     if ((event & SIG_ARROWS) != 0) {
@@ -1143,9 +1177,13 @@ static void* scr_date() {
     scr_cleanup(false);
 
     // power off on escape (with fallback)
-    if (event == SIG_ESCAPE) {
-      scr_power_off();
-      return scr_intro;
+    if (event == SIG_ESCAPE || event == SIG_TIMEOUT) {
+      if (!sys_has_date() || !sys_has_time()) {
+        scr_power_off();
+        return scr_intro;
+      } else {
+        return scr_settings;
+      }
     }
 
     /* handle enter */
