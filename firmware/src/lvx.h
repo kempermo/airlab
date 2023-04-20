@@ -37,6 +37,24 @@ typedef struct {
 
 void lvx_sign_create(lvx_sign_t *sign, lv_obj_t *parent);
 
+/* Bar */
+
+typedef struct {
+  const char *time;
+  const char *value;
+  // ---
+  lv_obj_t *_time;
+  lv_obj_t *_pwr;
+  lv_obj_t *_rec;
+  lv_obj_t *_val;
+  lv_obj_t *_ar1;
+  lv_obj_t *_ar2;
+
+} lvx_bar_t;
+
+void lvx_bar_create(lvx_bar_t *bar, lv_obj_t *parent);
+void lvx_bar_update(lvx_bar_t *bar);
+
 /* Helpers */
 
 bool lvx_handle(sig_event_t event, bool focus);

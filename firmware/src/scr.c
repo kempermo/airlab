@@ -329,21 +329,11 @@ static void* scr_view() {
   // begin draw
   gfx_begin(false, false);
 
-  // add time
-  lv_obj_t* time = lv_label_create(lv_scr_act());
-  lv_obj_align(time, LV_ALIGN_TOP_LEFT, 5, 5);
+  // add bar
+  lvx_bar_t bar = {0};
+  lvx_bar_create(&bar, lv_scr_act());
 
-  // TODO: Show battery icon.
-  // TODO: Show recording icon if viewing recording.
-  // TODO: Show mark number.
-
-  // add info
-  lv_obj_t* info = lv_label_create(lv_scr_act());
-  lv_obj_align(info, LV_ALIGN_TOP_MID, 0, 5);
-
-  // add value
-  lv_obj_t* value = lv_label_create(lv_scr_act());
-  lv_obj_align(value, LV_ALIGN_TOP_RIGHT, -(5 - FNT_OFF), 5);
+  // TODO: Show current mark.
 
   // add chart
   lv_obj_t* chart = lv_chart_create(lv_scr_act());
@@ -391,20 +381,16 @@ static void* scr_view() {
     // begin draw
     gfx_begin(false, false);
 
-    // set time
-    lv_label_set_text(time, scr_fmt("%02d:%02d", hour, minute));
-
-    // set info and value
+    // update bar
+    bar.time = scr_fmt("%02d:%02d", hour, minute);
     if (mode == 0) {
-      lv_label_set_text(info, "CO2");
-      lv_label_set_text(value, scr_fmt("%d ppm", sensor.co2));
+      bar.value = scr_fmt("%d ppm CO2", sensor.co2);
     } else if (mode == 1) {
-      lv_label_set_text(info, "TMP");
-      lv_label_set_text(value, scr_fmt("%.1f °C", sensor.tmp));
+      bar.value = scr_fmt("%.1f °C", sensor.tmp);
     } else if (mode == 2) {
-      lv_label_set_text(info, "HUM");
-      lv_label_set_text(value, scr_fmt("%.0f%% rH", sensor.hum));
+      bar.value = scr_fmt("%.1f%% rH", sensor.hum);
     }
+    lvx_bar_update(&bar);
 
     // update plot
     lv_chart_set_all_value(chart, series, 0);
@@ -872,32 +858,9 @@ static void* scr_menu() {
   // begin draw
   gfx_begin(false, false);
 
-  // add time
-  lv_obj_t* time = lv_label_create(lv_scr_act());
-  lv_obj_align(time, LV_ALIGN_TOP_LEFT, 5, 5);
-
-  // add power icon
-  lv_obj_t* pwr = lv_img_create(lv_scr_act());
-  lv_obj_align(pwr, LV_ALIGN_TOP_LEFT, 60, 3);
-
-  // add record icon if recording
-  if (rec_running()) {
-    lv_obj_t* record = lv_img_create(lv_scr_act());
-    lv_img_set_src(record, &img_record);
-    lv_obj_align(record, LV_ALIGN_TOP_LEFT, 80, 3);
-  }
-
-  // add value
-  lv_obj_t* value = lv_label_create(lv_scr_act());
-  lv_obj_align(value, LV_ALIGN_TOP_RIGHT, -(20 - FNT_OFF), 5);
-
-  // add arrow
-  lv_obj_t* arrow1 = lv_img_create(lv_scr_act());
-  lv_obj_t* arrow2 = lv_img_create(lv_scr_act());
-  lv_img_set_src(arrow1, &img_arrow_up);
-  lv_img_set_src(arrow2, &img_arrow_down);
-  lv_obj_align(arrow1, LV_ALIGN_TOP_RIGHT, -5, 5);
-  lv_obj_align(arrow2, LV_ALIGN_TOP_RIGHT, -5, 13);
+  // add bar
+  lvx_bar_t bar = {0};
+  lvx_bar_create(&bar, lv_scr_act());
 
   // add line
   lv_obj_t* line = lv_obj_create(lv_scr_act());
@@ -937,39 +900,22 @@ static void* scr_menu() {
     uint16_t hour, minute;
     sys_get_time(&hour, &minute);
 
-    // read power
-    pwr_state_t power = pwr_get();
-
     // read sensor
     sns_state_t sensor = sns_get();
 
     // begin draw
     gfx_begin(false, false);
 
-    // set time
-    lv_label_set_text(time, scr_fmt("%02d:%02d", hour, minute));
-
-    // set power
-    if (power.usb) {
-      lv_img_set_src(pwr, &img_power);
-    } else if (power.battery > 0.75) {
-      lv_img_set_src(pwr, &img_bat3);
-    } else if (power.battery > 0.5) {
-      lv_img_set_src(pwr, &img_bat2);
-    } else if (power.battery > 0.25) {
-      lv_img_set_src(pwr, &img_bat1);
-    } else {
-      lv_img_set_src(pwr, &img_bat0);
-    }
-
-    // set info and value
+    // update bar
+    bar.time = scr_fmt("%02d:%02d", hour, minute);
     if (mode == 0) {
-      lv_label_set_text(value, scr_fmt("%d ppm CO2", sensor.co2));
+      bar.value = scr_fmt("%d ppm CO2", sensor.co2);
     } else if (mode == 1) {
-      lv_label_set_text(value, scr_fmt("%.1f °C", sensor.tmp));
+      bar.value = scr_fmt("%.1f °C", sensor.tmp);
     } else if (mode == 2) {
-      lv_label_set_text(value, scr_fmt("%.1f%% rH", sensor.hum));
+      bar.value = scr_fmt("%.1f%% rH", sensor.hum);
     }
+    lvx_bar_update(&bar);
 
     // set icon
     if (opt == 0) {

@@ -9,6 +9,8 @@
 #include "gfx.h"
 #include "fnt.h"
 #include "img.h"
+#include "pwr.h"
+#include "rec.h"
 
 /* Helpers */
 
@@ -216,6 +218,63 @@ void lvx_sign_create(lvx_sign_t* sign, lv_obj_t* parent) {
       lv_obj_set_flex_flow(sign->_row, LV_FLEX_FLOW_ROW);
       break;
   }
+}
+
+/* Bar */
+
+void lvx_bar_create(lvx_bar_t* bar, lv_obj_t* parent) {
+  // add time
+  bar->_time = lv_label_create(parent);
+  lv_obj_align(bar->_time, LV_ALIGN_TOP_LEFT, 5, 5);
+
+  // add power icon
+  bar->_pwr = lv_img_create(parent);
+  lv_obj_align(bar->_pwr, LV_ALIGN_TOP_LEFT, 60, 3);
+
+  // add record icon if recording
+  if (rec_running()) {
+    bar->_rec = lv_img_create(parent);
+    lv_img_set_src(bar->_rec, &img_record);
+    lv_obj_align(bar->_rec, LV_ALIGN_TOP_LEFT, 80, 5);
+  }
+
+  // TODO: Add mark label.
+
+  // add value
+  bar->_val = lv_label_create(parent);
+  lv_obj_align(bar->_val, LV_ALIGN_TOP_RIGHT, -(20 - FNT_OFF), 5);
+
+  // add arrows
+  bar->_ar1 = lv_img_create(parent);
+  bar->_ar2 = lv_img_create(parent);
+  lv_img_set_src(bar->_ar1, &img_arrow_up);
+  lv_img_set_src(bar->_ar2, &img_arrow_down);
+  lv_obj_align(bar->_ar1, LV_ALIGN_TOP_RIGHT, -5, 5);
+  lv_obj_align(bar->_ar2, LV_ALIGN_TOP_RIGHT, -5, 13);
+}
+
+void lvx_bar_update(lvx_bar_t* bar) {
+  // set time
+  lv_label_set_text(bar->_time, bar->time);
+
+  // read power
+  pwr_state_t power = pwr_get();
+
+  // update power
+  if (power.usb) {
+    lv_img_set_src(bar->_pwr, &img_power);
+  } else if (power.battery > 0.75) {
+    lv_img_set_src(bar->_pwr, &img_bat3);
+  } else if (power.battery > 0.5) {
+    lv_img_set_src(bar->_pwr, &img_bat2);
+  } else if (power.battery > 0.25) {
+    lv_img_set_src(bar->_pwr, &img_bat1);
+  } else {
+    lv_img_set_src(bar->_pwr, &img_bat0);
+  }
+
+  // update value
+  lv_label_set_text(bar->_val, bar->value);
 }
 
 /* Helpers */
