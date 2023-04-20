@@ -54,6 +54,7 @@ static void scr_message(const char* text) {
   lv_obj_t* lbl = lv_label_create(lv_scr_act());
   lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
   lv_label_set_text(lbl, text);
+  lv_obj_set_style_text_line_space(lbl, 6, LV_PART_MAIN);
   lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
   gfx_end();
 
@@ -62,6 +63,16 @@ static void scr_message(const char* text) {
 
   // cleanup
   scr_cleanup(false);
+}
+
+static void scr_power_off() {
+  // cleanup screen
+  scr_cleanup(true);
+  naos_delay(5000);
+
+  // power off
+  pwr_off();
+  naos_delay(5000);
 }
 
 /* Screens */
@@ -129,19 +140,9 @@ static void* scr_debug() {
       continue;
     }
 
-    // handle right
+    // power off on right (with fallback)
     if (event == SIG_RIGHT) {
-      // log
-      naos_log("power off...");
-
-      // cleanup screen
-      scr_cleanup(true);
-      naos_delay(5000);
-
-      // power off
-      pwr_off();
-      naos_delay(5000);
-
+      scr_power_off();
       return scr_debug;
     }
 
@@ -1021,6 +1022,9 @@ static void* scr_menu() {
 }
 
 static void* scr_time() {
+  // show message
+  scr_message("Und was ist die\ngenaue Zeit gerade?");
+
   // begin draw
   gfx_begin(false, false);
 
@@ -1086,6 +1090,9 @@ static void* scr_time() {
 }
 
 static void* scr_date() {
+  // show message
+  scr_message("Welches Datum\nhaben wir heute?");
+
   // begin draw
   gfx_begin(false, false);
 
@@ -1114,15 +1121,17 @@ static void* scr_date() {
   lvx_wheel_create(&year, row);
 
   // add button
-  lvx_sign_t button = {.title = "A", .text = "Weiter", .align = LV_ALIGN_BOTTOM_RIGHT};
-  lvx_sign_create(&button, lv_scr_act());
+  lvx_sign_t next = {.title = "A", .text = "Weiter", .align = LV_ALIGN_BOTTOM_RIGHT};
+  lvx_sign_t off = {.title = "B", .text = "Abbrechen", .align = LV_ALIGN_BOTTOM_LEFT};
+  lvx_sign_create(&next, lv_scr_act());
+  lvx_sign_create(&off, lv_scr_act());
 
   // end draw
   gfx_end();
 
   for (;;) {
     // await event
-    sig_event_t event = sig_await(SIG_ENTER | SIG_ARROWS, 0);
+    sig_event_t event = sig_await(SIG_META | SIG_ARROWS, 0);
 
     // handle arrows
     if ((event & SIG_ARROWS) != 0) {
@@ -1130,13 +1139,19 @@ static void* scr_date() {
       continue;
     }
 
+    // cleanup
+    scr_cleanup(false);
+
+    // power off on escape (with fallback)
+    if (event == SIG_ESCAPE) {
+      scr_power_off();
+      return scr_intro;
+    }
+
     /* handle enter */
 
     // save date
     sys_set_date(year.value, month.value, day.value);
-
-    // cleanup
-    scr_cleanup(false);
 
     return scr_time;
   }
@@ -1146,9 +1161,18 @@ static void* scr_intro() {
   // wait a bit
   naos_delay(1000);
 
-  // show heart and title
+  // show robin
   gfx_begin(false, false);
   lv_obj_t* img = lv_img_create(lv_scr_act());
+  lv_img_set_src(img, &img_robin);
+  lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
+  gfx_end();
+
+  // wait a bit
+  naos_delay(2000);
+
+  // show heart and title
+  gfx_begin(false, false);
   lv_img_set_src(img, &img_heart);
   lv_obj_align(img, LV_ALIGN_CENTER, 0, -15);
   lv_obj_t* lbl = lv_label_create(lv_scr_act());
@@ -1157,17 +1181,6 @@ static void* scr_intro() {
   gfx_end();
 
   // wait a bit
-  naos_delay(2000);
-
-  // clear screen and show robin
-  gfx_begin(false, false);
-  lv_obj_clean(lv_scr_act());
-  img = lv_img_create(lv_scr_act());
-  lv_img_set_src(img, &img_robin);
-  lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
-  gfx_end();
-
-  // await a bit
   naos_delay(2000);
 
   // cleanup
@@ -1181,6 +1194,11 @@ static void* scr_intro() {
 void scr_task() {
   // prepare handler
   void* (*handler)() = scr_menu;
+
+  // check settings
+  if (!sys_has_date() || !sys_has_time()) {
+    handler = scr_intro;
+  }
 
   // call handlers
   for (;;) {
