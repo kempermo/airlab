@@ -1,9 +1,10 @@
 #include <sys/time.h>
 
 #include "sys.h"
+#include "dev.h"
 
-bool sys_date = false;
-bool sys_time = false;
+DEV_KEEP bool sys_date = false;
+DEV_KEEP bool sys_time = false;
 
 bool sys_has_date() { return sys_date; }
 
