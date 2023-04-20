@@ -37,8 +37,10 @@ void pwr_check() {
     naos_log("pwr: battery=%f usb=%d fast=%d", pwr_state.battery, pwr_state.usb, pwr_state.fast);
   }
 
+  // TODO: Something wrong here: chip gets hot when fast charging...
+
   // select charging
-  ESP_ERROR_CHECK(gpio_set_level(PWR_CHG_SEL, pwr_state.fast ? 1 : 0));  // 1A / 500mA
+  // ESP_ERROR_CHECK(gpio_set_level(PWR_CHG_SEL, pwr_state.fast ? 1 : 0));  // 1A / 500mA
 
   // release mutex
   naos_unlock(pwr_mutex);
