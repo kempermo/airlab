@@ -21,7 +21,7 @@
 
 static dat_file_t* scr_file = NULL;
 static dat_point_t scr_points[SCR_CHART_POINTS] = {0};
-DEV_KEEP static void * scr_return = NULL;
+DEV_KEEP static void* scr_return = NULL;
 
 /* Helpers */
 
@@ -112,7 +112,7 @@ static void* scr_debug() {
   lv_obj_t* label = lv_label_create(lv_scr_act());
   lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-  lv_obj_set_style_text_line_space(label, 12, LV_PART_MAIN);
+  lv_obj_set_style_text_line_space(label, 6, LV_PART_MAIN);
 
   // add signs
   lvx_sign_t start = {.title = "A", .text = "Menu", .align = LV_ALIGN_BOTTOM_LEFT};
@@ -132,8 +132,7 @@ static void* scr_debug() {
   gfx_end();
 
   for (;;) {
-    // get states
-    sns_state_t sns = sns_get();
+    // get power
     pwr_state_t bat = pwr_get();
 
     // get date and time
@@ -142,9 +141,8 @@ static void* scr_debug() {
     sys_get_time(&hour, &minute);
 
     // prepare text
-    const char* text =
-        scr_fmt("%d ppm - %.1f °C - %.0f%% rH\n%llds - %.0f%% - P%d - F%d\n %04d-%02d-%02d %02d:%02d", sns.co2, sns.tmp,
-                sns.hum, naos_millis() / 1000, bat.battery * 100, bat.usb, bat.fast, year, month, day, hour, minute);
+    const char* text = scr_fmt("%llds - %.0f%% - P%d - F%d\n%04d-%02d-%02d %02d:%02d", naos_millis() / 1000,
+                               bat.battery * 100, bat.usb, bat.fast, year, month, day, hour, minute);
 
     // update label
     gfx_begin(false, false);
