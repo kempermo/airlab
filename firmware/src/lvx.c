@@ -1,6 +1,4 @@
 #include <naos.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
