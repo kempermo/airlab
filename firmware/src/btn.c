@@ -4,7 +4,6 @@
 #include <driver/spi_master.h>
 #include <esp_sleep.h>
 
-#include "btn.h"
 #include "sig.h"
 
 #define BTN_DEBUG false

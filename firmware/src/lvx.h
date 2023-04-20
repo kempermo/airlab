@@ -49,7 +49,6 @@ typedef struct {
   lv_obj_t *_val;
   lv_obj_t *_ar1;
   lv_obj_t *_ar2;
-
 } lvx_bar_t;
 
 void lvx_bar_create(lvx_bar_t *bar, lv_obj_t *parent);
