@@ -14,8 +14,6 @@
 #define PWR_ON_OFF GPIO_NUM_15
 #define PWR_DEBUG false
 
-// TODO: Switch to fast charging if available.
-
 static naos_mutex_t pwr_mutex;
 static pwr_state_t pwr_state = {0};
 
@@ -38,6 +36,9 @@ void pwr_check() {
   if (PWR_DEBUG) {
     naos_log("pwr: battery=%f usb=%d fast=%d", pwr_state.battery, pwr_state.usb, pwr_state.fast);
   }
+
+  // select charging
+  ESP_ERROR_CHECK(gpio_set_level(PWR_CHG_SEL, pwr_state.fast ? 1 : 0));  // 1A / 500mA
 
   // release mutex
   naos_unlock(pwr_mutex);
