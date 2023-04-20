@@ -6,8 +6,9 @@
 
 #include "epd.h"
 
-#define EPD_RST 16
-#define EPD_BSY 4
+#define EPD_RST GPIO_NUM_16
+#define EPD_BSY GPIO_NUM_4
+#define EPD_SEL GPIO_NUM_17
 #define EPD_DEBUG false
 #define EPD_OTP_LUT true
 #define EPD_BUFFER (EPD_FRAME / 8 * 9 + 2)
@@ -314,7 +315,7 @@ void epd_init() {
   spi_device_interface_config_t dev = {
       .mode = 0,  // CPOL=0, CPHA=0
       .clock_speed_hz = SPI_MASTER_FREQ_20M,
-      .spics_io_num = 17,
+      .spics_io_num = EPD_SEL,
       .flags = SPI_DEVICE_HALFDUPLEX,
       .queue_size = 1,
   };
