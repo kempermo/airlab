@@ -36,6 +36,8 @@ set(SOURCE_FILES
         src/sig.h
         src/sns.c
         src/sns.h
+        src/stm.c
+        src/stm.h
         src/sys.c
         src/sys.h
         test/dat.c
