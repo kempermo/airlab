@@ -436,11 +436,11 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
         // set offset
         points[i].offset = offset;
 
-        // calculate alpha
+        // calculate factor
         float factor = 1.f / (float)(batch[batch_pos + 1].offset - batch[batch_pos].offset) *
                        (float)(offset - batch[batch_pos].offset);
 
-        // interpolate point
+        // interpolate values
         points[i].co2 = lerp(batch[batch_pos].co2, batch[batch_pos + 1].co2, factor);
         points[i].tmp = lerp(batch[batch_pos].tmp, batch[batch_pos + 1].tmp, factor);
         points[i].hum = lerp(batch[batch_pos].hum, batch[batch_pos + 1].hum, factor);
