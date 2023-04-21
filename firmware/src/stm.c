@@ -29,6 +29,10 @@ stm_entry_t stm_entries[] = {
         .exclaim = false,
         .action = STM_FROM_MEASUREMENT,
     },
+    {
+        .text = "Warme Luft kann mehr Feuchtigkeit aufnehmen als kalte Luft.",
+        .exclaim = false,
+    },
 };
 
 size_t stm_num = sizeof(stm_entries) / sizeof(stm_entry_t);

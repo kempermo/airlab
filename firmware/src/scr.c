@@ -13,12 +13,14 @@
 #include "rec.h"
 #include "epd.h"
 #include "dev.h"
+#include "stm.h"
 
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
 #define SCR_CHART_POINTS 72
 #define SCR_POSITION_STEP 300000
 
+static stm_action_t scr_action = 0;
 static dat_file_t* scr_file = NULL;
 static dat_point_t scr_points[SCR_CHART_POINTS] = {0};
 DEV_KEEP static void* scr_return = NULL;
@@ -309,6 +311,11 @@ static void* scr_exit() {
     return scr_view;
   }
 
+  // set action
+  if (scr_action == 0) {
+    scr_action = STM_FROM_MEASUREMENT;
+  }
+
   // handle enter
   if (event == SIG_ENTER) {
     // get file
@@ -319,6 +326,9 @@ static void* scr_exit() {
 
     // show message
     scr_message(scr_fmt("%s\n beendet!", file->title));
+
+    // set action
+    scr_action = STM_COMP_MEASUREMENT;
   }
 
   return scr_menu;
@@ -442,6 +452,9 @@ static void* scr_view() {
         return scr_exit;
       }
 
+      // set action
+      scr_action = STM_FROM_ANALYSIS;
+
       return scr_edit;
     }
 
@@ -527,6 +540,9 @@ static void* scr_create() {
 
     // start recording
     rec_start(scr_file);
+
+    // set action
+    scr_action = STM_START_MEASUREMENT;
 
     return scr_view;
   }
@@ -849,6 +865,9 @@ static void* scr_settings() {
         return scr_reset;
       case SIG_ESCAPE:
       case SIG_TIMEOUT:
+        // set action
+        scr_action = STM_FROM_SETTINGS;
+
         return scr_menu;
       case SIG_ENTER:
         return scr_debug;
@@ -898,11 +917,29 @@ static void* scr_menu() {
   lv_obj_t* fan = lv_img_create(lv_scr_act());
   lv_obj_align(fan, LV_ALIGN_BOTTOM_RIGHT, -19, -35);
 
+  // add bubble
+  lv_obj_t* bubble = lv_img_create(lv_scr_act());
+  lv_obj_t* message = lv_label_create(lv_scr_act());
+  lv_obj_set_width(message, 200);
+  lv_obj_align(bubble, LV_ALIGN_BOTTOM_LEFT, 60, -30);
+  lv_obj_align(message, LV_ALIGN_BOTTOM_LEFT, 72, -38);
+  lv_label_set_text(message, "");
+  lv_obj_set_style_text_line_space(message, 4, LV_PART_MAIN);
+  lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(message, LV_OBJ_FLAG_HIDDEN);
+
   // end draw
   gfx_end();
 
   // prepare deadline
   int64_t deadline = naos_millis() + SCR_IDLE_TIMEOUT;
+
+  // prepare flags
+  bool exclaim = true;
+  bool fun = false;
+
+  // prepare statement
+  stm_entry_t* statement = NULL;
 
   for (;;) {
     // get time
@@ -911,6 +948,11 @@ static void* scr_menu() {
 
     // read sensor
     sns_state_t sensor = sns_get();
+
+    // query statement
+    if (statement == NULL && (exclaim || fun)) {
+      statement = stm_query(exclaim, scr_action);
+    }
 
     // begin draw
     gfx_begin(false, false);
@@ -943,8 +985,27 @@ static void* scr_menu() {
       lv_img_set_src(fan, &img_fan1);
     }
 
+    // set bubble
+    if (statement != NULL) {
+      lv_obj_clear_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(message, LV_OBJ_FLAG_HIDDEN);
+      lv_label_set_text(message, statement->text);
+      lv_point_t size = {0};
+      lv_txt_get_size(&size, statement->text, &fnt_big, 0, 0, 200, 0);
+      lv_img_set_src(bubble, size.y >= 48 ? &img_bubble3 : &img_bubble2);
+    } else {
+      lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(message, LV_OBJ_FLAG_HIDDEN);
+      lv_label_set_text(message, "");
+      lv_img_set_src(bubble, NULL);
+    }
+
     // end draw
     gfx_end();
+
+    // clear flags
+    exclaim = false;
+    fun = false;
 
     // await event
     sig_event_t event = sig_await(SIG_SENSOR | SIG_ENTER | SIG_ARROWS, 0);
@@ -956,8 +1017,19 @@ static void* scr_menu() {
       deadline = naos_millis() + SCR_IDLE_TIMEOUT;
     }
 
+    // clear statement on any key
+    if (statement != NULL && (event & SIG_KEYS) != 0) {
+      statement = NULL;
+      continue;
+    }
+
     // loop on sensor
     if (event == SIG_SENSOR) {
+      // show fun fact after half of deadline expired
+      if (deadline - naos_millis() < SCR_IDLE_TIMEOUT / 2) {
+        fun = true;
+      }
+
       continue;
     }
 
@@ -994,9 +1066,14 @@ static void* scr_menu() {
     // cleanup
     scr_cleanup(false);
 
+    // clear action
+    scr_action = 0;
+
     // enter screen saver on timeout
     if (event == SIG_TIMEOUT) {
+      // set return
       scr_return = scr_menu;
+
       return scr_saver;
     }
 
@@ -1084,6 +1161,9 @@ static void* scr_time() {
 
     // show message
     scr_message("Einstellungen\ngespeichert!");
+
+    // section action
+    scr_action = STM_FROM_INTRO;
 
     return scr_menu;
   }
