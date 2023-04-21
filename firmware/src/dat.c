@@ -39,7 +39,7 @@ static void dat_format_file(dat_file_t *file) {
   snprintf(file->title, sizeof(file->title), "Messung %u", file->head.num);
 
   // format date
-  time_t time = file->head.start;
+  time_t time = (time_t)(file->head.start / 1000);
   struct tm ts = *gmtime(&time);
   strftime(file->date, sizeof(file->date), "%d.%m.%Y", &ts);
 }
