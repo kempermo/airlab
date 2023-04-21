@@ -41,8 +41,8 @@ static naos_mutex_t epd_mutex;
 static spi_device_handle_t epd_device;
 static bool epd_awake = false;
 static uint32_t epd_updated = 0;
-static uint8_t * epd_buffer = NULL;
-static uint8_t * epd_frame = NULL;
+static uint8_t *epd_buffer = NULL;
+static uint8_t *epd_frame = NULL;
 
 /* bitmap manipulation */
 

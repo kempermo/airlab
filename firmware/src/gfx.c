@@ -16,11 +16,11 @@
 
 static naos_mutex_t gfx_mutex;
 static lv_disp_draw_buf_t gfx_draw_buffer;
-static lv_color_t * gfx_frame_buffer = NULL;
+static lv_color_t* gfx_frame_buffer = NULL;
 static lv_disp_drv_t gfx_driver;
 static lv_disp_t* gfx_display;
 static lv_group_t* gfx_group = NULL;
-static uint8_t * gfx_frame = NULL;
+static uint8_t* gfx_frame = NULL;
 static lv_theme_t* gfx_theme;
 static bool gfx_refresh = false;
 static bool gfx_invert = false;
