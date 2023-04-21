@@ -481,7 +481,7 @@ static void* scr_view() {
     // await event
     sig_event_t filter = SIG_ARROWS | SIG_ESCAPE;
     if (rec_running() && rec_file() == scr_file) {
-      filter |= SIG_APPEND;
+      filter |= SIG_APPEND | SIG_ENTER;
     }
     sig_event_t event = sig_await(filter, SCR_IDLE_TIMEOUT);
 
@@ -510,6 +510,11 @@ static void* scr_view() {
       scr_action = STM_FROM_ANALYSIS;
 
       return scr_edit;
+    }
+
+    // add mark on enter
+    if (event == SIG_ENTER) {
+      rec_mark();
     }
 
     // update on append

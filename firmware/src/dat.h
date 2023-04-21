@@ -9,6 +9,7 @@
 typedef struct {
   uint16_t num;
   int64_t start;  // ms since 1970
+  uint16_t marks;
 } DAT_ATTR dat_head_t;
 
 typedef struct {
@@ -16,6 +17,7 @@ typedef struct {
   float co2;       // ppm
   float tmp;       // °C
   float hum;       // %rH
+  uint16_t mark;
 } DAT_ATTR dat_point_t;
 
 typedef struct {

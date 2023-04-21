@@ -399,6 +399,8 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
   size_t batch_pos = 0;
   size_t batch_size = 0;
 
+  // TODO: We need to retain marks in the range.
+
   // fill points
   int32_t offset = start;
   for (size_t i = 0; i < count; i++) {
@@ -444,6 +446,9 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
         points[i].co2 = lerp(batch[batch_pos].co2, batch[batch_pos + 1].co2, factor);
         points[i].tmp = lerp(batch[batch_pos].tmp, batch[batch_pos + 1].tmp, factor);
         points[i].hum = lerp(batch[batch_pos].hum, batch[batch_pos + 1].hum, factor);
+
+        // copy mark
+        points[i].mark = batch[batch_pos + 1].mark ? batch[batch_pos + 1].mark : batch[batch_pos].mark;
 
         break;
       }

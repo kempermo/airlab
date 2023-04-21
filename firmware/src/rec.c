@@ -8,6 +8,7 @@
 static naos_mutex_t rec_mutex = NULL;
 static naos_task_t rec_handle = NULL;
 static dat_file_t* rec_current = NULL;
+static bool rec_marked = false;
 
 static void rec_task() {
   for (;;) {
@@ -29,6 +30,12 @@ static void rec_task() {
         .hum = state.hum,
         .tmp = state.tmp,
     };
+
+    // handle mark
+    if (rec_marked) {
+      point.mark = ++file->head.marks;
+      rec_marked = false;
+    }
 
     // append point
     dat_append(file->head.num, &point, 1);
@@ -67,6 +74,16 @@ void rec_start(dat_file_t* file) {
 
   // run task
   rec_handle = naos_run("rec", 4096, 1, rec_task);
+}
+
+void rec_mark() {
+  // check file
+  if (!rec_running()) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
+
+  // set mark
+  rec_marked = true;
 }
 
 void rec_stop() {
