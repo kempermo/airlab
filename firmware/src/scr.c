@@ -251,7 +251,7 @@ static void* scr_saver() {
     lv_label_set_text(time, scr_fmt("%02d:%02d", hour, minute));
     lv_label_set_text(co2, scr_fmt("%d ppm CO2", sensor.co2));
     lv_label_set_text(tmp, scr_fmt("%.1f °C", sensor.tmp));
-    lv_label_set_text(hum, scr_fmt("%.1f% RH", sensor.hum));
+    lv_label_set_text(hum, scr_fmt("%.1f%% RH", sensor.hum));
 
     // align objects
     lv_align_t align = right ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT;
@@ -394,7 +394,7 @@ static void* scr_view() {
     } else if (mode == 1) {
       bar.value = scr_fmt("%.1f °C", sensor.tmp);
     } else if (mode == 2) {
-      bar.value = scr_fmt("%.1f%% rH", sensor.hum);
+      bar.value = scr_fmt("%.1f%% RH", sensor.hum);
     }
     lvx_bar_update(&bar);
 
@@ -922,7 +922,7 @@ static void* scr_menu() {
     } else if (mode == 1) {
       bar.value = scr_fmt("%.1f °C", sensor.tmp);
     } else if (mode == 2) {
-      bar.value = scr_fmt("%.1f%% rH", sensor.hum);
+      bar.value = scr_fmt("%.1f%% RH", sensor.hum);
     }
     lvx_bar_update(&bar);
 
