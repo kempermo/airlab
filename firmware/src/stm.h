@@ -19,8 +19,8 @@ typedef struct {
   const char *text;
   bool exclaim;
   stm_action_t action;
-  uint16_t co2_min;
-  uint16_t co2_max;
+  float co2_min;
+  float co2_max;
   float tmp_min;
   float tmp_max;
   float hum_min;

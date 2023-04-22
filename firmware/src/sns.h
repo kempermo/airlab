@@ -3,9 +3,9 @@
 
 typedef struct {
   bool ok;
-  uint16_t co2;  // ppm
-  float tmp;     // °C
-  float hum;     // % rH
+  float co2;  // ppm
+  float tmp;  // °C
+  float hum;  // % rH
 } sns_state_t;
 
 void sns_init();

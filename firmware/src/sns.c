@@ -93,11 +93,11 @@ static void sns_check() {
     sns_transfer(0xec05, 0, 3, false);
 
     // calculate values
-    uint16_t co2 = sns_read[0];                                              // ppm
+    float co2 = (float)sns_read[0];                                          // ppm
     float tmp = -45.f + 175.f * ((float)sns_read[1] / (float)(UINT16_MAX));  // °C
     float hum = 100.f * ((float)sns_read[2] / (float)(UINT16_MAX));          // % rH
     if (SNS_DEBUG) {
-      naos_log("sns: read measurement: co2=%ld tmp=%.1f hum=%.0f", co2, tmp, hum);
+      naos_log("sns: read measurement: co2=%.0f tmp=%.1f hum=%.1f", co2, tmp, hum);
     }
 
     // set state
