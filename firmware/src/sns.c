@@ -101,6 +101,7 @@ static void sns_check() {
     }
 
     // set state
+    sns_state.ok = true;
     sns_state.co2 = co2;
     sns_state.tmp = tmp;
     sns_state.hum = hum;

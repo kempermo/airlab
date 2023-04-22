@@ -2,6 +2,7 @@
 #define SNS_H
 
 typedef struct {
+  bool ok;
   uint16_t co2;  // ppm
   float tmp;     // °C
   float hum;     // % rH
