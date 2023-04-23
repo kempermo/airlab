@@ -24,7 +24,7 @@
     },
     "art32": {
       "repository": "https://github.com/256dpi/art32.git",
-      "version": "ba0f6fb"
+      "version": "c888a8a"
     }
   },
   "broker": "mqtts://key:secret@example.org",
