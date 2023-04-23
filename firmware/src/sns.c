@@ -12,7 +12,8 @@
 
 static naos_mutex_t sns_mutex;
 static naos_signal_t sns_signal;
-static sns_state_t sns_state = {0};
+static sns_state_t sns_history[SNS_HIST] = {0};
+static size_t sns_pos = 0;
 static uint16_t sns_write[8];
 static uint16_t sns_read[8];
 static uint8_t sns_buffer[24];
@@ -100,11 +101,17 @@ static void sns_check() {
       naos_log("sns: read measurement: co2=%.0f tmp=%.1f hum=%.1f", co2, tmp, hum);
     }
 
+    // advanced
+    sns_pos++;
+    if (sns_pos >= SNS_HIST) {
+      sns_pos = 0;
+    }
+
     // set state
-    sns_state.ok = true;
-    sns_state.co2 = co2;
-    sns_state.tmp = tmp;
-    sns_state.hum = hum;
+    sns_history[sns_pos].ok = true;
+    sns_history[sns_pos].co2 = co2;
+    sns_history[sns_pos].tmp = tmp;
+    sns_history[sns_pos].hum = hum;
 
     // release mutex
     naos_unlock(sns_mutex);
@@ -173,7 +180,7 @@ void sns_set(bool on) {
 sns_state_t sns_get() {
   // get state
   naos_lock(sns_mutex);
-  sns_state_t state = sns_state;
+  sns_state_t state = sns_history[sns_pos];
   naos_unlock(sns_mutex);
 
   return state;
@@ -187,4 +194,38 @@ sns_state_t sns_next() {
   sns_state_t state = sns_get();
 
   return state;
+}
+
+sns_hist_t sns_query(sns_mode_t mode) {
+  // prepare history
+  sns_hist_t hist = {0};
+
+  // copy values
+  for (size_t i = 0; i < SNS_HIST; i++) {
+    size_t pos = (sns_pos + 1 + i) % SNS_HIST;
+    switch (mode) {
+      case SNS_CO2:
+        hist.values[i] = sns_history[pos].co2;
+        break;
+      case SNS_TMP:
+        hist.values[i] = sns_history[pos].tmp;
+        break;
+      case SNS_HUM:
+        hist.values[i] = sns_history[pos].hum;
+        break;
+    }
+  }
+
+  // calculate min/max
+  hist.min = 9999.f;
+  for (size_t i = 0; i < SNS_HIST; i++) {
+    if (hist.values[i] > hist.max) {
+      hist.max = hist.values[i];
+    }
+    if (hist.values[i] < hist.min) {
+      hist.min = hist.values[i];
+    }
+  }
+
+  return hist;
 }
