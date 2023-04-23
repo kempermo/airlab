@@ -1068,14 +1068,14 @@ static void* scr_menu() {
     lv_point_t points[SNS_HIST] = {0};
     for (size_t i = 0; i < SNS_HIST; i++) {
       points[i].x = (lv_coord_t)a32_safe_map_i(i, 0, SNS_HIST - 1, 0, 24);
-      points[i].y = (lv_coord_t)a32_map_f(hist.values[i], hist.min, hist.max, 14, 2);
+      points[i].y = (lv_coord_t)a32_safe_map_f(hist.values[i], hist.min, hist.max, 14, 2);
     }
     lv_draw_line_dsc_t line = {.color = lv_color_black(), .width = 2, .opa = LV_OPA_COVER};
     lv_canvas_draw_line(chart, points, SNS_HIST, &line);
 
     // draw drain
     lv_canvas_fill_bg(drain, lv_color_white(), LV_OPA_COVER);
-    lv_coord_t drain_height = (lv_coord_t)a32_map_f(hist.values[SNS_HIST - 1], hist.min, hist.max, 0, 9);
+    lv_coord_t drain_height = (lv_coord_t)a32_safe_map_f(hist.values[SNS_HIST - 1], hist.min, hist.max, 0, 9);
     lv_draw_rect_dsc_t rect = {.bg_opa = LV_OPA_COVER, .bg_color = lv_color_black()};
     lv_canvas_draw_rect(drain, 1, 1 + 9 - drain_height, 20, drain_height, &rect);
 
