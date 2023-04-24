@@ -13,5 +13,6 @@ void sys_get_time(uint16_t *hour, uint16_t *minute);
 void sys_set_time(uint16_t hour, uint16_t minute);
 
 int64_t sys_get_timestamp();
+void sys_conv_timestamp(int64_t ts, uint16_t *hour, uint16_t *minute, uint16_t *seconds);
 
 #endif  // SYS_H

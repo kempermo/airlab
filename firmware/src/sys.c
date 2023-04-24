@@ -79,3 +79,14 @@ int64_t sys_get_timestamp() {
 
   return (int64_t)(tv.tv_sec) * 1000 + (int64_t)(tv.tv_usec) / 1000;
 }
+
+void sys_conv_timestamp(int64_t ts, uint16_t *hour, uint16_t *minute, uint16_t *seconds) {
+  // get time as calendar
+  time_t t = ts / 1000;
+  struct tm *cal = gmtime(&t);
+
+  // set hour and minute
+  if (hour != NULL) *hour = cal->tm_hour;
+  if (minute != NULL) *minute = cal->tm_min;
+  if (seconds != NULL) *seconds = cal->tm_sec;
+}
