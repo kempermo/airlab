@@ -409,20 +409,11 @@ static void* scr_view() {
   // TODO: Show current mark.
 
   // add chart
-  lv_obj_t* chart = lv_chart_create(lv_scr_act());
-  lv_obj_set_size(chart, lv_pct(100), 100);
-  lv_obj_align(chart, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-  lv_obj_set_style_pad_all(chart, 5, LV_PART_MAIN);
-  lv_obj_set_style_border_width(chart, 0, LV_PART_MAIN);
-  lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
-  lv_chart_set_point_count(chart, SCR_CHART_POINTS);
-  lv_chart_set_div_line_count(chart, 0, 0);
-  lv_obj_set_style_pad_column(chart, 2, LV_PART_MAIN);
-  lv_obj_set_style_pad_column(chart, 0, LV_PART_ITEMS);
-  lv_obj_set_style_radius(chart, 0, LV_PART_ITEMS);
-
-  // add series
-  lv_chart_series_t* series = lv_chart_add_series(chart, lv_color_black(), LV_CHART_AXIS_PRIMARY_Y);
+  lv_obj_t* chart = lv_canvas_create(lv_scr_act());
+  static lv_color_t chart_buffer[LV_CANVAS_BUF_SIZE_TRUE_COLOR(288, 96)] = {0};
+  lv_canvas_set_buffer(chart, chart_buffer, 288, 96, LV_IMG_CF_TRUE_COLOR);
+  lv_obj_align(chart, LV_ALIGN_BOTTOM_LEFT, 5, -5);
+  lv_canvas_fill_bg(chart, lv_color_white(), LV_OPA_COVER);
 
   // TODO: Add ticks and labels.
   // TODO: Add markers.
@@ -465,17 +456,15 @@ static void* scr_view() {
     }
     lvx_bar_update(&bar);
 
-    // update plot
-    lv_chart_set_all_value(chart, series, 0);
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, mode == 0 ? 3000 : 100);
-    for (int i = 0; i < SCR_CHART_POINTS; i++) {
-      if (mode == 0) {
-        lv_chart_set_value_by_id(chart, series, i, (lv_coord_t)scr_points[i].co2);
-      } else if (mode == 1) {
-        lv_chart_set_value_by_id(chart, series, i, (lv_coord_t)scr_points[i].tmp);
-      } else if (mode == 2) {
-        lv_chart_set_value_by_id(chart, series, i, (lv_coord_t)scr_points[i].hum);
-      }
+    // update chart
+    lv_canvas_fill_bg(chart, lv_color_white(), LV_OPA_COVER);
+    float range = mode == 0 ? 3000 : 100;
+    lv_draw_line_dsc_t bar_desc = {.color = lv_color_black(), .width = 2, .opa = LV_OPA_COVER};
+    for (size_t i = 0; i < SCR_CHART_POINTS; i++) {
+      float value = mode == 0 ? scr_points[i].co2 : mode == 1 ? scr_points[i].tmp : scr_points[i].hum;
+      lv_coord_t h = 2 + a32_safe_map_f(value, 0, range, 0, 78);
+      lv_point_t points[2] = {{.x = 1 + i * 4, .y = 80}, {.x = 1 + i * 4, .y = 80 - h}};
+      lv_canvas_draw_line(chart, points, 2, &bar_desc);
     }
 
     // end draw
