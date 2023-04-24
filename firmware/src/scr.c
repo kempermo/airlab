@@ -2,6 +2,7 @@
 #include <naos_sys.h>
 #include <art32/numbers.h>
 #include <lvgl.h>
+#include <math.h>
 
 #include "gfx.h"
 #include "sig.h"
@@ -56,6 +57,12 @@ static const char* scr_ms2str(int32_t ms) {
   } else {  // seconds
     return scr_fmt("%ds", ms / 1000);
   }
+}
+
+static const char* scr_ms2ts(int32_t ms) {
+  int32_t hours = ms / 3600000;
+  int32_t minutes = (ms / 60000) % 60;
+  return scr_fmt("%02d:%02d", hours, minutes);
 }
 
 static void scr_cleanup(bool refresh) {
@@ -415,7 +422,6 @@ static void* scr_view() {
   lv_obj_align(chart, LV_ALIGN_BOTTOM_LEFT, 5, -5);
   lv_canvas_fill_bg(chart, lv_color_white(), LV_OPA_COVER);
 
-  // TODO: Add ticks and labels.
   // TODO: Add markers.
 
   // end draw
@@ -437,9 +443,14 @@ static void* scr_view() {
       }
     }
 
-    // query points with 5s resolution
+    // calculate resolution and range
+    int32_t resolution = 5000;
+    int32_t start = position;
+    int32_t end = position + 72 * resolution;
+
+    // query points
     if (scr_file->size > 0) {
-      dat_query(scr_file->head.num, scr_points, SCR_CHART_POINTS, position, 5000);
+      dat_query(scr_file->head.num, scr_points, SCR_CHART_POINTS, position, resolution);
     }
 
     // begin draw
@@ -456,7 +467,7 @@ static void* scr_view() {
     }
     lvx_bar_update(&bar);
 
-    // update chart
+    // draw chart bars
     lv_canvas_fill_bg(chart, lv_color_white(), LV_OPA_COVER);
     float range = mode == 0 ? 3000 : 100;
     lv_draw_line_dsc_t bar_desc = {.color = lv_color_black(), .width = 2, .opa = LV_OPA_COVER};
@@ -465,6 +476,31 @@ static void* scr_view() {
       lv_coord_t h = 2 + a32_safe_map_f(value, 0, range, 0, 78);
       lv_point_t points[2] = {{.x = 1 + i * 4, .y = 80}, {.x = 1 + i * 4, .y = 80 - h}};
       lv_canvas_draw_line(chart, points, 2, &bar_desc);
+    }
+
+    // draw chart labels
+    lv_draw_label_dsc_t lbl_desc = {
+        .font = &fnt_small, .color = lv_color_black(), .opa = LV_OPA_COVER, .align = LV_TEXT_ALIGN_LEFT};
+    for (size_t i = 0; i < 3; i++) {
+      // labels are position on the nearest minute mark using the following grid
+      // < 1/6 |   1/3   |   1/3   |   1/3   | 1/6 >
+
+      // get minuted aligned position
+      float step = (float)(end - start) / 6.f;
+      float pos = (float)start + step + (float)(i) * (step * 2);
+      pos = roundf(pos / 60000) * 60000;
+
+      // TODO: Show absolute timestamp.
+
+      // format label
+      const char* str = scr_ms2ts((int32_t)pos);
+
+      // calculate coordinate
+      lv_coord_t x = (lv_coord_t)a32_map_f(pos, (float)start, (float)end, 0, 288);
+      x -= lv_txt_get_width(str, strlen(str), &fnt_small, 0, 0) / 2;
+
+      // draw label
+      lv_canvas_draw_text(chart, x, 88, 99, &lbl_desc, str);
     }
 
     // end draw
