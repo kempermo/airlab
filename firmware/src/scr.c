@@ -553,8 +553,8 @@ static void* scr_view() {
 
     // draw chart position if not recording
     if (!recording) {
-      lv_coord_t x = a32_map_f(position, start, end, 0, 288);
-      lv_point_t points[2] = {{.x = x, .y = 88}, {.x = x, .y = 96}};
+      lv_coord_t x = a32_map_f(position, start, end, 0, 72) * 4;
+      lv_point_t points[2] = {{.x = x + 1, .y = 88}, {.x = x + 1, .y = 96}};
       lv_canvas_draw_line(chart, points, 2, &bar_desc);
     }
 
