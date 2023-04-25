@@ -25,6 +25,7 @@ typedef enum {
 
 typedef struct {
   sig_type_t type;
+  bool repeat;
 } sig_event_t;
 
 void sig_init();
