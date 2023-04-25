@@ -412,9 +412,6 @@ static void* scr_view() {
     position = scr_file->stop / 2;
   }
 
-  // zero points
-  memset(scr_points, 0, sizeof(scr_points));
-
   // begin draw
   gfx_begin(false, false);
 
