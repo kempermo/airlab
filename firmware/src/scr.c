@@ -429,13 +429,6 @@ static void* scr_view() {
   gfx_end();
 
   for (;;) {
-    // get time
-    uint16_t hour, minute;
-    sys_get_time(&hour, &minute);
-
-    // read sensor
-    sns_state_t sensor = sns_get();
-
     // prepare resolution
     int32_t resolution;
     if (recording) {
@@ -473,19 +466,31 @@ static void* scr_view() {
       dat_query(scr_file->head.num, scr_points, SCR_CHART_POINTS, start, resolution);
     }
 
+    // select current point
+    dat_point_t current = {0};
+    for(size_t i=0; i<SCR_CHART_POINTS; i++) {
+      if (scr_points[i].offset > position && i > 0) {
+        current = scr_points[i-1];
+        break;
+      }
+    }
+
+    // parse time
+    uint16_t hour;
+    uint16_t minute;
+    sys_conv_timestamp(scr_file->head.start +  (int64_t)current.offset, &hour, &minute, NULL);
+
     // begin draw
     gfx_begin(false, advanced);
-
-    // TODO: Use current point for showing time, value and mark.
 
     // update bar
     bar.time = scr_fmt("%02d:%02d", hour, minute);
     if (mode == 0) {
-      bar.value = scr_fmt("%.0f ppm CO2", sensor.co2);
+      bar.value = scr_fmt("%.0f ppm CO2", current.co2);
     } else if (mode == 1) {
-      bar.value = scr_fmt("%.1f °C", sensor.tmp);
+      bar.value = scr_fmt("%.1f °C", current.tmp);
     } else if (mode == 2) {
-      bar.value = scr_fmt("%.1f%% RH", sensor.hum);
+      bar.value = scr_fmt("%.1f%% RH", current.hum);
     }
     lvx_bar_update(&bar);
 
