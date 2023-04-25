@@ -478,19 +478,19 @@ static void* scr_view() {
       end = SCR_CHART_POINTS * resolution;
     }
 
+    // calculate index
+    size_t index = roundf(a32_safe_map_f(position, start, end, 0, SCR_CHART_POINTS - 1));
+
     // query points
     if (scr_file->size > 0) {
-      dat_query(scr_file->head.num, scr_points, SCR_CHART_POINTS, start, resolution);
+      size_t num = dat_query(scr_file->head.num, scr_points, SCR_CHART_POINTS, start, resolution);
+      if (recording) {
+        index = num - 1;
+      }
     }
 
     // select current point
-    dat_point_t current = {0};
-    for (size_t i = 0; i < SCR_CHART_POINTS; i++) {
-      if (scr_points[i].offset > position && i > 0) {
-        current = scr_points[i - 1];
-        break;
-      }
-    }
+    dat_point_t current = scr_points[index];
 
     // parse time
     uint16_t hour;
@@ -553,8 +553,7 @@ static void* scr_view() {
 
     // draw chart position if not recording
     if (!recording) {
-      lv_coord_t x = a32_map_f(position, start, end, 0, 72) * 4;
-      lv_point_t points[2] = {{.x = x + 1, .y = 88}, {.x = x + 1, .y = 96}};
+      lv_point_t points[2] = {{.x = 1 + index * 4, .y = 88}, {.x = 1 + index * 4, .y = 96}};
       lv_canvas_draw_line(chart, points, 2, &bar_desc);
     }
 
