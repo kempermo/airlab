@@ -399,12 +399,15 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
   size_t batch_pos = 0;
   size_t batch_size = 0;
 
-  // TODO: We need to retain marks in the range.
-  // TODO: Also we only should a mark retain once.
-
   // fill points
   int32_t offset = start;
   for (size_t i = 0; i < count; i++) {
+    // prepare flag
+    bool filled = false;
+
+    // prepare mark
+    uint16_t mark = 0;
+
     // find next exact or range match
     for (;;) {
       // fill batch
@@ -423,19 +426,22 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
         batch_size = length;
       }
 
-      // handle exact match
-      if (batch[batch_pos].offset == offset) {
+      // handle first exact match
+      if (!filled && batch[batch_pos].offset == offset) {
         // set offset
         points[i].offset = offset;
 
-        // copy point
-        points[i] = batch[batch_pos];
+        // copy values
+        points[i].co2 = batch[batch_pos].co2;
+        points[i].tmp = batch[batch_pos].tmp;
+        points[i].hum = batch[batch_pos].hum;
 
-        break;
+        // set flag
+        filled = true;
       }
 
-      // handle range match
-      if (batch[batch_pos + 1].offset > offset) {
+      // handle first range match
+      if (!filled && batch[batch_pos + 1].offset > offset) {
         // set offset
         points[i].offset = offset;
 
@@ -448,10 +454,19 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
         points[i].tmp = lerp(batch[batch_pos].tmp, batch[batch_pos + 1].tmp, factor);
         points[i].hum = lerp(batch[batch_pos].hum, batch[batch_pos + 1].hum, factor);
 
-        // copy mark
-        points[i].mark = batch[batch_pos + 1].mark ? batch[batch_pos + 1].mark : batch[batch_pos].mark;
+        // set flag
+        filled = true;
+      }
 
+      // set mark and stop if point is needed for next range
+      if (batch[batch_pos+1].offset > offset + resolution) {
+        points[i].mark = mark;
         break;
+      }
+
+      // retain mark
+      if (batch[batch_pos].mark) {
+        mark = batch[batch_pos].mark;
       }
 
       // advanced
