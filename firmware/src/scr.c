@@ -633,9 +633,9 @@ static void* scr_view() {
     // change position on left/right if not recording
     if (!recording) {
       if (event.type == SIG_LEFT) {
-        position -= resolution;
+        position -= resolution * (event.repeat ? 5 : 1);
       } else if (event.type == SIG_RIGHT) {
-        position += resolution;
+        position += resolution * (event.repeat ? 5 : 1);
       }
       if (position > scr_file->stop) {
         position = scr_file->stop;
