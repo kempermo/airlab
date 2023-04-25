@@ -20,6 +20,7 @@
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
 #define SCR_CHART_POINTS 72
+#define SCR_MIN_RESOLUTION 5000
 
 static stm_action_t scr_action = 0;
 static dat_file_t* scr_file = NULL;
@@ -429,36 +430,49 @@ static void* scr_view() {
   gfx_end();
 
   for (;;) {
-    // prepare resolution
-    int32_t resolution;
-    if (recording) {
-      resolution = 5000;
-    } else if (advanced) {
-      resolution = scr_file->stop / (SCR_CHART_POINTS * 10);
-    } else {
-      resolution = scr_file->stop / SCR_CHART_POINTS;
-    }
-
     // adjust position if recording
     if (recording) {
       position = scr_file->stop;
-      if (position < (SCR_CHART_POINTS / 3 * 2) * resolution) {
-        position = (SCR_CHART_POINTS / 3 * 2) * resolution;
-      }
+    }
+
+    // calculate resolution
+    int32_t resolution;
+    if (recording) {
+      resolution = SCR_MIN_RESOLUTION;
+    } else if (advanced) {
+      resolution = scr_file->stop / 10 / SCR_CHART_POINTS;
+    } else {  // overview
+      resolution = scr_file->stop / SCR_CHART_POINTS;
+    }
+    if (resolution < SCR_MIN_RESOLUTION) {
+      resolution = SCR_MIN_RESOLUTION;
     }
 
     // calculate range
-    int32_t start = position - SCR_CHART_POINTS / 2 * resolution;
-    int32_t end = position + SCR_CHART_POINTS / 2 * resolution;
+    int32_t start;
+    int32_t end;
     if (recording) {
       start = position - SCR_CHART_POINTS / 3 * 2 * resolution;
       end = position + SCR_CHART_POINTS / 3 * resolution;
-    }
-    if (start < 0) {
+      if (start < 0) {
+        end += start * -1;
+        start = 0;
+      }
+    } else if (advanced) {
+      start = position - SCR_CHART_POINTS / 2 * resolution;
+      end = position + SCR_CHART_POINTS / 2 * resolution;
+      if (start < 0) {
+        end += start * -1;
+        start = 0;
+      }
+      if (end > scr_file->stop) {
+        int32_t shift = fminf(start, end - scr_file->stop);
+        end -= shift;
+        start -= shift;
+      }
+    } else {  // overview
       start = 0;
-    }
-    if (!recording && (!advanced || end > scr_file->stop)) {
-      end = scr_file->stop;
+      end = SCR_CHART_POINTS * resolution;
     }
 
     // query points
@@ -468,9 +482,9 @@ static void* scr_view() {
 
     // select current point
     dat_point_t current = {0};
-    for(size_t i=0; i<SCR_CHART_POINTS; i++) {
+    for (size_t i = 0; i < SCR_CHART_POINTS; i++) {
       if (scr_points[i].offset > position && i > 0) {
-        current = scr_points[i-1];
+        current = scr_points[i - 1];
         break;
       }
     }
@@ -478,7 +492,7 @@ static void* scr_view() {
     // parse time
     uint16_t hour;
     uint16_t minute;
-    sys_conv_timestamp(scr_file->head.start +  (int64_t)current.offset, &hour, &minute, NULL);
+    sys_conv_timestamp(scr_file->head.start + (int64_t)current.offset, &hour, &minute, NULL);
 
     // begin draw
     gfx_begin(false, advanced);
