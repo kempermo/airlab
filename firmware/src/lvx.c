@@ -236,7 +236,9 @@ void lvx_bar_create(lvx_bar_t* bar, lv_obj_t* parent) {
     lv_obj_align(bar->_rec, LV_ALIGN_TOP_LEFT, 80, 5);
   }
 
-  // TODO: Add mark label.
+  // add mark label
+  bar->_mrk = lv_label_create(parent);
+  lv_obj_align(bar->_mrk, LV_ALIGN_TOP_LEFT, 100, 5);
 
   // add value
   bar->_val = lv_label_create(parent);
@@ -270,6 +272,9 @@ void lvx_bar_update(lvx_bar_t* bar) {
   } else {
     lv_img_set_src(bar->_pwr, &img_bat0);
   }
+
+  // update mark
+  lv_label_set_text(bar->_mrk, bar->mark != NULL ? bar->mark : "");
 
   // update value
   lv_label_set_text(bar->_val, bar->value);

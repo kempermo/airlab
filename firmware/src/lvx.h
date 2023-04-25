@@ -41,11 +41,13 @@ void lvx_sign_create(lvx_sign_t *sign, lv_obj_t *parent);
 
 typedef struct {
   const char *time;
+  const char *mark;
   const char *value;
   // ---
   lv_obj_t *_time;
   lv_obj_t *_pwr;
   lv_obj_t *_rec;
+  lv_obj_t *_mrk;
   lv_obj_t *_val;
   lv_obj_t *_ar1;
   lv_obj_t *_ar2;
