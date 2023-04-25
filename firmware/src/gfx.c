@@ -25,6 +25,7 @@ static lv_theme_t* gfx_theme;
 static bool gfx_refresh = false;
 static bool gfx_invert = false;
 static bool gfx_deferred = false;
+static bool gfx_skip = false;
 static lv_area_t gfx_flush_area = {0};
 
 static void gfx_task() {
@@ -88,10 +89,11 @@ static void gfx_flush(lv_disp_drv_t* driver, const lv_area_t* area, lv_color_t* 
   uint16_t y2 = EPD_HEIGHT - gfx_flush_area.x1;
 
   // display frame
-  epd_update(gfx_frame, x1, y1, x2, y2, !gfx_refresh);
+  if (!gfx_skip) {
+    epd_update(gfx_frame, x1, y1, x2, y2, !gfx_refresh);
+  }
 
   // clear flags
-  gfx_refresh = false;
   gfx_deferred = false;
 
   // signal done
@@ -151,7 +153,10 @@ void gfx_begin(bool refresh, bool invert) {
   gfx_invert = invert;
 }
 
-void gfx_end() {
+void gfx_end(bool skip) {
+  // set flag
+  gfx_skip = skip;
+
   // release mutex
   naos_unlock(gfx_mutex);
 }

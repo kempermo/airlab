@@ -6,7 +6,7 @@
 void gfx_init();
 
 void gfx_begin(bool refresh, bool invert);
-void gfx_end();
+void gfx_end(bool skip);
 
 lv_group_t* gfx_get_group();
 

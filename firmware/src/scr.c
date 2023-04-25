@@ -70,7 +70,7 @@ static void scr_cleanup(bool refresh) {
   gfx_begin(refresh, false);
   lv_group_remove_all_objs(gfx_get_group());
   lv_obj_clean(lv_scr_act());
-  gfx_end();
+  gfx_end(false);
 }
 
 static void scr_message(const char* text) {
@@ -81,7 +81,7 @@ static void scr_message(const char* text) {
   lv_label_set_text(lbl, text);
   lv_obj_set_style_text_line_space(lbl, 6, LV_PART_MAIN);
   lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-  gfx_end();
+  gfx_end(false);
 
   // wait some time
   naos_delay(2000);
@@ -130,7 +130,7 @@ static void* scr_test() {
   lvx_sign_create(&next, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(true);
 
   // prepare index
   int index = 0;
@@ -144,7 +144,7 @@ static void* scr_test() {
     lvx_bubble_update(&bubble);
 
     // end draw
-    gfx_end();
+    gfx_end(false);
 
     // await event
     sig_event_t event = sig_await(SIG_ESCAPE | SIG_RIGHT, 0);
@@ -192,7 +192,7 @@ static void* scr_debug() {
   lvx_sign_create(&off, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(true);
 
   for (;;) {
     // get power
@@ -211,7 +211,7 @@ static void* scr_debug() {
     // update label
     gfx_begin(false, false);
     lv_label_set_text(label, text);
-    gfx_end();
+    gfx_end(false);
 
     // await event
     sig_event_t event = sig_await(SIG_SENSOR | SIG_KEYS, 0);
@@ -298,7 +298,7 @@ static void* scr_saver() {
   lv_obj_t* hum = lv_label_create(lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(true);
 
   for (;;) {
     // get time
@@ -331,7 +331,7 @@ static void* scr_saver() {
     }
 
     // end draw
-    gfx_end();
+    gfx_end(false);
 
     // wait some time
     sig_event_t event = sig_await(SIG_ENTER, 15000);
@@ -362,7 +362,7 @@ static void* scr_exit() {
   lvx_sign_create(&back, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(false);
 
   // await event
   sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
@@ -430,7 +430,7 @@ static void* scr_view() {
   lv_canvas_fill_bg(chart, lv_color_white(), LV_OPA_COVER);
 
   // end draw
-  gfx_end();
+  gfx_end(true);
 
   for (;;) {
     // adjust position if recording
@@ -561,7 +561,7 @@ static void* scr_view() {
     // TODO: Draw advanced mode arrows.
 
     // end draw
-    gfx_end();
+    gfx_end(false);
 
     // await event
     sig_event_t filter = SIG_KEYS;
@@ -676,7 +676,7 @@ static void* scr_create() {
   lvx_sign_create(&back, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(false);
 
   for (;;) {
     // await event
@@ -726,7 +726,7 @@ static void* scr_delete() {
   lvx_sign_create(&back, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(false);
 
   // await event
   sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
@@ -781,7 +781,7 @@ static void* scr_edit() {
   lvx_sign_create(&delete, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(false);
 
   for (;;) {
     // await event
@@ -841,8 +841,6 @@ static void* scr_explore() {
     rects[i] = lv_obj_create(lv_scr_act());
     names[i] = lv_label_create(lv_scr_act());
     dates[i] = lv_label_create(lv_scr_act());
-    lv_label_set_text(names[i], "");
-    lv_label_set_text(dates[i], "");
     lv_obj_set_size(rects[i], lv_pct(100), 25);
     lv_obj_align(rects[i], LV_ALIGN_TOP_LEFT, 0, 0 + i * 25);
     lv_obj_align(names[i], LV_ALIGN_TOP_LEFT, 5, 5 + i * 25);
@@ -862,7 +860,7 @@ static void* scr_explore() {
   lv_obj_align(info, LV_ALIGN_BOTTOM_MID, 0, -5);
 
   // end draw
-  gfx_end();
+  gfx_end(true);
 
   for (;;) {
     // begin draw
@@ -906,7 +904,7 @@ static void* scr_explore() {
     lv_label_set_text(info, scr_fmt("%d/%d", selected + 1, (int)total));
 
     // end draw
-    gfx_end();
+    gfx_end(false);
 
     // await event
     sig_event_t event = sig_await(SIG_VERT | SIG_META, SCR_ACTION_TIMEOUT);
@@ -967,7 +965,7 @@ static void* scr_reset() {
   lvx_sign_create(&back, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(false);
 
   // await event
   sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
@@ -1009,7 +1007,7 @@ static void* scr_settings() {
   lvx_sign_create(&datetime, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(false);
 
   for (;;) {
     // await event
@@ -1101,7 +1099,7 @@ static void* scr_menu() {
   lvx_bubble_create(&bubble, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(true);
 
   // prepare deadline
   int64_t deadline = naos_millis() + SCR_IDLE_TIMEOUT;
@@ -1183,7 +1181,7 @@ static void* scr_menu() {
     lvx_bubble_update(&bubble);
 
     // end draw
-    gfx_end();
+    gfx_end(false);
 
     // clear flags
     exclaim = false;
@@ -1316,7 +1314,7 @@ static void* scr_time() {
   lvx_sign_create(&next, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(false);
 
   for (;;) {
     // await event
@@ -1389,7 +1387,7 @@ static void* scr_date() {
   lvx_sign_create(&off, lv_scr_act());
 
   // end draw
-  gfx_end();
+  gfx_end(false);
 
   for (;;) {
     // await event
@@ -1432,7 +1430,7 @@ static void* scr_intro() {
   lv_obj_t* img = lv_img_create(lv_scr_act());
   lv_img_set_src(img, &img_robin);
   lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
-  gfx_end();
+  gfx_end(false);
 
   // wait a bit
   naos_delay(2000);
@@ -1444,7 +1442,7 @@ static void* scr_intro() {
   lv_obj_t* lbl = lv_label_create(lv_scr_act());
   lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 15);
   lv_label_set_text(lbl, "Willkomen im Air Lab!");
-  gfx_end();
+  gfx_end(false);
 
   // wait a bit
   naos_delay(2000);
