@@ -59,12 +59,6 @@ static const char* scr_ms2str(int32_t ms) {
   }
 }
 
-static const char* scr_ms2ts(int32_t ms) {
-  int32_t hours = ms / 3600000;
-  int32_t minutes = (ms / 60000) % 60;
-  return scr_fmt("%02d:%02d", hours, minutes);
-}
-
 static void scr_cleanup(bool refresh) {
   // clear group and screen
   gfx_begin(refresh, false);
@@ -93,7 +87,7 @@ static void scr_message(const char* text) {
 static void scr_power_off() {
   // cleanup screen
   scr_cleanup(true);
-  naos_delay(5000);
+  naos_delay(7500);
 
   // clear return
   scr_return = NULL;
@@ -1017,16 +1011,22 @@ static void* scr_settings() {
   lvx_sign_t back = {.title = "B", .text = "Zurück", .align = LV_ALIGN_BOTTOM_LEFT};
   lvx_sign_t reset = {.title = "<", .text = "Reset", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
   lvx_sign_t datetime = {.title = "↑", .text = "Uhr + Datum", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -50};
+  lvx_sign_t off = {.title = ">", .text = "Off", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -25};
   lvx_sign_create(&back, lv_scr_act());
   lvx_sign_create(&reset, lv_scr_act());
   lvx_sign_create(&datetime, lv_scr_act());
+  lvx_sign_create(&off, lv_scr_act());
 
   // end draw
   gfx_end(false);
 
   for (;;) {
     // await event
-    sig_event_t event = sig_await(SIG_UP | SIG_LEFT | SIG_ESCAPE | SIG_ENTER, SCR_ACTION_TIMEOUT);
+    sig_type_t filter = SIG_UP | SIG_LEFT | SIG_RIGHT | SIG_ESCAPE;
+#if DEV_DEV == 1
+    filter |= SIG_ENTER;
+#endif
+    sig_event_t event = sig_await(filter, SCR_ACTION_TIMEOUT);
 
     // cleanup
     scr_cleanup(false);
@@ -1037,6 +1037,9 @@ static void* scr_settings() {
         return scr_date;
       case SIG_LEFT:
         return scr_reset;
+      case SIG_RIGHT:
+        scr_power_off();
+        break;
       case SIG_ESCAPE:
       case SIG_TIMEOUT:
         // set action
@@ -1044,11 +1047,7 @@ static void* scr_settings() {
 
         return scr_menu;
       case SIG_ENTER:
-#if DEV_DEV == 1
         return scr_debug;
-#else
-        continue
-#endif
       default:
         ESP_ERROR_CHECK(ESP_FAIL);
     }
