@@ -13,8 +13,6 @@
 
 // Docs: https://docs.lvgl.io/master/index.html
 
-// TODO: Move inverting to EPD?
-
 static naos_mutex_t gfx_mutex;
 static lv_disp_draw_buf_t gfx_draw_buffer;
 static lv_color_t* gfx_frame_buffer = NULL;
@@ -148,6 +146,13 @@ void gfx_init() {
 void gfx_begin(bool refresh, bool invert) {
   // acquire mutex
   naos_lock(gfx_mutex);
+
+  // flip frame on inversion change
+  if (invert != gfx_invert) {
+    for (size_t i = 0; i < EPD_FRAME; i++) {
+      gfx_frame[i] ^= UINT8_MAX;
+    }
+  }
 
   // set flag
   gfx_refresh = refresh;
