@@ -459,7 +459,7 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
       }
 
       // set mark and stop if point is needed for next range
-      if (batch[batch_pos+1].offset > offset + resolution) {
+      if (batch[batch_pos + 1].offset > offset + resolution) {
         points[i].mark = mark;
         break;
       }
