@@ -215,10 +215,10 @@ static void* scr_debug() {
       continue;
     }
 
-    // power off on right (with fallback)
+    // power off on right
     if (event.type == SIG_RIGHT) {
       scr_power_off();
-      return scr_debug;
+      continue;
     }
 
     // handle up and down
@@ -992,6 +992,9 @@ static void* scr_reset() {
   // reset data
   dat_reset();
 
+  // reset date & time
+  sys_reset();
+
   // show message
   scr_message("Air Lab\nerfolgreich zurückgesetzt!");
 
@@ -1009,17 +1012,17 @@ static void* scr_settings() {
 
   // add info
   lv_obj_t* info = lv_label_create(lv_scr_act());
-  lv_label_set_text(info, "Firmware: " DEV_VERSION);
-  lv_obj_align(info, LV_ALIGN_TOP_LEFT, 5, 26);
+  lv_label_set_text(info, "v" DEV_VERSION);
+  lv_obj_align(info, LV_ALIGN_TOP_RIGHT, -5, 5);
 
   // add signs
-  lvx_sign_t back = {.title = "B", .text = "Zurück", .align = LV_ALIGN_BOTTOM_LEFT};
-  lvx_sign_t reset = {.title = "<", .text = "Reset", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
   lvx_sign_t datetime = {.title = "↑", .text = "Uhr + Datum", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -50};
-  lvx_sign_t off = {.title = ">", .text = "Off", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -25};
-  lvx_sign_create(&back, lv_scr_act());
-  lvx_sign_create(&reset, lv_scr_act());
+  lvx_sign_t reset = {.title = "<", .text = "Zurücksetzen", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
+  lvx_sign_t back = {.title = "B", .text = "Zurück", .align = LV_ALIGN_BOTTOM_LEFT};
+  lvx_sign_t off = {.title = ">", .text = "Ausschalten", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -25};
   lvx_sign_create(&datetime, lv_scr_act());
+  lvx_sign_create(&reset, lv_scr_act());
+  lvx_sign_create(&back, lv_scr_act());
   lvx_sign_create(&off, lv_scr_act());
 
   // end draw
@@ -1345,18 +1348,18 @@ static void* scr_time() {
       continue;
     }
 
-    /* handle meta and timeout */
-
-    // save time
-    sys_set_time(hour.value, minute.value);
-
     // cleanup
     scr_cleanup(false);
 
-    // handle escape event
+    // handle escape/timeout event
     if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
       return scr_date;
     }
+
+    /* handle enter */
+
+    // save time
+    sys_set_time(hour.value, minute.value);
 
     // show message
     scr_message("Einstellungen\ngespeichert!");
@@ -1421,11 +1424,11 @@ static void* scr_date() {
     // cleanup
     scr_cleanup(false);
 
-    // power off on escape (with fallback)
+    // power off or return on escape/timeout
     if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
       if (!sys_has_date() || !sys_has_time()) {
         scr_power_off();
-        return scr_intro;
+        continue;
       } else {
         return scr_settings;
       }

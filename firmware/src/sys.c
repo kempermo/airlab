@@ -72,6 +72,12 @@ void sys_set_time(uint16_t hour, uint16_t minute) {
   sys_time = true;
 }
 
+void sys_reset() {
+  // clea flags
+  sys_date = false;
+  sys_time = false;
+}
+
 int64_t sys_get_timestamp() {
   // get timestamp
   struct timeval tv;
