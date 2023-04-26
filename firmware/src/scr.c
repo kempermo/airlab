@@ -537,6 +537,18 @@ static void* scr_view() {
       }
     }
 
+    // draw chart arrows
+    if (advanced) {
+      lv_draw_img_dsc_t img_draw;
+      lv_draw_img_dsc_init(&img_draw);
+      if (start > 0) {
+        lv_canvas_draw_img(chart, 0, 96 - 7, &img_arrow_left, &img_draw);
+      }
+      if (end < scr_file->stop) {
+        lv_canvas_draw_img(chart, 288 - 9, 96 - 7, &img_arrow_right, &img_draw);
+      }
+    }
+
     // draw chart labels
     lv_draw_label_dsc_t lbl_desc = {
         .font = &fnt_small, .color = lv_color_black(), .opa = LV_OPA_COVER, .align = LV_TEXT_ALIGN_LEFT};
@@ -566,8 +578,6 @@ static void* scr_view() {
       lv_point_t points[2] = {{.x = 1 + index * 4, .y = 88}, {.x = 1 + index * 4, .y = 96}};
       lv_canvas_draw_line(chart, points, 2, &bar_desc);
     }
-
-    // TODO: Draw advanced mode arrows.
 
     // end draw
     gfx_end(false);
