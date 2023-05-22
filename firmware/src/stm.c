@@ -71,7 +71,7 @@ stm_entry_t stm_entries[] = {
         .hum_max = 60,
     },
     {
-        .text = "Warme Luft kann mehr Feuchtigkeit aufnehmen als kalte Luft.",
+        .text = "Warme Luft kann mehr Feuchtigkeit auf- nehmen als kalte Luft.",
     },
     {
         .text = "Pro Tag atmen wir 10'000 bis 20'000 Liter Luft.",
@@ -92,7 +92,7 @@ stm_entry_t stm_entries[] = {
         .text = "1% der Luft sind ganz viele verschiedene Spurengase.",
     },
     {
-        .text = "Ich bin grad am rechnen...",
+        .text = "Ich bin am rechnen...",
         .action = STM_FROM_MEASUREMENT,
     },
     {
