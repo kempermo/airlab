@@ -17,7 +17,11 @@ static uint8_t btn_state = 0x00;
 static spi_device_handle_t btn_device = NULL;
 
 static sig_type_t btn_map[] = {
+#if DEV_BOARD == 0
     SIG_ESCAPE, SIG_LEFT, SIG_RIGHT, SIG_DOWN, SIG_UP, SIG_ENTER,
+#elif DEV_BOARD == 1
+    SIG_LEFT, SIG_DOWN, SIG_RIGHT, SIG_UP, SIG_ESCAPE, SIG_ENTER,
+#endif
 };
 
 static int64_t btn_times[8] = {0};
