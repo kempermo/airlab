@@ -1228,7 +1228,7 @@ static void* scr_menu() {
     fun = false;
 
     // await event
-    sig_event_t event = sig_await(SIG_SENSOR | SIG_ENTER | SIG_ARROWS, 0);
+    sig_event_t event = sig_await(SIG_SENSOR | SIG_KEYS, 0);
 
     // handle deadline
     if (event.type == SIG_SENSOR && naos_millis() > deadline) {
@@ -1243,8 +1243,8 @@ static void* scr_menu() {
       continue;
     }
 
-    // loop on sensor
-    if (event.type == SIG_SENSOR) {
+    // loop on sensor or scape
+    if (event.type == SIG_SENSOR || event.type == SIG_ESCAPE) {
       // show fun fact after half of deadline expired
       if (deadline - naos_millis() < SCR_IDLE_TIMEOUT / 2) {
         fun = true;
