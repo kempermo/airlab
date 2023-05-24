@@ -261,7 +261,7 @@ void lvx_bar_update(lvx_bar_t* bar) {
   pwr_state_t power = pwr_get();
 
   // update power
-  if (power.usb) {
+  if (power.usb && power.charging) {
     lv_img_set_src(bar->_pwr, &img_power);
   } else if (power.battery > 0.75) {
     lv_img_set_src(bar->_pwr, &img_bat3);
