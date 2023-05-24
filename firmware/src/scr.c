@@ -579,7 +579,7 @@ static void* scr_view() {
 
     // draw chart position if not recording
     if (!recording) {
-      lv_point_t points[2] = {{.x = 1 + index * 4, .y = 88}, {.x = 1 + index * 4, .y = 96}};
+      lv_point_t points[2] = {{.x = 1 + index * 4, .y = 87}, {.x = 1 + index * 4, .y = 96}};
       lv_canvas_draw_line(chart, points, 2, &bar_desc);
     }
 
