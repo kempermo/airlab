@@ -1079,7 +1079,7 @@ static void* scr_settings() {
 static void* scr_menu() {
   // prepare variables
   static int8_t mode = 0;  // co2, tmp, hum
-  static int8_t opt = 0;   // settings, explore, create
+  static int8_t opt = 0;   // create, explore, settings
   static bool fan_alt = false;
 
   // begin draw
@@ -1181,11 +1181,11 @@ static void* scr_menu() {
 
     // set icon
     if (opt == 0) {
-      lv_img_set_src(icon, &img_cog);
+      lv_img_set_src(icon, rec_running() ? &img_file2 : &img_file1);
     } else if (opt == 1) {
       lv_img_set_src(icon, &img_folder);
     } else if (opt == 2) {
-      lv_img_set_src(icon, rec_running() ? &img_file2 : &img_file1);
+      lv_img_set_src(icon, &img_cog);
     }
 
     // set fan
@@ -1300,17 +1300,17 @@ static void* scr_menu() {
     // handle enter
     if (event.type == SIG_ENTER) {
       switch (opt) {
-        case 0:  // settings
-          return scr_settings;
-        case 1:  // explore
-          return scr_explore;
-        case 2:  // create or view
+        case 0:  // create or view
           if (rec_running()) {
             scr_file = rec_file();
             return scr_view;
           } else {
             return scr_create;
           }
+        case 1:  // explore
+          return scr_explore;
+        case 2:  // settings
+          return scr_settings;
         default:
           ESP_ERROR_CHECK(ESP_FAIL);
       }
