@@ -279,6 +279,7 @@ static void* scr_saver() {
   // add icons
   lv_obj_t* lock = lv_img_create(lv_scr_act());
   lv_img_set_src(lock, &img_lock);
+  lv_obj_t* battery = lv_img_create(lv_scr_act());
   lv_obj_t* record = NULL;
   if (rec_running()) {
     record = lv_img_create(lv_scr_act());
@@ -302,8 +303,24 @@ static void* scr_saver() {
     // read sensor
     sns_state_t sensor = sns_get();
 
+    // read power
+    pwr_state_t power = pwr_get();
+
     // begin draw
     gfx_begin(false, false);
+
+    // update battery
+    if (power.usb && power.charging) {
+      lv_img_set_src(battery, &img_power);
+    } else if (power.battery > 0.75) {
+      lv_img_set_src(battery, &img_bat3);
+    } else if (power.battery > 0.5) {
+      lv_img_set_src(battery, &img_bat2);
+    } else if (power.battery > 0.25) {
+      lv_img_set_src(battery, &img_bat1);
+    } else {
+      lv_img_set_src(battery, &img_bat0);
+    }
 
     // update values
     lv_label_set_text(time, scr_fmt("%02d:%02d", hour, minute));
@@ -316,6 +333,7 @@ static void* scr_saver() {
     // align objects
     lv_align_t align = right ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT;
     lv_obj_align(lock, align, right ? -19 : 19, 19);
+    lv_obj_align(battery, align, right ? -40 : 40, 19);
     lv_obj_align(time, align, right ? -19 : 19, 41);
     lv_obj_align(co2, align, right ? -19 : 19, 59);
     lv_obj_align(tmp, align, right ? -19 : 19, 77);
