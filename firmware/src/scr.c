@@ -1030,10 +1030,10 @@ static void* scr_settings() {
   lv_obj_align(info, LV_ALIGN_TOP_RIGHT, -5, 5);
 
   // add signs
-  lvx_sign_t datetime = {.title = "↑", .text = "Uhr + Datum", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -50};
-  lvx_sign_t reset = {.title = "<", .text = "Zurücksetzen", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
+  lvx_sign_t datetime = {.title = "↑", .text = "Uhr + Datum", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
   lvx_sign_t back = {.title = "B", .text = "Zurück", .align = LV_ALIGN_BOTTOM_LEFT};
   lvx_sign_t off = {.title = ">", .text = "Ausschalten", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -25};
+  lvx_sign_t reset = {.title = "<", .text = "Zurücksetzen", .align = LV_ALIGN_BOTTOM_RIGHT};
   lvx_sign_create(&datetime, lv_scr_act());
   lvx_sign_create(&reset, lv_scr_act());
   lvx_sign_create(&back, lv_scr_act());
