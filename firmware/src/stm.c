@@ -11,6 +11,11 @@ stm_entry_t stm_entries[] = {
         .action = STM_FROM_INTRO,
     },
     {
+        .text = "Schmuuhhh, mir wird ganz schwindelig...",
+        .exclaim = true,
+        .co2_min = 4000,
+    },
+    {
         .text = "Mir ist übel!",
         .exclaim = true,
         .co2_min = 3000,
@@ -97,6 +102,18 @@ stm_entry_t stm_entries[] = {
         .text = "1% der Luft sind ganz viele verschiedene Spurengase.",
     },
     {
+        .text = "Klug ist jener, der Schweres einfach sagt.",
+    },
+    {
+        .text = "Auch Bakterien und Viren fliegen in der Luft herum!",
+    },
+    {
+        .text = "Pro Tag atmest du ca. 2'500 Liter CO2 aus!",
+    },
+    {
+        .text = "Ein Kubikmeter CO2 wiegt 1.98 kg.",
+    },
+    {
         .text = "Ich bin am rechnen...",
         .action = STM_FROM_MEASUREMENT,
     },
@@ -107,6 +124,10 @@ stm_entry_t stm_entries[] = {
     {
         .text = "Ich mache gerade eine wichtige Messung...",
         .action = STM_FROM_MEASUREMENT,
+    },
+    {
+      .text = "(RH + 454) x 10^3/0.544 = ?",
+      .action = STM_FROM_MEASUREMENT,
     },
 };
 
