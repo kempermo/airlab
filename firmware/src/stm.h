@@ -15,8 +15,19 @@ typedef enum {
   STM_COMP_MEASUREMENT = 7,
 } stm_action_t;
 
+typedef enum {
+  STM_HAPPY,
+  STM_COLD,
+  STM_ANGRY1,
+  STM_ANGRY2,
+  STM_STANDING,
+  STM_POINTING,
+  STM_WORKING,
+} stm_mood_t;
+
 typedef struct {
   const char *text;
+  stm_mood_t mood;
   bool exclaim;
   stm_action_t action;
   float co2_min;

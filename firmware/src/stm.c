@@ -7,127 +7,156 @@ stm_entry_t stm_entries[] = {
     /* Exclaims */
     {
         .text = "Willkommen im Air Lab! Sieh dich doch einmal um. Berühren ist erlaubt!",
+        .mood = STM_HAPPY,
         .exclaim = true,
         .action = STM_FROM_INTRO,
     },
     {
         .text = "Schmuuhhh, mir wird ganz schwindelig...",
+        .mood = STM_COLD,
         .exclaim = true,
         .co2_min = 4000,
     },
     {
         .text = "Mir ist übel!",
+        .mood = STM_ANGRY1,
         .exclaim = true,
         .co2_min = 3000,
     },
     {
         .text = "Ich kann hier kaum atmen!",
+        .mood = STM_ANGRY2,
         .exclaim = true,
         .co2_min = 2000,
         .co2_max = 3000,
     },
     {
         .text = "Uuuu... ich bin müde.",
+        .mood = STM_STANDING,
         .exclaim = true,
         .co2_min = 1700,
         .co2_max = 2000,
     },
     {
         .text = "Jo, ich kann mich voll nicht konzentrieren.",
+        .mood = STM_ANGRY2,
         .exclaim = true,
         .co2_min = 1400,
         .co2_max = 1700,
     },
     {
         .text = "Boa ey, ist das kalt hier!",
+        .mood = STM_COLD,
         .exclaim = true,
         .tmp_max = 10,
     },
     {
         .text = "Sag mal, sind wir im Regenwald?",
+        .mood = STM_ANGRY1,
         .exclaim = true,
         .tmp_min = 25,
         .hum_min = 70,
     },
     {
         .text = "Ahem, mega trocken hier!",
+        .mood = STM_COLD,
         .exclaim = true,
         .hum_max = 40,
     },
     {
         .text = "Cool, du hast deine Messung abgeschlossen!",
+        .mood = STM_HAPPY,
         .exclaim = true,
         .action = STM_COMP_MEASUREMENT,
     },
     {
         .text = "Die Analyse ist der Anfang der Erkenntnis.",
+        .mood = STM_POINTING,
         .exclaim = true,
         .action = STM_FROM_ANALYSIS,
     },
     {
         .text = "Super, du hast gerade deine erste Messung gestartet!",
+        .mood = STM_POINTING,
         .exclaim = true,
         .action = STM_START_FIRST_MEASUREMENT,
     },
     /* Fun Facts */
     {
         .text = "Ahhh... Ich liebe frische Luft!",
+        .mood = STM_HAPPY,
         .co2_max = 600,
     },
     {
         .text = "Die Luft hier ist jetzt richtig nice!",
+        .mood = STM_HAPPY,
         .co2_max = 600,
         .hum_min = 40,
         .hum_max = 60,
     },
     {
         .text = "Warme Luft kann mehr Feuchtigkeit auf- nehmen als kalte Luft.",
+        .mood = STM_POINTING,
     },
     {
         .text = "Pro Tag atmen wir 10'000 bis 20'000 Liter Luft.",
+        .mood = STM_POINTING,
     },
     {
         .text = "Die Luft ist ein Gemisch aus vielen verschiedenen Gasen.",
+        .mood = STM_POINTING,
     },
     {
         .text = "78% der Luft ist Stickstoff.",
+        .mood = STM_POINTING,
     },
     {
         .text = "21% der Luft ist Sauerstoff.",
+        .mood = STM_POINTING,
     },
     {
         .text = "Achtung! Luftschad- stoffe können dich krank machen!",
+        .mood = STM_POINTING,
     },
     {
         .text = "1% der Luft sind ganz viele verschiedene Spurengase.",
+        .mood = STM_POINTING,
     },
     {
         .text = "Klug ist jener, der Schweres einfach sagt.",
+        .mood = STM_POINTING,
     },
     {
         .text = "Auch Bakterien und Viren fliegen in der Luft herum!",
+        .mood = STM_POINTING,
     },
     {
         .text = "Pro Tag atmest du ca. 2'500 Liter CO2 aus!",
+        .mood = STM_POINTING,
     },
     {
         .text = "Ein Kubikmeter CO2 wiegt 1.98 kg.",
+        .mood = STM_POINTING,
     },
     {
         .text = "Ich bin am rechnen...",
+        .mood = STM_WORKING,
         .action = STM_FROM_MEASUREMENT,
     },
     {
         .text = "Hmmm...",
+        .mood = STM_WORKING,
         .action = STM_FROM_MEASUREMENT,
     },
     {
         .text = "Ich mache gerade eine wichtige Messung...",
+        .mood = STM_WORKING,
         .action = STM_FROM_MEASUREMENT,
     },
     {
-      .text = "(RH + 454) x 10^3/0.544 = ?",
-      .action = STM_FROM_MEASUREMENT,
+        .text = "(RH + 454) x 10^3/0.544 = ?",
+        .mood = STM_WORKING,
+        .action = STM_FROM_MEASUREMENT,
     },
 };
 
