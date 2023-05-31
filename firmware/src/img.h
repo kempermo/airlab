@@ -1,7 +1,13 @@
 #ifndef IMG_H
 #define IMG_H
 
-extern const lv_img_dsc_t img_robin;
+extern const lv_img_dsc_t img_robin_standing;
+extern const lv_img_dsc_t img_robin_working;
+extern const lv_img_dsc_t img_robin_pointing;
+extern const lv_img_dsc_t img_robin_happy;
+extern const lv_img_dsc_t img_robin_cold;
+extern const lv_img_dsc_t img_robin_angry1;
+extern const lv_img_dsc_t img_robin_angry2;
 extern const lv_img_dsc_t img_arrow_down;
 extern const lv_img_dsc_t img_arrow_up;
 extern const lv_img_dsc_t img_lab;

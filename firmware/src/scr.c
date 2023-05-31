@@ -1100,7 +1100,7 @@ static void* scr_menu() {
 
   // add robin
   lv_obj_t* robin = lv_img_create(lv_scr_act());
-  lv_img_set_src(robin, &img_robin);
+  lv_img_set_src(robin, &img_robin_standing);
   lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 10, -10);
 
   // add lab
@@ -1468,7 +1468,7 @@ static void* scr_intro() {
   // show robin
   gfx_begin(false, false);
   lv_obj_t* img = lv_img_create(lv_scr_act());
-  lv_img_set_src(img, &img_robin);
+  lv_img_set_src(img, &img_robin_standing);
   lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
   gfx_end(false);
 
