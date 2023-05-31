@@ -1101,7 +1101,7 @@ static void* scr_menu() {
   // add robin
   lv_obj_t* robin = lv_img_create(lv_scr_act());
   lv_img_set_src(robin, &img_robin_standing);
-  lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 10, -10);
+  lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 20, -10);
 
   // add lab
   lv_obj_t* lab = lv_img_create(lv_scr_act());
@@ -1219,6 +1219,43 @@ static void* scr_menu() {
     // set bubble
     bubble.text = statement ? statement->text : NULL;
     lvx_bubble_update(&bubble);
+
+    // update robin
+    if (statement) {
+      switch (statement->mood) {
+        case STM_HAPPY:
+          lv_img_set_src(robin, &img_robin_happy);
+          lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 20, -10);
+          break;
+        case STM_COLD:
+          lv_img_set_src(robin, &img_robin_cold);
+          lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 20, -10);
+          break;
+        case STM_ANGRY1:
+          lv_img_set_src(robin, &img_robin_angry1);
+          lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 20, -10);
+          break;
+        case STM_ANGRY2:
+          lv_img_set_src(robin, &img_robin_angry2);
+          lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 11, -10);
+          break;
+        case STM_STANDING:
+          lv_img_set_src(robin, &img_robin_standing);
+          lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 20, -10);
+          break;
+        case STM_POINTING:
+          lv_img_set_src(robin, &img_robin_pointing);
+          lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 19, -10);
+          break;
+        case STM_WORKING:
+          lv_img_set_src(robin, &img_robin_working);
+          lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 20, -10);
+          break;
+      }
+    } else {
+      lv_img_set_src(robin, &img_robin_standing);
+      lv_obj_align(robin, LV_ALIGN_BOTTOM_LEFT, 20, -10);
+    }
 
     // end draw
     gfx_end(false);
