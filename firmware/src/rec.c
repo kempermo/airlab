@@ -7,7 +7,7 @@
 
 static naos_mutex_t rec_mutex = NULL;
 static naos_task_t rec_handle = NULL;
-static dat_file_t* rec_current = NULL;
+static size_t rec_current = 0;
 
 static void rec_task() {
   // acquire mutex
@@ -20,7 +20,7 @@ static void rec_task() {
     naos_lock(rec_mutex);
 
     // get file
-    dat_file_t* file = rec_current;
+    dat_file_t* file = dat_get_file(rec_current);
 
     // calculate offset
     int64_t offset = sys_get_timestamp() - file->head.start;
@@ -48,18 +48,25 @@ void rec_init() {
   rec_mutex = naos_mutex();
 }
 
-dat_file_t* rec_file() {
+size_t rec_file() {
   // get file
   naos_lock(rec_mutex);
-  dat_file_t* file = rec_current;
+  size_t file = rec_current;
   naos_unlock(rec_mutex);
 
   return file;
 }
 
-bool rec_running() { return rec_file() != NULL; }
+bool rec_running() {
+  // check handle
+  naos_lock(rec_mutex);
+  bool running = rec_handle != NULL;
+  naos_unlock(rec_mutex);
 
-void rec_start(dat_file_t* file) {
+  return running;
+}
+
+void rec_start(size_t file) {
   // check file
   if (rec_running()) {
     ESP_ERROR_CHECK(ESP_FAIL);
@@ -87,11 +94,14 @@ void rec_mark() {
   // acquire mutex
   naos_lock(rec_mutex);
 
+  // get file
+  dat_file_t* file = dat_get_file(rec_current);
+
   // calculate offset
-  int64_t offset = sys_get_timestamp() - rec_current->head.start;
+  int64_t offset = sys_get_timestamp() - file->head.start;
 
   // mark offset
-  dat_mark(rec_current->head.num, (int32_t)offset);
+  dat_mark(file->head.num, (int32_t)offset);
 
   // release mutex
   naos_unlock(rec_mutex);
@@ -107,7 +117,7 @@ void rec_stop() {
   naos_lock(rec_mutex);
 
   // clear file
-  rec_current = NULL;
+  rec_current = 0;
 
   // kill task
   naos_kill(rec_handle);

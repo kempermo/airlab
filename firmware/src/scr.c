@@ -23,7 +23,7 @@
 #define SCR_MIN_RESOLUTION 5000
 
 static stm_action_t scr_action = 0;
-static dat_file_t* scr_file = NULL;
+DEV_KEEP static size_t scr_file = 0;
 DEV_KEEP static void* scr_return_timeout = NULL;
 DEV_KEEP static void* scr_return_unlock = NULL;
 
@@ -428,7 +428,7 @@ static void* scr_exit() {
   // handle enter
   if (event.type == SIG_ENTER) {
     // get file
-    dat_file_t* file = rec_file();
+    dat_file_t* file = dat_get_file(rec_file());
 
     // stop recording
     rec_stop();
@@ -449,13 +449,16 @@ static void* scr_view() {
   static bool advanced = false;
   static dat_point_t scr_points[SCR_CHART_POINTS];
 
+  // get file
+  dat_file_t* file = dat_get_file(scr_file);
+
   // check recording
   bool recording = rec_running() && rec_file() == scr_file;
 
   // prepare position
   int32_t position = 0;
   if (!recording) {
-    position = scr_file->stop / 2;
+    position = file->stop / 2;
   }
 
   // zero points
@@ -484,7 +487,7 @@ static void* scr_view() {
   for (;;) {
     // adjust position if recording
     if (recording) {
-      position = scr_file->stop;
+      position = file->stop;
     }
 
     // calculate resolution
@@ -492,9 +495,9 @@ static void* scr_view() {
     if (recording) {
       resolution = SCR_MIN_RESOLUTION;
     } else if (advanced) {
-      resolution = scr_file->stop / 10 / SCR_CHART_POINTS;
+      resolution = file->stop / 10 / SCR_CHART_POINTS;
     } else {  // overview
-      resolution = scr_file->stop / SCR_CHART_POINTS;
+      resolution = file->stop / SCR_CHART_POINTS;
     }
     if (resolution < SCR_MIN_RESOLUTION) {
       resolution = SCR_MIN_RESOLUTION;
@@ -517,8 +520,8 @@ static void* scr_view() {
         end += start * -1;
         start = 0;
       }
-      if (end > scr_file->stop) {
-        int32_t shift = fminf(start, end - scr_file->stop);
+      if (end > file->stop) {
+        int32_t shift = fminf(start, end - file->stop);
         end -= shift;
         start -= shift;
       }
@@ -531,8 +534,8 @@ static void* scr_view() {
     size_t index = roundf(a32_safe_map_f(position, start, end, 0, SCR_CHART_POINTS - 1));
 
     // query points
-    if (scr_file->size > 0) {
-      size_t num = dat_query(scr_file->head.num, scr_points, SCR_CHART_POINTS, start, resolution);
+    if (file->size > 0) {
+      size_t num = dat_query(file->head.num, scr_points, SCR_CHART_POINTS, start, resolution);
       if (recording) {
         index = num - 1;
       }
@@ -541,8 +544,8 @@ static void* scr_view() {
     // find marks
     uint8_t marks[SCR_CHART_POINTS] = {0};
     for (uint8_t i = 0; i < DAT_MARKS; i++) {
-      if (scr_file->head.marks[i] > 0) {
-        int32_t mark = roundf(a32_map_f(scr_file->head.marks[i], start, end, 0, SCR_CHART_POINTS - 1));
+      if (file->head.marks[i] > 0) {
+        int32_t mark = roundf(a32_map_f(file->head.marks[i], start, end, 0, SCR_CHART_POINTS - 1));
         if (mark >= 0 && mark <= SCR_CHART_POINTS - 1) {
           marks[(size_t)mark] = i + 1;
         }
@@ -555,7 +558,7 @@ static void* scr_view() {
     // parse time
     uint16_t hour;
     uint16_t minute;
-    sys_conv_timestamp(scr_file->head.start + (int64_t)current.offset, &hour, &minute, NULL);
+    sys_conv_timestamp(file->head.start + (int64_t)current.offset, &hour, &minute, NULL);
 
     // begin draw
     gfx_begin(false, advanced);
@@ -563,7 +566,7 @@ static void* scr_view() {
     // update bar
     bar.time = scr_fmt("%02d:%02d", hour, minute);
     if (recording) {
-      bar.mark = scr_file->marks > 0 ? scr_fmt("(M%d)", scr_file->marks) : "";
+      bar.mark = file->marks > 0 ? scr_fmt("(M%d)", file->marks) : "";
     } else {
       bar.mark = marks[index] > 0 ? scr_fmt("(M%d)", marks[index]) : "";
     }
@@ -601,7 +604,7 @@ static void* scr_view() {
       if (start > 0) {
         lv_canvas_draw_img(chart, 0, 96 - 7, &img_arrow_left, &img_draw);
       }
-      if (end < scr_file->stop) {
+      if (end < file->stop) {
         lv_canvas_draw_img(chart, 288 - 9, 96 - 7, &img_arrow_right, &img_draw);
       }
     }
@@ -621,7 +624,7 @@ static void* scr_view() {
       pos = roundf(pos / 60000) * 60000;
 
       // format label
-      sys_conv_timestamp(scr_file->head.start + (int64_t)(pos), &hour, &minute, NULL);
+      sys_conv_timestamp(file->head.start + (int64_t)(pos), &hour, &minute, NULL);
       const char* str = scr_fmt("%02d:%02d", hour, minute);
 
       // calculate coordinate
@@ -725,8 +728,8 @@ static void* scr_view() {
       } else if (event.type == SIG_RIGHT) {
         position += resolution * (event.repeat ? 5 : 1);
       }
-      if (position > scr_file->stop) {
-        position = scr_file->stop;
+      if (position > file->stop) {
+        position = file->stop;
       }
       if (position < 0) {
         position = 0;
@@ -778,13 +781,16 @@ static void* scr_create() {
     /* handle enter */
 
     // create measurement
-    scr_file = dat_get_file(dat_create(sys_get_timestamp()));
+    scr_file = dat_create(sys_get_timestamp());
+
+    // get file
+    dat_file_t* file = dat_get_file(scr_file);
 
     // start recording
     rec_start(scr_file);
 
     // set action
-    if (scr_file->head.num == 1) {
+    if (file->head.num == 1) {
       scr_action = STM_START_FIRST_MEASUREMENT;
     } else {
       scr_action = STM_START_MEASUREMENT;
@@ -798,9 +804,12 @@ static void* scr_delete() {
   // begin draw
   gfx_begin(false, false);
 
+  // get file
+  dat_file_t* file = dat_get_file(scr_file);
+
   // add text
   lv_obj_t* text = lv_label_create(lv_scr_act());
-  lv_label_set_text(text, scr_fmt("%s\nwirklich löschen?", scr_file->title));
+  lv_label_set_text(text, scr_fmt("%s\nwirklich löschen?", file->title));
   lv_obj_align(text, LV_ALIGN_TOP_MID, 0, 25);
   lv_obj_set_style_text_align(text, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
 
@@ -827,10 +836,10 @@ static void* scr_delete() {
   /* handle enter */
 
   // capture num
-  uint16_t num = scr_file->head.num;
+  uint16_t num = file->head.num;
 
   // delete file
-  dat_delete(scr_file->head.num);
+  dat_delete(file->head.num);
 
   // show message
   scr_message(scr_fmt("Messung %d\nerfolgreich gelöscht!", num), 2000);
@@ -842,19 +851,22 @@ static void* scr_edit() {
   // begin draw
   gfx_begin(false, false);
 
+  // get file
+  dat_file_t* file = dat_get_file(scr_file);
+
   // add title
   lv_obj_t* title = lv_label_create(lv_scr_act());
-  lv_label_set_text(title, scr_file->title);
+  lv_label_set_text(title, file->title);
   lv_obj_align(title, LV_ALIGN_TOP_LEFT, 5, 5);
 
   // add date
   lv_obj_t* date = lv_label_create(lv_scr_act());
-  lv_label_set_text(date, scr_file->date);
+  lv_label_set_text(date, file->date);
   lv_obj_align(date, LV_ALIGN_TOP_LEFT, 5, 26);
 
   // add length
   lv_obj_t* length = lv_label_create(lv_scr_act());
-  lv_label_set_text(length, scr_ms2str(scr_file->stop));
+  lv_label_set_text(length, scr_ms2str(file->stop));
   lv_obj_align(length, LV_ALIGN_TOP_MID, 0, 26);
 
   // add signs
@@ -1027,7 +1039,7 @@ static void* scr_explore() {
     /* handle enter */
 
     // set file
-    scr_file = dat_get_file(selected);
+    scr_file = selected;
 
     return scr_edit;
   }
