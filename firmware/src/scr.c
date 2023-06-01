@@ -78,7 +78,7 @@ static void scr_message(const char* text, uint32_t timeout) {
   gfx_end(false);
 
   // wait some time
-  naos_delay(timeout);
+  sig_await(SIG_KEYS | SIG_TIMEOUT, timeout);
 
   // cleanup
   scr_cleanup(false);
