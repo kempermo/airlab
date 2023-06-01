@@ -24,6 +24,7 @@
 
 static stm_action_t scr_action = 0;
 DEV_KEEP static size_t scr_file = 0;
+DEV_KEEP static int64_t scr_saver_enter = 0;
 DEV_KEEP static void* scr_return_timeout = NULL;
 DEV_KEEP static void* scr_return_unlock = NULL;
 
@@ -258,6 +259,9 @@ static void* scr_debug() {
       // set return
       scr_return_unlock = scr_debug;
 
+      // set enter
+      scr_saver_enter = sys_get_timestamp();
+
       return scr_saver;
     }
 
@@ -365,21 +369,24 @@ static void* scr_saver() {
 
     /* Sleep Control */
 
+    // determine duration
+    int64_t duration = sys_get_timestamp() - scr_saver_enter;
+
     // power off is battery is low and not charging
     if (power.battery < 0.10 && !power.usb && !power.charging) {
       naos_log("turing off due to low battery");  // TODO: Test!
       scr_power_off();
     }
 
-    // deep sleep for 15s if not recording
+    // deep sleep for 15-45s (0-5min) if not recording
     if (!rec_running()) {
-      // TODO: Increase the longer we are in screen saver?
-      pwr_sleep(true, 15000);
+      int64_t timeout = a32_safe_map_l(duration, 0, 300000, 15000, 45000);
+      pwr_sleep(true, timeout);
     }
 
-    // otherwise, light sleep for 5s
-    // TODO: Use adaptive sleeping for long measurements.
-    pwr_cause_t cause = pwr_sleep(false, 5000);
+    // otherwise, light sleep for 5s-30s (0-5min) if recording
+    int64_t timeout = a32_safe_map_l(duration, 0, 300000, 5000, 30000);
+    pwr_cause_t cause = pwr_sleep(false, timeout);
 
     // handle unlock
     if (cause == PWR_UNLOCK) {
@@ -670,6 +677,9 @@ static void* scr_view() {
 
       // set return
       scr_return_unlock = scr_view;
+
+      // set enter
+      scr_saver_enter = sys_get_timestamp();
 
       return scr_saver;
     }
@@ -1404,6 +1414,9 @@ static void* scr_menu() {
     if (event.type == SIG_TIMEOUT) {
       // set return
       scr_return_unlock = scr_menu;
+
+      // set enter
+      scr_saver_enter = sys_get_timestamp();
 
       return scr_saver;
     }
