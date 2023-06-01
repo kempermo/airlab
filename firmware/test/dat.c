@@ -11,7 +11,9 @@ int main() {
   assert(dat_next() == 1);
 
   // create file
-  dat_file_t *file = dat_create(42);
+  size_t n = dat_create(42);
+  assert(n == 0);
+  dat_file_t *file = dat_get_file(n);
   assert(file != NULL);
   assert(file->head.num == 1);
   assert(file->head.start == 42);

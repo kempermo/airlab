@@ -245,7 +245,7 @@ dat_file_t *dat_get_file(size_t num) { return &dat_files[num]; }
 
 uint16_t dat_next() { return dat_counter + 1; }
 
-dat_file_t *dat_create(int64_t start) {
+size_t dat_create(int64_t start) {
   // prepare head
   dat_head_t head = {
       .num = dat_counter + 1,
@@ -273,7 +273,7 @@ dat_file_t *dat_create(int64_t start) {
   // set counter
   dat_counter = head.num;
 
-  return &dat_files[dat_files_length - 1];
+  return dat_files_length - 1;
 }
 
 void dat_mark(uint16_t num, int32_t offset) {

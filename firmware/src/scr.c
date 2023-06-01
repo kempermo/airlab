@@ -778,7 +778,7 @@ static void* scr_create() {
     /* handle enter */
 
     // create measurement
-    scr_file = dat_create(sys_get_timestamp());
+    scr_file = dat_get_file(dat_create(sys_get_timestamp()));
 
     // start recording
     rec_start(scr_file);

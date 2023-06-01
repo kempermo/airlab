@@ -36,7 +36,7 @@ size_t dat_num_files();
 dat_file_t *dat_get_file(size_t num);
 
 uint16_t dat_next();
-dat_file_t *dat_create(int64_t start);
+size_t dat_create(int64_t start);
 
 void dat_mark(uint16_t num, int32_t offset);
 void dat_append(uint16_t num, dat_point_t *points, size_t count);
