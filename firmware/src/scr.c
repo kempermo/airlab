@@ -24,7 +24,6 @@
 
 static stm_action_t scr_action = 0;
 static dat_file_t* scr_file = NULL;
-static dat_point_t scr_points[SCR_CHART_POINTS] = {0};
 DEV_KEEP static void* scr_return_timeout = NULL;
 DEV_KEEP static void* scr_return_unlock = NULL;
 
@@ -448,6 +447,7 @@ static void* scr_view() {
   // prepare variables
   static int8_t mode = 0;  // co2, tmp, hum
   static bool advanced = false;
+  static dat_point_t scr_points[SCR_CHART_POINTS];
 
   // check recording
   bool recording = rec_running() && rec_file() == scr_file;
