@@ -1431,7 +1431,7 @@ static void* scr_menu() {
 
 static void* scr_time() {
   // show message
-  scr_message("Und wie spät ist es gerade?", 5000);
+  scr_message("Und wie spät ist es gerade?", 3000);
 
   // begin draw
   gfx_begin(false, false);
