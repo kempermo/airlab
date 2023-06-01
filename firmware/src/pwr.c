@@ -6,6 +6,7 @@
 
 #include "pwr.h"
 #include "dev.h"
+#include "sig.h"
 
 #define PWR_USB_CC1 ADC1_CHANNEL_6  // 34
 #define PWR_USB_CC2 ADC1_CHANNEL_7  // 35
@@ -123,7 +124,15 @@ pwr_cause_t pwr_sleep(bool deep, uint64_t timeout) {
     ESP_ERROR_CHECK(esp_light_sleep_start());
   }
 
-  return pwr_cause();
+  // get cause
+  pwr_cause_t cause = pwr_cause();
+
+  // capture enter if unlocked
+  if (cause == PWR_UNLOCK) {
+    sig_await(SIG_ENTER, 1000);
+  }
+
+  return cause;
 }
 
 pwr_cause_t pwr_cause() {
