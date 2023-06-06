@@ -24,8 +24,8 @@ static int64_t btn_times[8] = {0};
 static int8_t btn_counts[8] = {0};
 
 static void btn_check() {
-  // get inverted state (1 = pressed)
-  uint8_t state = dev_shift() ^ 0x3f;
+  // read shift register (inverted)
+  uint8_t state = dev_shift() ^ 0xFF;
 
   // get changed buttons
   uint8_t changed = state ^ btn_state;

@@ -31,8 +31,8 @@ void pwr_check() {
     naos_log("bat: inputs cc1=%dmV cc2=%dmV bat=%dmV", cc1, cc2, bat);
   }
 
-  // read shift register
-  uint8_t shift = dev_shift();
+  // read shift register (inverted)
+  uint8_t shift = dev_shift() ^ 0xFF;
   bool charging = (shift >> 6) & 1;
   bool charged = (shift >> 7) & 1;
   if (PWR_DEBUG) {
