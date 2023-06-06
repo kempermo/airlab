@@ -61,7 +61,7 @@ stm_entry_t stm_entries[] = {
         .text = "Ahem, mega trocken hier!",
         .mood = STM_COLD,
         .exclaim = true,
-        .hum_max = 40,
+        .hum_max = 30,
     },
     {
         .text = "Cool, du hast deine Messung abgeschlossen!",
