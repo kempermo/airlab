@@ -97,7 +97,7 @@ void btn_init() {
   ESP_ERROR_CHECK(gpio_config(&pin));
 
   // configure wakeup source
-  ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(BTN_WAKE, 0));
+  ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(BIT64(BTN_WAKE), ESP_EXT1_WAKEUP_ALL_LOW));
 
   // start timer
   naos_repeat("btn", 25, btn_check);  // 50 Hz

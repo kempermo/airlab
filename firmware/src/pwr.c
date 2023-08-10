@@ -141,7 +141,7 @@ pwr_cause_t pwr_cause() {
   switch (cause) {
     case ESP_SLEEP_WAKEUP_TIMER:
       return PWR_TIMEOUT;
-    case ESP_SLEEP_WAKEUP_EXT0:
+    case ESP_SLEEP_WAKEUP_EXT1:
       return PWR_UNLOCK;
     default:
       return PWR_NONE;
