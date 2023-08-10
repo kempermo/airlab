@@ -1,6 +1,7 @@
 #include <naos.h>
 #include <naos_sys.h>
 #include <driver/adc.h>
+#include <esp_adc_cal.h>
 #include <esp_sleep.h>
 #include <art32/numbers.h>
 
@@ -17,6 +18,7 @@
 #define PWR_DEBUG false
 
 static naos_mutex_t pwr_mutex;
+static esp_adc_cal_characteristics_t pwr_calib;
 static pwr_state_t pwr_state = {0};
 
 void pwr_check() {
@@ -24,9 +26,9 @@ void pwr_check() {
   naos_lock(pwr_mutex);
 
   // read inputs
-  int cc1 = adc1_get_raw(PWR_USB_CC1) * 3300 / 4096;
-  int cc2 = adc1_get_raw(PWR_USB_CC2) * 3300 / 4096;
-  int bat = adc1_get_raw(PWR_BAT_LVL) * 3300 / 4096 * 2;
+  int cc1 = (int)esp_adc_cal_raw_to_voltage(adc1_get_raw(PWR_USB_CC1), &pwr_calib);
+  int cc2 = (int)esp_adc_cal_raw_to_voltage(adc1_get_raw(PWR_USB_CC2), &pwr_calib);
+  int bat = (int)esp_adc_cal_raw_to_voltage(adc1_get_raw(PWR_BAT_LVL), &pwr_calib) * 2;
   if (PWR_DEBUG) {
     naos_log("bat: inputs cc1=%dmV cc2=%dmV bat=%dmV", cc1, cc2, bat);
   }
@@ -40,7 +42,7 @@ void pwr_check() {
   }
 
   // set state
-  pwr_state.battery = a32_safe_map_f((float)bat, 3000.f, 4000.f, 0.f, 1.f);
+  pwr_state.battery = a32_safe_map_f((float)bat, 3200.f, 4000.f, 0.f, 1.f);
   pwr_state.usb = cc1 || cc2;
   pwr_state.fast = (cc1 ? cc1 : cc2) > 350;
   pwr_state.charging = charging;
@@ -66,6 +68,9 @@ void pwr_init() {
   ESP_ERROR_CHECK(adc1_config_channel_atten(PWR_USB_CC1, ADC_ATTEN_DB_11));
   ESP_ERROR_CHECK(adc1_config_channel_atten(PWR_USB_CC2, ADC_ATTEN_DB_11));
   ESP_ERROR_CHECK(adc1_config_channel_atten(PWR_BAT_LVL, ADC_ATTEN_DB_11));
+
+  // characterize ADC
+  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &pwr_calib);
 
   // configure pins
   gpio_config_t cfg = {
