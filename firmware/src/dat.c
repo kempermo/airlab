@@ -35,6 +35,7 @@ static dat_file_t *dat_files;
 static size_t dat_files_length = 0;
 
 // TODO: Handle file overflow.
+// TODO: Only reference files by their number an not index.
 
 float lerp(float a, float b, float f) { return a * (1.f - f) + (b * f); }
 
