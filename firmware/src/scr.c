@@ -383,6 +383,9 @@ static void* scr_saver() {
       // turn off sensor
       sns_set(false);
 
+      // sleep display
+      epd_sleep();
+
       // perform deep sleep
       pwr_sleep(true, 60 * 1000);
     }
