@@ -410,11 +410,14 @@ static void* scr_saver() {
 }
 
 static void* scr_exit() {
+  // get file
+  dat_file_t * file = dat_get_file(scr_file);
+
   // begin draw
   gfx_begin(false, true);
 
   // add signs
-  lvx_sign_t stop = {.title = "A", .text = "Messung beenden", .align = LV_ALIGN_CENTER, .offset = -15};
+  lvx_sign_t stop = {.title = "A", .text = scr_fmt("%s beenden", file->title), .align = LV_ALIGN_CENTER, .offset = -15};
   lvx_sign_t back = {.title = "B", .text = "Zurück zum Labor", .align = LV_ALIGN_CENTER, .offset = 15};
   lvx_sign_create(&stop, lv_scr_act());
   lvx_sign_create(&back, lv_scr_act());
