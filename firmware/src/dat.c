@@ -34,6 +34,8 @@ static uint16_t dat_counter;
 static dat_file_t *dat_files;
 static size_t dat_files_length = 0;
 
+// TODO: Handle file overflow.
+
 float lerp(float a, float b, float f) { return a * (1.f - f) + (b * f); }
 
 static void dat_format_file(dat_file_t *file) {
