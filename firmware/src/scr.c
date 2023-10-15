@@ -1101,6 +1101,9 @@ static void* scr_reset() {
 }
 
 static void* scr_settings() {
+  // get storage info
+  dat_info_t info = dat_info();
+
   // begin draw
   gfx_begin(false, false);
 
@@ -1110,9 +1113,14 @@ static void* scr_settings() {
   lv_obj_align(title, LV_ALIGN_TOP_LEFT, 5, 5);
 
   // add info
-  lv_obj_t* info = lv_label_create(lv_scr_act());
-  lv_label_set_text(info, "v" DEV_VERSION);
-  lv_obj_align(info, LV_ALIGN_TOP_RIGHT, -5, 5);
+  lv_obj_t* version = lv_label_create(lv_scr_act());
+  lv_label_set_text(version, "v" DEV_VERSION);
+  lv_obj_align(version, LV_ALIGN_TOP_RIGHT, -5, 5);
+
+  // add storage
+  lv_obj_t* storage = lv_label_create(lv_scr_act());
+  lv_label_set_text(storage, scr_fmt("Speicher: %.1f%% belegt", info.usage * 100.f));
+  lv_obj_align(storage, LV_ALIGN_TOP_LEFT, 5, 26);
 
   // add signs
   lvx_sign_t datetime = {.title = "↑", .text = "Uhr + Datum", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
