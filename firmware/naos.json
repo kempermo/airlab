@@ -1,8 +1,6 @@
 {
   "version": "278df0c8",
   "fix_serial": true,
-  "baud_rate": "",
-  "embeds": null,
   "overrides": {
     "CONFIG_ESPTOOLPY_FLASHSIZE_4MB": null,
     "CONFIG_ESPTOOLPY_FLASHSIZE_8MB": "y",
@@ -26,7 +24,5 @@
       "repository": "https://github.com/256dpi/art32.git",
       "version": "916c44a"
     }
-  },
-  "broker": "mqtts://key:secret@example.org",
-  "devices": {}
+  }
 }
