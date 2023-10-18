@@ -1501,7 +1501,7 @@ static void* scr_time() {
 
   // prepare wheels
   lvx_wheel_t hour = {.value = 12, .min = 0, .max = 23, .format = "%02d", .fixed = true};
-  lvx_wheel_t minute = {.value = 30, .min = 1, .max = 59, .format = "%02d", .fixed = true};
+  lvx_wheel_t minute = {.value = 30, .min = 0, .max = 59, .format = "%02d", .fixed = true};
 
   // assign current time if available
   if (sys_has_time()) {
