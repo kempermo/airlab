@@ -6,6 +6,7 @@
 #include "sig.h"
 
 #define SNS_SCD 0x62
+#define SNS_SGP 0x59
 #define SNS_DEBUG false
 
 // TODO: Support low power measurement mode (30s).
@@ -44,7 +45,7 @@ static void sns_transfer(uint8_t target, uint16_t addr, size_t send, size_t rece
   for (size_t i = 0; i < send; i++) {
     sns_buffer[2 + i * 3] = sns_write[i] >> 8;
     sns_buffer[2 + i * 3 + 1] = sns_write[i] & 0xFF;
-    sns_buffer[2 + i * 3 + 2] = sns_crc(sns_buffer + (2 + i * 2), 2);
+    sns_buffer[2 + i * 3 + 2] = sns_crc(sns_buffer + (2 + i * 3), 2);
   }
 
   // run command
@@ -72,6 +73,25 @@ static void sns_transfer(uint8_t target, uint16_t addr, size_t send, size_t rece
   }
 }
 
+static void sns_receive(uint8_t target, size_t receive) {
+  // run command
+  esp_err_t err = i2c_master_read_from_device(I2C_NUM_0, target, sns_buffer, receive * 3, 1000);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(err);
+  if (err != ESP_OK) {
+    return;
+  }
+
+  // read bytes
+  for (size_t i = 0; i < receive; i++) {
+    sns_read[i] = (sns_buffer[i * 3] << 8) | sns_buffer[i * 3 + 1];
+    uint8_t crc = sns_crc(sns_buffer + (i * 3), 2);
+    if (sns_buffer[i * 3 + 2] != crc) {
+      naos_log("snd: crc failed in=%u crc=%u", sns_buffer[i * 3 + 2], crc);
+      ESP_ERROR_CHECK_WITHOUT_ABORT(ESP_FAIL);
+    }
+  }
+}
+
 static void sns_check() {
   for (;;) {
     // wait a second
@@ -80,7 +100,7 @@ static void sns_check() {
     // acquire mutex
     naos_lock(sns_mutex);
 
-    // check if measurement is available
+    // check if SCD measurement is available
     sns_transfer(SNS_SCD, 0xe4b8, 0, 1, false);
     if ((sns_read[0] & 0xFFF) == 0) {
       if (SNS_DEBUG) {
@@ -90,7 +110,7 @@ static void sns_check() {
       continue;
     }
 
-    // read sensor
+    // read SCD sensor
     sns_transfer(SNS_SCD, 0xec05, 0, 3, false);
 
     // calculate values
@@ -98,8 +118,24 @@ static void sns_check() {
     float tmp = -45.f + 175.f * ((float)sns_read[1] / (float)(UINT16_MAX));  // °C
     float hum = 100.f * ((float)sns_read[2] / (float)(UINT16_MAX));          // % rH
     if (SNS_DEBUG) {
-      naos_log("sns: read measurement: co2=%.0f tmp=%.1f hum=%.1f", co2, tmp, hum);
+      naos_log("sns: SCD values: co2=%.0f tmp=%.1f hum=%.1f", co2, tmp, hum);
     }
+
+    // read SGP sensor
+    sns_write[0] = 0x8000;
+    sns_write[1] = 0x6666;
+    sns_transfer(SNS_SGP, 0x2619, 2, 0, false);
+    naos_delay(50);
+    sns_receive(SNS_SGP, 2);
+
+    // calculate values
+    if (SNS_DEBUG) {
+      float voc = (float)sns_read[0];
+      float nox = (float)sns_read[1];
+      naos_log("sns: SGP values: voc=%f nox=%f", voc, nox);
+    }
+
+    // TODO: Use Sensirion Gas Index Algorithm to calculate tVOC and NOx.
 
     // advanced
     sns_pos++;
@@ -149,14 +185,21 @@ void sns_init() {
   sns_transfer(SNS_SCD, 0x3f86, 0, 0, true);
   naos_delay(500);
 
-  // read serial
+  // read serials
   if (SNS_DEBUG) {
     sns_transfer(SNS_SCD, 0x3682, 0, 3, false);
-    naos_log("sns: serial %lu %lu %lu", sns_read[0], sns_read[1], sns_read[2]);
+    naos_log("sns: SCD serial %lu %lu %lu", sns_read[0], sns_read[1], sns_read[2]);
+    sns_transfer(SNS_SGP, 0x3682, 0, 3, false);
+    naos_log("sns: SGP serial %lu %lu %lu", sns_read[0], sns_read[1], sns_read[2]);
   }
 
   // start periodic measurement
   sns_transfer(SNS_SCD, 0x21b1, 0, 0, false);
+
+  // condition SGP sensor
+  // sns_write[0] = 0x8000;
+  // sns_write[1] = 0x6666;
+  // sns_transfer(SNS_SGP, 0x2612, 2, 1, false);
 
   // run check task
   naos_run("sns", 8192, 1, sns_check);
