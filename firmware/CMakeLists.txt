@@ -13,6 +13,8 @@ set(SOURCE_FILES
         src/acc.h
         src/btn.c
         src/btn.h
+        src/cap.c
+        src/cap.h
         src/dat.c
         src/dat.h
         src/dev.c
