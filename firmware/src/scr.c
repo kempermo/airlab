@@ -411,7 +411,7 @@ static void* scr_saver() {
 
 static void* scr_exit() {
   // get file
-  dat_file_t * file = dat_get_file(scr_file);
+  dat_file_t* file = dat_get_file(scr_file);
 
   // begin draw
   gfx_begin(false, true);

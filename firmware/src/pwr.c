@@ -32,8 +32,8 @@ void pwr_check() {
     naos_log("bat: inputs cc1=%dmV cc2=%dmV bat=%dmV", cc1, cc2, bat);
   }
 
-  bool charging = 0; // TODO: Read from charger.
-  bool charged = 0; // TODO: Read from charger.
+  bool charging = 0;  // TODO: Read from charger.
+  bool charged = 0;   // TODO: Read from charger.
   if (PWR_DEBUG) {
     naos_log("pwr: charging/low=%d charged=%d", charging, charged);
   }

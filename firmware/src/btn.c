@@ -18,9 +18,7 @@ static sig_type_t btn_map[] = {
 static int64_t btn_times[8] = {0};
 static int8_t btn_counts[8] = {0};
 
-static uint8_t dev_shift() {
-  return 0;
-}
+static uint8_t dev_shift() { return 0; }
 
 static void btn_check() {
   // read shift register (inverted)
