@@ -5,7 +5,7 @@
 #include "sns.h"
 #include "sig.h"
 
-#define SNS_ADDR 0x62
+#define SNS_SCD 0x62
 #define SNS_DEBUG false
 
 // TODO: Support low power measurement mode (30s).
@@ -35,7 +35,7 @@ uint8_t sns_crc(const uint8_t* data, uint16_t count) {
   return crc;
 }
 
-static void sns_transfer(uint16_t addr, size_t send, size_t receive, bool may_fail) {
+static void sns_transfer(uint8_t target, uint16_t addr, size_t send, size_t receive, bool may_fail) {
   // write address
   sns_buffer[0] = addr >> 8;
   sns_buffer[1] = addr & 0xFF;
@@ -50,9 +50,9 @@ static void sns_transfer(uint16_t addr, size_t send, size_t receive, bool may_fa
   // run command
   esp_err_t err;
   if (receive > 0) {
-    err = i2c_master_write_read_device(I2C_NUM_0, SNS_ADDR, sns_buffer, 2 + send * 3, sns_buffer, receive * 3, 1000);
+    err = i2c_master_write_read_device(I2C_NUM_0, target, sns_buffer, 2 + send * 3, sns_buffer, receive * 3, 1000);
   } else {
-    err = i2c_master_write_to_device(I2C_NUM_0, SNS_ADDR, sns_buffer, 2 + send * 3, 1000);
+    err = i2c_master_write_to_device(I2C_NUM_0, target, sns_buffer, 2 + send * 3, 1000);
   }
   if (!may_fail) {
     ESP_ERROR_CHECK_WITHOUT_ABORT(err);
@@ -81,7 +81,7 @@ static void sns_check() {
     naos_lock(sns_mutex);
 
     // check if measurement is available
-    sns_transfer(0xe4b8, 0, 1, false);
+    sns_transfer(SNS_SCD, 0xe4b8, 0, 1, false);
     if ((sns_read[0] & 0xFFF) == 0) {
       if (SNS_DEBUG) {
         naos_log("sns: measurement not ready");
@@ -91,7 +91,7 @@ static void sns_check() {
     }
 
     // read sensor
-    sns_transfer(0xec05, 0, 3, false);
+    sns_transfer(SNS_SCD, 0xec05, 0, 3, false);
 
     // calculate values
     float co2 = (float)sns_read[0];                                          // ppm
@@ -143,20 +143,20 @@ void sns_init() {
   }
 
   // wake up
-  sns_transfer(0x36f6, 0, 0, true);
+  sns_transfer(SNS_SCD, 0x36f6, 0, 0, true);
 
   // stop periodic measurement
-  sns_transfer(0x3f86, 0, 0, true);
+  sns_transfer(SNS_SCD, 0x3f86, 0, 0, true);
   naos_delay(500);
 
   // read serial
   if (SNS_DEBUG) {
-    sns_transfer(0x3682, 0, 3, false);
+    sns_transfer(SNS_SCD, 0x3682, 0, 3, false);
     naos_log("sns: serial %lu %lu %lu", sns_read[0], sns_read[1], sns_read[2]);
   }
 
   // start periodic measurement
-  sns_transfer(0x21b1, 0, 0, false);
+  sns_transfer(SNS_SCD, 0x21b1, 0, 0, false);
 
   // run check task
   naos_run("sns", 8192, 1, sns_check);
@@ -165,17 +165,17 @@ void sns_init() {
 void sns_set(bool on) {
   if (on) {
     // wake up
-    sns_transfer(0x36f6, 0, 0, false);
+    sns_transfer(SNS_SCD, 0x36f6, 0, 0, false);
 
     // start periodic measurement
-    sns_transfer(0x21b1, 0, 0, false);
+    sns_transfer(SNS_SCD, 0x21b1, 0, 0, false);
   } else {
     // stop periodic measurement
-    sns_transfer(0x3f86, 0, 0, false);
+    sns_transfer(SNS_SCD, 0x3f86, 0, 0, false);
     naos_delay(500);
 
     // power down
-    sns_transfer(0x36e0, 0, 0, false);
+    sns_transfer(SNS_SCD, 0x36e0, 0, 0, false);
   }
 }
 
