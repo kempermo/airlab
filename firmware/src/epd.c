@@ -6,11 +6,11 @@
 
 #include "epd.h"
 
-#define EPD_4W true
-#define EPD_DC GPIO_NUM_17
-#define EPD_RST GPIO_NUM_16
-#define EPD_BSY GPIO_NUM_4
-#define EPD_SEL GPIO_NUM_5
+#define EPD_4W false
+#define EPD_DC GPIO_NUM_46
+#define EPD_RST GPIO_NUM_39
+#define EPD_BSY GPIO_NUM_38
+#define EPD_SEL GPIO_NUM_40
 #define EPD_DEBUG true
 #define EPD_OTP_LUT true
 #define EPD_BUFFER (EPD_FRAME / 8 * 9 + 2)
@@ -45,6 +45,50 @@ static bool epd_awake = false;
 static uint32_t epd_updated = 0;
 static uint8_t *epd_buffer = NULL;
 static uint8_t *epd_frame = NULL;
+
+/* SPI helper */
+
+void epd_transfer(spi_device_handle_t device, uint8_t *buf, size_t sizeBits) {
+  // fail with one bit
+  if (sizeBits == 1) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+    return;
+  }
+
+  // handle full bytes
+  if ((sizeBits % 8) != 1) {
+    spi_transaction_t tx = {
+        .length = sizeBits,
+        .tx_buffer = buf,
+    };
+    ESP_ERROR_CHECK(spi_device_transmit(device, &tx));
+    return;
+  }
+
+  /* split transfer to work around ESP32-S3 bug */
+
+  // acquire bus
+  ESP_ERROR_CHECK(spi_device_acquire_bus(device, portMAX_DELAY));
+
+  // send all but last 2 bits
+  spi_transaction_t transaction1 = {
+      .flags = SPI_TRANS_CS_KEEP_ACTIVE,
+      .length = sizeBits - 2,
+      .tx_buffer = buf,
+  };
+  ESP_ERROR_CHECK(spi_device_transmit(device, &transaction1));
+
+  // send last 2 bits
+  uint8_t lastBits = (buf[(sizeBits / 8) - 1] << 7) | (buf[sizeBits / 8] >> 1);
+  spi_transaction_t transaction2 = {
+      .length = 2,
+      .tx_buffer = &lastBits,
+  };
+  ESP_ERROR_CHECK(spi_device_transmit(device, &transaction2));
+
+  // release bus
+  spi_device_release_bus(device);
+}
 
 /* bitmap manipulation */
 
@@ -141,11 +185,7 @@ static void epd_write_buffer(uint8_t cmd, size_t len, const uint8_t *buf) {
       }
     }
   } else {
-    spi_transaction_t tx = {
-        .length = (1 + len) * 9,
-        .tx_buffer = epd_buffer,
-    };
-    ESP_ERROR_CHECK(spi_device_transmit(epd_device, &tx));
+    epd_transfer(epd_device, epd_buffer, (1 + len) * 9);
   }
 }
 
