@@ -9,16 +9,55 @@
 #include "pwr.h"
 #include "sig.h"
 
-#define PWR_ADDR 0x68
+#define PWR_ADDR 0x6B
 #define PWR_HOLD GPIO_NUM_21
 #define PWR_USB_CC1 ADC1_CHANNEL_5  // IO6
 #define PWR_USB_CC2 ADC1_CHANNEL_6  // IO7
 #define PWR_BAT_LVL ADC1_CHANNEL_7  // IO8
 #define PWR_DEBUG false
 
+// TODO: USB seems to be flaky and the registers are not updated.
+//  - Need to take device out of default mode?
+//  - Is there a power issue?
+
 static naos_mutex_t pwr_mutex;
 static esp_adc_cal_characteristics_t pwr_calib;
 static pwr_state_t pwr_state = {0};
+
+static struct {
+  union {
+    struct {
+      uint8_t vbus_stat : 3;
+      uint8_t chrg_stat : 2;
+      uint8_t pg_stat : 1;
+      uint8_t therm_stat : 1;
+      uint8_t vsys_stat : 1;
+    };
+    uint8_t raw;
+  } reg8;
+  union {
+    struct {
+      uint8_t wd_fault : 1;
+      uint8_t boost_fault : 1;
+      uint8_t chrg_fault : 2;
+      uint8_t bat_fault : 1;
+      uint8_t ntc_fault : 3;
+    };
+    uint8_t raw;
+  } reg9;
+  union {
+    struct {
+      uint8_t vbus_gd : 1;
+      uint8_t vindpm_stat : 1;
+      uint8_t iindpm_stat : 1;
+      uint8_t _reserved : 1;
+      uint8_t topoff_active : 1;
+      uint8_t acov_stat : 1;
+      uint8_t int_mask : 2;
+    };
+    uint8_t raw;
+  } regA;
+} pwr_bq25601;
 
 static void pwr_read(uint8_t reg, uint8_t *buf, size_t len) {
   // read data
@@ -37,10 +76,19 @@ void pwr_check() {
     naos_log("bat: inputs cc1=%dmV cc2=%dmV bat=%dmV", cc1, cc2, bat);
   }
 
-  bool charging = 0;  // TODO: Read from charger.
-  bool charged = 0;   // TODO: Read from charger.
+  // update BQ25601
+  pwr_read(0x08, &pwr_bq25601.reg8.raw, 3);
   if (PWR_DEBUG) {
-    naos_log("pwr: charging/low=%d charged=%d", charging, charged);
+    naos_log("pwr: reg8=%02x reg9=%02x regA=%02x", pwr_bq25601.reg8.raw, pwr_bq25601.reg9.raw, pwr_bq25601.regA.raw);
+  }
+
+  // parse status
+  bool charging = pwr_bq25601.reg8.chrg_stat != 0;
+  bool power_good = pwr_bq25601.reg8.pg_stat == 1;
+  bool any_fault = pwr_bq25601.reg9.raw != 0;
+  bool usb_pwr = pwr_bq25601.regA.vbus_gd == 1;
+  if (PWR_DEBUG) {
+    naos_log("pwr: charging=%d power_good=%d any_fault=%d usb_pwr=%d", charging, power_good, any_fault, usb_pwr);
   }
 
   // set state
@@ -62,6 +110,16 @@ void pwr_init() {
   // create mutex
   pwr_mutex = naos_mutex();
 
+  naos_log("size of stat %d", sizeof(pwr_bq25601));
+
+  // hold power
+  gpio_config_t cfg = {
+      .mode = GPIO_MODE_OUTPUT,
+      .pin_bit_mask = BIT64(PWR_HOLD),
+  };
+  ESP_ERROR_CHECK(gpio_config(&cfg));
+  ESP_ERROR_CHECK(gpio_set_level(PWR_HOLD, 1));
+
   // read status
   uint8_t status;
   pwr_read(0x08, &status, 1);
@@ -75,14 +133,6 @@ void pwr_init() {
 
   // characterize ADC
   esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12, 1100, &pwr_calib);
-
-  // hold power
-  gpio_config_t cfg = {
-      .mode = GPIO_MODE_OUTPUT,
-      .pin_bit_mask = BIT64(PWR_HOLD),
-  };
-  ESP_ERROR_CHECK(gpio_config(&cfg));
-  ESP_ERROR_CHECK(gpio_set_level(PWR_HOLD, 1));
 
   // run check
   naos_repeat("pwr", 1000, pwr_check);
