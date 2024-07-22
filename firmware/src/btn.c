@@ -5,24 +5,35 @@
 
 #include "sig.h"
 
-#define BTN_DEBUG false
-#define BTN_WAKE GPIO_NUM_36
+#define BTN_A GPIO_NUM_12
+#define BTN_B GPIO_NUM_17
+#define BTN_C GPIO_NUM_15
+#define BTN_D GPIO_NUM_4
+#define BTN_E GPIO_NUM_9
+#define BTN_F GPIO_NUM_13
 #define BTN_REPEAT 750
+#define BTN_DEBUG true
 
 static uint8_t btn_state = 0x00;
 
 static sig_type_t btn_map[] = {
-    SIG_ESCAPE, SIG_LEFT, SIG_RIGHT, SIG_DOWN, SIG_UP, SIG_ENTER,
+    SIG_ENTER, SIG_ESCAPE, SIG_UP, SIG_RIGHT, SIG_DOWN, SIG_LEFT,
 };
 
 static int64_t btn_times[8] = {0};
 static int8_t btn_counts[8] = {0};
 
-static uint8_t dev_shift() { return 0; }
-
 static void btn_check() {
-  // read shift register (inverted)
-  uint8_t state = dev_shift() ^ 0xFF;
+  // read buttons
+  uint8_t a = gpio_get_level(BTN_A) == 0;
+  uint8_t b = gpio_get_level(BTN_B) == 0;
+  uint8_t c = gpio_get_level(BTN_C) == 0;
+  uint8_t d = gpio_get_level(BTN_D) == 0;
+  uint8_t e = gpio_get_level(BTN_E) == 0;
+  uint8_t f = gpio_get_level(BTN_F) == 0;
+
+  // set state
+  uint8_t state = (a << 0) | (b << 1) | (c << 2) | (d << 3) | (e << 4) | (f << 5);
 
   // get changed buttons
   uint8_t changed = state ^ btn_state;
@@ -86,15 +97,16 @@ static void btn_check() {
 }
 
 void btn_init() {
-  // configure gpio
-  gpio_config_t pin = {
+  // configure GPIOs
+  gpio_config_t cfg = {
       .mode = GPIO_MODE_INPUT,
-      .pin_bit_mask = BIT64(BTN_WAKE),
+      .pin_bit_mask = BIT64(BTN_A) | BIT64(BTN_B) | BIT64(BTN_C) | BIT64(BTN_D) | BIT64(BTN_E) | BIT64(BTN_F),
+      .pull_up_en = GPIO_PULLUP_ENABLE,
   };
-  ESP_ERROR_CHECK(gpio_config(&pin));
+  ESP_ERROR_CHECK(gpio_config(&cfg));
 
   // configure wakeup source
-  ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(BIT64(BTN_WAKE), ESP_EXT1_WAKEUP_ALL_LOW));
+  ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(cfg.pin_bit_mask, ESP_EXT1_WAKEUP_ANY_LOW));
 
   // start timer
   naos_repeat("btn", 25, btn_check);  // 50 Hz

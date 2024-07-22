@@ -1,5 +1,4 @@
 #include <naos.h>
-#include <naos/sys.h>
 
 #include "dev.h"
 #include "sig.h"
@@ -15,8 +14,6 @@
 #include "rec.h"
 #include "scr.h"
 
-static uint8_t frame[EPD_FRAME] = {0};
-
 static void setup() {
   // log
   naos_log("setup");
@@ -25,7 +22,7 @@ static void setup() {
   dev_init();
   sig_init();
   pwr_init();
-  // btn_init();
+  btn_init();
   rtc_sync();
   acc_init();
   // cap_init();
@@ -36,8 +33,8 @@ static void setup() {
   rec_init();
 
   // check storage
-  //  dat_info_t info = dat_info();
-  //  naos_log("dat_info: total=%lu free=%lu usage=%.1f%%", info.total, info.free, info.usage * 100.f);
+  dat_info_t info = dat_info();
+  naos_log("dat_info: total=%lu free=%lu usage=%.1f%%", info.total, info.free, info.usage * 100.f);
 
   // run screen
   scr_run();
