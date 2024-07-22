@@ -111,7 +111,7 @@ void pwr_init() {
   };
   ESP_ERROR_CHECK(gpio_config(&cfg));
   ESP_ERROR_CHECK(gpio_set_level(PWR_HOLD, 1));
-  ESP_ERROR_CHECK(gpio_set_level(PWR_LED, 1));
+  ESP_ERROR_CHECK(gpio_set_level(PWR_LED, 0));
 
   // low power
   cfg = (gpio_config_t){
@@ -187,11 +187,6 @@ pwr_cause_t pwr_sleep(bool deep, uint64_t timeout) {
   }
 
   return cause;
-}
-
-void pwr_led(bool on) {
-  // set LED
-  ESP_ERROR_CHECK(gpio_set_level(PWR_LED, on ? 0 : 1));
 }
 
 pwr_cause_t pwr_cause() {

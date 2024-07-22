@@ -20,7 +20,6 @@ pwr_state_t pwr_get();
 
 void pwr_off();
 pwr_cause_t pwr_sleep(bool deep, uint64_t timeout);
-void pwr_led(bool on);
 pwr_cause_t pwr_cause();
 
 #endif  // PWR_H
