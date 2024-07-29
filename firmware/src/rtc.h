@@ -8,10 +8,9 @@ typedef struct {
   uint8_t weekday; /* 1-7 */
   uint8_t day;     /* 1-31 */
   uint8_t month;   /* 1-12 */
-  uint8_t year;    /* 0-99 */
+  uint16_t year;   /* 2000-2099 */
 } rtc_state_t;
 
-void rtc_sync();
 rtc_state_t rtc_get();
 void rtc_set(rtc_state_t state);
 

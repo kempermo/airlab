@@ -1,12 +1,6 @@
 #include <sys/time.h>
 
 #include "sys.h"
-#include "dev.h"
-
-DEV_KEEP bool sys_date = false;
-DEV_KEEP bool sys_time = false;
-
-bool sys_has_date() { return sys_date; }
 
 void sys_get_date(uint16_t *year, uint16_t *month, uint16_t *day) {
   // get time as calendar
@@ -35,31 +29,28 @@ void sys_set_date(uint16_t year, uint16_t month, uint16_t day) {
   // set time
   struct timeval tv = {.tv_sec = t};
   settimeofday(&tv, NULL);
-
-  // set flag
-  sys_date = true;
 }
 
-bool sys_has_time() { return sys_time; }
-
-void sys_get_time(uint16_t *hour, uint16_t *minute) {
+void sys_get_time(uint16_t *hour, uint16_t *minute, uint16_t *seconds) {
   // get time as calendar
   time_t t = time(NULL);
   struct tm *cal = gmtime(&t);
 
-  // set hour and minute
+  // set hour, minute and seconds
   *hour = cal->tm_hour;
   *minute = cal->tm_min;
+  *seconds = cal->tm_sec;
 }
 
-void sys_set_time(uint16_t hour, uint16_t minute) {
+void sys_set_time(uint16_t hour, uint16_t minute, uint16_t seconds) {
   // get time as calendar
   time_t t = time(NULL);
   struct tm *cal = gmtime(&t);
 
-  // set hour and minute
+  // set hour, minute and seconds
   cal->tm_hour = hour;
   cal->tm_min = minute;
+  cal->tm_sec = seconds;
 
   // make time
   t = mktime(cal);
@@ -67,15 +58,6 @@ void sys_set_time(uint16_t hour, uint16_t minute) {
   // set time
   struct timeval tv = {.tv_sec = t};
   settimeofday(&tv, NULL);
-
-  // set flag
-  sys_time = true;
-}
-
-void sys_reset() {
-  // clea flags
-  sys_date = false;
-  sys_time = false;
 }
 
 int64_t sys_get_timestamp() {

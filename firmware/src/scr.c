@@ -16,6 +16,7 @@
 #include "epd.h"
 #include "dev.h"
 #include "stm.h"
+#include "rtc.h"
 
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
@@ -195,14 +196,14 @@ static void* scr_debug() {
     pwr_state_t bat = pwr_get();
 
     // get date and time
-    uint16_t year, month, day, hour, minute;
+    uint16_t year, month, day, hour, minute, seconds;
     sys_get_date(&year, &month, &day);
-    sys_get_time(&hour, &minute);
+    sys_get_time(&hour, &minute, &seconds);
 
     // prepare text
-    const char* text =
-        scr_fmt("%llds - %.0f%% - P%d - F%d\n%04d-%02d-%02d %02d:%02d\n%lu B", naos_millis() / 1000, bat.battery * 100,
-                bat.usb, bat.fast, year, month, day, hour, minute, esp_get_free_heap_size());
+    const char* text = scr_fmt("%llds - %.0f%% - P%d - F%d\n%04d-%02d-%02d %02d:%02d:%02d\n%lu B", naos_millis() / 1000,
+                               bat.battery * 100, bat.usb, bat.fast, year, month, day, hour, minute, seconds,
+                               esp_get_free_heap_size());
 
     // update label
     gfx_begin(false, false);
@@ -307,8 +308,8 @@ static void* scr_saver() {
 
   for (;;) {
     // get time
-    uint16_t hour, minute;
-    sys_get_time(&hour, &minute);
+    uint16_t hour, minute, seconds;
+    sys_get_time(&hour, &minute, &seconds);
 
     // read sensor
     sns_state_t sensor = sns_get();
@@ -1124,10 +1125,13 @@ static void* scr_reset() {
   dat_reset();
 
   // reset date & time
-  sys_reset();
+  rtc_set((rtc_state_t){});
 
   // show message
   scr_message("Air Lab\nerfolgreich zurückgesetzt!", 2000);
+
+  // reset system
+  esp_restart();
 
   return scr_intro;
 }
@@ -1274,8 +1278,8 @@ static void* scr_menu() {
 
   for (;;) {
     // get time
-    uint16_t hour, minute;
-    sys_get_time(&hour, &minute);
+    uint16_t hour, minute, seconds;
+    sys_get_time(&hour, &minute, &seconds);
 
     // read sensor
     sns_state_t sensor = sns_get();
@@ -1503,10 +1507,9 @@ static void* scr_time() {
   lvx_wheel_t hour = {.value = 12, .min = 0, .max = 23, .format = "%02d", .fixed = true};
   lvx_wheel_t minute = {.value = 30, .min = 0, .max = 59, .format = "%02d", .fixed = true};
 
-  // assign current time if available
-  if (sys_has_time()) {
-    sys_get_time(&hour.value, &minute.value);
-  }
+  // assign current time
+  uint16_t seconds;
+  sys_get_time(&hour.value, &minute.value, &seconds);
 
   // add wheels
   lvx_wheel_create(&hour, row);
@@ -1542,7 +1545,7 @@ static void* scr_time() {
     /* handle enter */
 
     // save time
-    sys_set_time(hour.value, minute.value);
+    sys_set_time(hour.value, minute.value, 0);
 
     // show message
     scr_message("Wie die Zeit vergeht...\nKomm, lass uns ins Labor gehen.", 5000);
@@ -1575,10 +1578,8 @@ static void* scr_date() {
   lvx_wheel_t month = {.value = 6, .min = 1, .max = 12, .format = "%02d", .fixed = true};
   lvx_wheel_t year = {.value = 2023, .min = 2023, .max = 2999, .fixed = true};
 
-  // assign current date if available
-  if (sys_has_date()) {
-    sys_get_date(&year.value, &month.value, &day.value);
-  }
+  // assign current date
+  sys_get_date(&year.value, &month.value, &day.value);
 
   // add wheels
   lvx_wheel_create(&day, row);
@@ -1607,14 +1608,9 @@ static void* scr_date() {
     // cleanup
     scr_cleanup(false);
 
-    // power off or return on escape/timeout
+    // return on escape/timeout
     if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
-      if (!sys_has_date() || !sys_has_time()) {
-        scr_power_off();
-        continue;
-      } else {
-        return scr_settings;
-      }
+      return scr_settings;
     }
 
     /* handle enter */
@@ -1664,13 +1660,6 @@ static void* scr_intro() {
 void scr_task() {
   // prepare handler
   void* (*handler)() = scr_menu;
-
-  // check settings
-#if DEV_MODE == 0
-  if ((!sys_has_date() || !sys_has_time())) {
-    handler = scr_intro;
-  }
-#endif
 
   // get wake up cause
   pwr_cause_t cause = pwr_cause();

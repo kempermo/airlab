@@ -3,9 +3,9 @@
 #include <driver/i2c.h>
 
 #include "rtc.h"
+#include "sys.h"
 
 #define RTC_ADDR 0x68
-#define RTC_DEBUG false
 
 static struct {
   union {
@@ -76,31 +76,6 @@ static void rtc_write(uint8_t reg, uint8_t val) {
   ESP_ERROR_CHECK(i2c_master_write_to_device(I2C_NUM_0, RTC_ADDR, data, 2, 1000));
 }
 
-static void rtc_check() {
-  // get RTC
-  rtc_state_t state = rtc_get();
-  naos_log("rtc: %02d:%02d:%02d %02d/%02d/%02d (%d)", state.hours, state.minutes, state.seconds, state.day, state.month,
-           state.year, state.weekday);
-}
-
-void rtc_sync() {
-  // reset RTC
-  rtc_set((rtc_state_t){
-      .hours = 23,
-      .minutes = 59,
-      .seconds = 30,
-      .weekday = 0,
-      .day = 31,
-      .month = 12,
-      .year = 90,
-  });
-
-  // run check
-  if (RTC_DEBUG) {
-    naos_repeat("rtc", 1000, rtc_check);
-  }
-}
-
 rtc_state_t rtc_get() {
   // read RTC fully
   rtc_read(0x00, (uint8_t *)&rtc_bq32000, sizeof(rtc_bq32000));
@@ -121,11 +96,14 @@ rtc_state_t rtc_get() {
       .weekday = weekday,
       .day = date,
       .month = month,
-      .year = year,
+      .year = 2000 + year,
   };
 }
 
 void rtc_set(rtc_state_t state) {
+  // trim years
+  state.year = state.year % 100;
+
   // convert DEC to BCD
   rtc_bq32000.seconds = state.seconds % 10;
   rtc_bq32000.ten_seconds = state.seconds / 10;
