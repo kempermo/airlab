@@ -3,10 +3,96 @@
 #include <driver/i2c.h>
 
 #define CAP_ADDR 0x37
+#define CAP_INT GPIO_NUM_11
 #define CAP_DEBUG false
 #define CAP_DEBUG_SENSOR 0
 
 static uint8_t cap_map[8] = {2, 6, 1, 0, 5, 4, 3};
+
+static void cap_read(uint8_t reg, uint8_t *buf, size_t len) {
+  // read data
+  for (size_t i = 0; i < 10; i++) {
+    esp_err_t err = i2c_master_write_read_device(I2C_NUM_0, CAP_ADDR, &reg, 1, buf, len, 1000);
+    if (err != ESP_FAIL) {
+      ESP_ERROR_CHECK(err);
+      return;
+    }
+    if (CAP_DEBUG) {
+      naos_log("cap: retrying read...");
+    }
+    naos_delay(100);
+  }
+  ESP_ERROR_CHECK(ESP_FAIL);
+}
+
+static uint8_t cap_read8(uint8_t reg) {
+  // read register
+  uint8_t value;
+  cap_read(reg, &value, 1);
+
+  return value;
+}
+
+static uint16_t cap_read16(uint8_t reg) {
+  // read register
+  uint8_t data[2];
+  cap_read(reg, data, 2);
+
+  return data[0] << 8 | data[1];
+}
+
+static void cap_write(uint8_t reg, const uint8_t *buf, size_t len) {
+  static uint8_t data[32];
+
+  // copy data
+  data[0] = reg;
+  for (size_t i = 0; i < len; i++) {
+    data[i + 1] = buf[i];
+  }
+
+  // read data
+  ESP_ERROR_CHECK(i2c_master_write_to_device(I2C_NUM_0, CAP_ADDR, data, 1 + len, 1000));
+}
+
+static void cap_write8(uint8_t reg, uint8_t value) {
+  // write register
+  cap_write(reg, &value, 1);
+}
+
+static void cap_exec(uint8_t cmd) {
+  // check command control
+  uint8_t ctrl = cap_read8(0x86);
+  if (ctrl != 0) {
+    naos_log("cap: busy ctrl=%02x", ctrl);
+    ESP_ERROR_CHECK(ESP_FAIL);
+    return;
+  }
+
+  // execute command
+  if (CAP_DEBUG) {
+    naos_log("cap: exec cmd=%02x", cmd);
+  }
+  cap_write8(0x86, cmd);
+
+  // wait
+  while (cap_read8(0x86) != 0) {
+    if (CAP_DEBUG) {
+      naos_log("cap: wait...");
+    }
+    naos_delay(1);
+  }
+  if (CAP_DEBUG) {
+    naos_log("cap: done");
+  }
+
+  // check error
+  uint8_t failed = cap_read8(0x88) & 0x01;
+  uint8_t code = cap_read8(0x89);
+  if (failed) {
+    naos_log("cap: failed code=%02x", code);
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
+}
 
 float cap_middle(uint8_t num) {
   // prepare state
@@ -46,84 +132,6 @@ float cap_middle(uint8_t num) {
   return (float)(start + end) / 2.0f;
 }
 
-static void cap_read(uint8_t reg, uint8_t *buf, size_t len) {
-  // read data
-  for (size_t i = 0; i < 10; i++) {
-    esp_err_t err = i2c_master_write_read_device(I2C_NUM_0, CAP_ADDR, &reg, 1, buf, len, 1000);
-    if (err != ESP_FAIL) {
-      ESP_ERROR_CHECK(err);
-      return;
-    }
-    if (CAP_DEBUG) {
-      naos_log("cap: retrying read...");
-    }
-    naos_delay(100);
-  }
-  ESP_ERROR_CHECK(ESP_FAIL);
-}
-
-static uint8_t cap_read8(uint8_t reg) {
-  uint8_t value;
-  cap_read(reg, &value, 1);
-  return value;
-}
-
-static uint16_t cap_read16(uint8_t reg) {
-  uint8_t data[2];
-  cap_read(reg, data, 2);
-  return data[0] << 8 | data[1];
-}
-
-static void cap_write(uint8_t reg, const uint8_t *buf, size_t len) {
-  static uint8_t data[32];
-
-  // copy data
-  data[0] = reg;
-  for (size_t i = 0; i < len; i++) {
-    data[i + 1] = buf[i];
-  }
-
-  // read data
-  ESP_ERROR_CHECK(i2c_master_write_to_device(I2C_NUM_0, CAP_ADDR, data, 1 + len, 1000));
-}
-
-static void cap_write8(uint8_t reg, uint8_t value) { cap_write(reg, &value, 1); }
-
-static void cap_exec(uint8_t cmd) {
-  // check command control
-  uint8_t ctrl = cap_read8(0x86);
-  if (ctrl != 0) {
-    naos_log("cap: busy ctrl=%02x", ctrl);
-    ESP_ERROR_CHECK(ESP_FAIL);
-    return;
-  }
-
-  // execute command
-  if (CAP_DEBUG) {
-    naos_log("cap: exec cmd=%02x", cmd);
-  }
-  cap_write8(0x86, cmd);
-
-  // wait
-  while (cap_read8(0x86) != 0) {
-    if (CAP_DEBUG) {
-      naos_log("cap: wait...");
-    }
-    naos_delay(1);
-  }
-  if (CAP_DEBUG) {
-    naos_log("cap: done");
-  }
-
-  // check error
-  uint8_t failed = cap_read8(0x88) & 0x01;
-  uint8_t code = cap_read8(0x89);
-  if (failed) {
-    naos_log("cap: failed code=%02x", code);
-    ESP_ERROR_CHECK(ESP_FAIL);
-  }
-}
-
 void cap_check() {
   // read touches
   uint8_t touches;
@@ -161,9 +169,12 @@ void cap_check() {
   }
 
   // calculate position
-  if (CAP_DEBUG) {
-    naos_log("cap: middle=%f", cap_middle(touches));
-  }
+  naos_log("cap: middle=%f", cap_middle(touches));
+}
+
+void static cap_signal() {
+  // defer check
+  naos_defer_isr(cap_check);
 }
 
 void cap_init() {
@@ -186,8 +197,8 @@ void cap_init() {
   cap_write8(0x11, 196);
   cap_write8(0x12, 196);
 
-  // configure CS7 as shield (SPO1)
-  cap_write8(0x4c, 0b00100000);
+  // configure CS7 as shield (SPO1) and HI as interrupt (SPO0)
+  cap_write8(0x4c, 0b00100100);
 
   // enable shield
   cap_write8(0x4f, 0b00000001);
@@ -214,6 +225,14 @@ void cap_init() {
     cap_write8(0x82, cap_map[CAP_DEBUG_SENSOR]);
   }
 
-  // run check
-  naos_repeat("cap", 100, cap_check);
+  // setup interrupt
+  gpio_config_t cfg = {
+      .pin_bit_mask = BIT64(CAP_INT),
+      .mode = GPIO_MODE_INPUT,
+      .pull_up_en = GPIO_PULLUP_ENABLE,
+      .pull_down_en = GPIO_PULLDOWN_DISABLE,
+      .intr_type = GPIO_INTR_NEGEDGE,
+  };
+  ESP_ERROR_CHECK(gpio_config(&cfg));
+  ESP_ERROR_CHECK(gpio_isr_handler_add(CAP_INT, cap_signal, NULL));
 }
