@@ -90,6 +90,29 @@ rtc_state_t rtc_get() {
   uint8_t month = rtc_bq32000.months + (rtc_bq32000.ten_months * 10);
   uint8_t year = rtc_bq32000.years + (rtc_bq32000.ten_years * 10);
 
+  // handle overflow
+  if (seconds >= 60) {
+    seconds = 30;
+  }
+  if (minutes >= 60) {
+    minutes = 30;
+  }
+  if (hours >= 24) {
+    hours = 12;
+  }
+  if (weekday >= 7) {
+    weekday = 3;
+  }
+  if (date >= 32) {
+    date = 15;
+  }
+  if (month >= 13) {
+    month = 6;
+  }
+  if (year >= 100) {
+    year = 24;
+  }
+
   // log RTC state
   if (RTC_DEBUG) {
     naos_log("rtc: get %02d:%02d:%02d %02d/%02d/%02d", hours, minutes, seconds, date, month, year);
