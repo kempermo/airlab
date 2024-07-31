@@ -2,8 +2,8 @@
 #include <driver/spi_master.h>
 #include <driver/i2c.h>
 
-#define DEV_MOSI GPIO_NUM_41
-#define DEV_SCLK GPIO_NUM_42
+#define DEV_MOSI GPIO_NUM_38
+#define DEV_SCLK GPIO_NUM_39
 
 void dev_init() {
   // install interrupt service

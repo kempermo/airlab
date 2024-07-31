@@ -8,9 +8,9 @@
 
 #define EPD_4W false
 #define EPD_DC GPIO_NUM_46
-#define EPD_RST GPIO_NUM_39
-#define EPD_BSY GPIO_NUM_38
-#define EPD_SEL GPIO_NUM_40
+#define EPD_RST GPIO_NUM_41
+#define EPD_BSY GPIO_NUM_40
+#define EPD_SEL GPIO_NUM_42
 #define EPD_DEBUG false
 #define EPD_OTP_LUT true
 #define EPD_BUFFER (EPD_FRAME / 8 * 9 + 2)
