@@ -27,6 +27,8 @@ set(SOURCE_FILES
         src/gfx.h
         src/img.c
         src/img.h
+        src/led.c
+        src/led.h
         src/lvx.c
         src/lvx.h
         src/main.c

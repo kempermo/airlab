@@ -10,6 +10,7 @@
 #include "epd.h"
 #include "gfx.h"
 #include "sns.h"
+#include "led.h"
 #include "dat.h"
 #include "rec.h"
 #include "scr.h"
@@ -29,6 +30,7 @@ static void setup() {
   epd_init();
   gfx_init();
   sns_init();
+  led_init();
   dat_init();
   rec_init();
 
