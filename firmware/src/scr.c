@@ -1040,7 +1040,7 @@ static void* scr_explore() {
     gfx_end(false);
 
     // await event
-    sig_event_t event = sig_await(SIG_VERT | SIG_META, SCR_ACTION_TIMEOUT);
+    sig_event_t event = sig_await(SIG_UP | SIG_DOWN | SIG_META, SCR_ACTION_TIMEOUT);
 
     // handle arrows
     if (event.type == SIG_UP) {
