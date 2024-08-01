@@ -6,7 +6,7 @@
 
 #define ACC_ADDR 0x18
 #define ACC_INT GPIO_NUM_16
-#define ACC_DEBUG true
+#define ACC_DEBUG false
 
 static acc_state_t acc_state = {0};
 static uint16_t acc_rot_map[] = {180, 0, 90, 270};

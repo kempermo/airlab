@@ -17,6 +17,7 @@
 #include "dev.h"
 #include "stm.h"
 #include "rtc.h"
+#include "acc.h"
 
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
@@ -64,6 +65,7 @@ static const char* scr_ms2str(int32_t ms) {
 static void scr_cleanup(bool refresh) {
   // clear group and screen
   gfx_begin(refresh, false);
+  lv_disp_set_rotation(NULL, LV_DISP_ROT_NONE);
   lv_group_remove_all_objs(gfx_get_group());
   lv_obj_clean(lv_scr_act());
   gfx_end(false);
@@ -323,11 +325,17 @@ static void* scr_saver() {
     // read power
     pwr_state_t power = pwr_get();
 
+    // read accelerometer
+    acc_state_t acc = acc_get();
+
     // flip side
     right = !right;
 
     // begin draw
     gfx_begin(false, false);
+
+    // set display rotation
+    lv_disp_set_rotation(NULL, acc.rot / 90);
 
     // update battery
     if (power.usb && power.charging) {
