@@ -1174,7 +1174,7 @@ static void* scr_settings() {
   for (;;) {
     // await event
     sig_type_t filter = SIG_UP | SIG_LEFT | SIG_RIGHT | SIG_ESCAPE;
-#if DEV_MODE == 1
+#if DEV_MODE
     filter |= SIG_ENTER;
 #endif
     sig_event_t event = sig_await(filter, SCR_ACTION_TIMEOUT);

@@ -5,12 +5,9 @@
 
 #define DEV_KEEP RTC_DATA_ATTR
 
-#define DEV_VERSION "0.1.2"
+#define DEV_VERSION "0.2.0"
 
-// Development Mode
-// 0: Off
-// 1: On
-#define DEV_MODE 0
+#define DEV_MODE false
 
 void dev_init();
 
