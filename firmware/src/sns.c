@@ -169,6 +169,8 @@ static void sns_check() {
     sns_history[sns_pos].co2 = co2;
     sns_history[sns_pos].tmp = tmp;
     sns_history[sns_pos].hum = hum;
+    sns_history[sns_pos].voc = (float)voc_index;
+    sns_history[sns_pos].nox = (float)nox_index;
 
     // release mutex
     naos_unlock(sns_mutex);
@@ -282,6 +284,12 @@ sns_hist_t sns_query(sns_mode_t mode) {
         break;
       case SNS_HUM:
         hist.values[i] = sns_history[pos].hum;
+        break;
+      case SNS_VOC:
+        hist.values[i] = sns_history[pos].voc;
+        break;
+      case SNS_NOX:
+        hist.values[i] = sns_history[pos].nox;
         break;
     }
   }

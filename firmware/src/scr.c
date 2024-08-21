@@ -356,6 +356,7 @@ static void* scr_saver() {
       lv_label_set_text(co2, scr_fmt("%.0f ppm CO2", sensor.co2));
       lv_label_set_text(tmp, scr_fmt("%.1f °C", sensor.tmp));
       lv_label_set_text(hum, scr_fmt("%.1f%% RH", sensor.hum));
+      // TODO: Show VOC and NOx values.
     }
 
     // align objects
@@ -599,17 +600,27 @@ static void* scr_view() {
       bar.value = scr_fmt("%.1f °C", current.tmp);
     } else if (mode == 2) {
       bar.value = scr_fmt("%.1f%% RH", current.hum);
+    } else if (mode == 3) {
+      bar.value = scr_fmt("%.0f VOC", current.voc);
+    } else if (mode == 4) {
+      bar.value = scr_fmt("%.0f NOx", current.nox);
     }
     lvx_bar_update(&bar);
 
+    // TODO: Adjust range if exceeding maximum.
+
     // draw chart bars and marks
     lv_canvas_fill_bg(chart, lv_color_white(), LV_OPA_COVER);
-    float range = mode == 0 ? 3000 : 100;
+    float range = mode == 0 ? 3000 : mode > 2 ? 500 : 100;
     lv_draw_line_dsc_t bar_desc;
     lv_draw_line_dsc_init(&bar_desc);
     bar_desc.width = 2;
     for (size_t i = 0; i < SCR_CHART_POINTS; i++) {
-      float value = mode == 0 ? scr_points[i].co2 : mode == 1 ? scr_points[i].tmp : scr_points[i].hum;
+      float value = mode == 0   ? scr_points[i].co2
+                    : mode == 1 ? scr_points[i].tmp
+                    : mode == 2 ? scr_points[i].hum
+                    : mode == 3 ? scr_points[i].voc
+                                : scr_points[i].nox;
       lv_coord_t h = 2 + a32_safe_map_f(value, 0, range, 0, 78);
       lv_point_t points[2] = {{.x = 1 + i * 4, .y = 80}, {.x = 1 + i * 4, .y = 80 - h}};
       lv_canvas_draw_line(chart, points, 2, &bar_desc);
@@ -735,14 +746,14 @@ static void* scr_view() {
     // change mode on up/down
     if (event.type == SIG_UP) {
       mode++;
-      if (mode > 2) {
+      if (mode > 4) {
         mode = 0;
       }
       continue;
     } else if (event.type == SIG_DOWN) {
       mode--;
       if (mode < 0) {
-        mode = 2;
+        mode = 4;
       }
       continue;
     }
@@ -1293,7 +1304,11 @@ static void* scr_menu() {
     sns_state_t sensor = sns_get();
 
     // query sensor
-    sns_hist_t hist = sns_query(mode == 0 ? SNS_CO2 : mode == 1 ? SNS_TMP : SNS_HUM);
+    sns_hist_t hist = sns_query(mode == 0   ? SNS_CO2
+                                : mode == 1 ? SNS_TMP
+                                : mode == 2 ? SNS_HUM
+                                : mode == 3 ? SNS_VOC
+                                            : SNS_NOX);
 
     // query statement
     if (statement == NULL && (exclaim || fun)) {
@@ -1313,6 +1328,10 @@ static void* scr_menu() {
       bar.value = scr_fmt("%.1f °C", sensor.tmp);
     } else if (mode == 2) {
       bar.value = scr_fmt("%.1f%% RH", sensor.hum);
+    } else if (mode == 3) {
+      bar.value = scr_fmt("%.0f VOC", sensor.voc);
+    } else if (mode == 4) {
+      bar.value = scr_fmt("%.0f NOx", sensor.nox);
     }
     lvx_bar_update(&bar);
 
@@ -1430,14 +1449,14 @@ static void* scr_menu() {
     // change mode on up/down
     if (event.type == SIG_UP) {
       mode++;
-      if (mode > 2) {
+      if (mode > 4) {
         mode = 0;
       }
       continue;
     } else if (event.type == SIG_DOWN) {
       mode--;
       if (mode < 0) {
-        mode = 2;
+        mode = 4;
       }
       continue;
     }

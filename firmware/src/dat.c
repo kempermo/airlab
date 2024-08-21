@@ -530,6 +530,8 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
         points[i].co2 = batch[batch_pos].co2;
         points[i].tmp = batch[batch_pos].tmp;
         points[i].hum = batch[batch_pos].hum;
+        points[i].voc = batch[batch_pos].voc;
+        points[i].nox = batch[batch_pos].nox;
 
         break;
       }
@@ -547,6 +549,8 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
         points[i].co2 = lerp(batch[batch_pos].co2, batch[batch_pos + 1].co2, factor);
         points[i].tmp = lerp(batch[batch_pos].tmp, batch[batch_pos + 1].tmp, factor);
         points[i].hum = lerp(batch[batch_pos].hum, batch[batch_pos + 1].hum, factor);
+        points[i].voc = lerp(batch[batch_pos].voc, batch[batch_pos + 1].voc, factor);
+        points[i].nox = lerp(batch[batch_pos].nox, batch[batch_pos + 1].nox, factor);
 
         break;
       }

@@ -14,11 +14,16 @@ typedef struct {
   int32_t marks[DAT_MARKS];  // ms since start
 } DAT_ATTR dat_head_t;
 
+// TODO: Safe space by using int16_t?
+// TODO: Add battery level/voltage?
+
 typedef struct {
   int32_t offset;  // ms since start (24d)
   float co2;       // ppm
   float tmp;       // °C
   float hum;       // %rH
+  float voc;       // indexed
+  float nox;       // indexed
 } DAT_ATTR dat_point_t;
 
 typedef struct {

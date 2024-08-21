@@ -7,6 +7,8 @@ typedef enum {
   SNS_CO2,
   SNS_TMP,
   SNS_HUM,
+  SNS_VOC,
+  SNS_NOX,
 } sns_mode_t;
 
 typedef struct {
@@ -14,6 +16,8 @@ typedef struct {
   float co2;  // ppm
   float tmp;  // °C
   float hum;  // % rH
+  float voc;  // indexed
+  float nox;  // indexed
 } sns_state_t;
 
 typedef struct {

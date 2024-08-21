@@ -51,6 +51,8 @@ static void rec_task() {
         .co2 = state.co2,
         .hum = state.hum,
         .tmp = state.tmp,
+        .voc = state.voc,
+        .nox = state.nox,
     };
 
     // append point
