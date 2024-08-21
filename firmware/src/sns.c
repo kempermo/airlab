@@ -4,12 +4,15 @@
 
 #include "sns.h"
 #include "sig.h"
+#include "sns_gas.h"
 
 #define SNS_SCD 0x62
 #define SNS_SGP 0x59
 #define SNS_DEBUG false
 
 // TODO: Support low power measurement mode (30s).
+// TODO: Perform SGP41 conditioning (10s).
+// TODO: Update gas index sampling interval dynamically?
 
 static naos_mutex_t sns_mutex;
 static naos_signal_t sns_signal;
@@ -18,6 +21,8 @@ static size_t sns_pos = 0;
 static uint16_t sns_write[8];
 static uint16_t sns_read[8];
 static uint8_t sns_buffer[24];
+static GasIndexAlgorithmParams sns_voc_params;
+static GasIndexAlgorithmParams sns_nox_params;
 
 uint8_t sns_crc(const uint8_t* data, uint16_t count) {
   // crc-8 calculation as defined per datasheet
@@ -34,6 +39,12 @@ uint8_t sns_crc(const uint8_t* data, uint16_t count) {
   }
 
   return crc;
+}
+
+void sns_to_ticks(float rh_in, float t_in, uint16_t* rh_out, uint16_t* t_out) {
+  // convert temperature and humidity to ticks
+  *rh_out = (uint16_t)(rh_in * 65535.f / 100.f);
+  *t_out = (uint16_t)((t_in + 45.f) * 65535.f / 175.f);
 }
 
 static void sns_transfer(uint8_t target, uint16_t addr, size_t send, size_t receive, bool may_fail) {
@@ -103,9 +114,6 @@ static void sns_check() {
     // check if SCD measurement is available
     sns_transfer(SNS_SCD, 0xe4b8, 0, 1, false);
     if ((sns_read[0] & 0xFFF) == 0) {
-      if (SNS_DEBUG) {
-        naos_log("sns: measurement not ready");
-      }
       naos_unlock(sns_mutex);
       continue;
     }
@@ -121,21 +129,34 @@ static void sns_check() {
       naos_log("sns: SCD values: co2=%.0f tmp=%.1f hum=%.1f", co2, tmp, hum);
     }
 
+    // prepare compensation values
+    sns_to_ticks(hum, tmp, &sns_write[0], &sns_write[1]);
+    if (SNS_DEBUG) {
+      naos_log("sns: SCD ticks: rh=%u t=%u", sns_write[0], sns_write[1]);
+    }
+
     // read SGP sensor
-    sns_write[0] = 0x8000;
-    sns_write[1] = 0x6666;
     sns_transfer(SNS_SGP, 0x2619, 2, 0, false);
     naos_delay(50);
     sns_receive(SNS_SGP, 2);
+    if (SNS_DEBUG) {
+      naos_log("sns: SGP ticks: voc=%u nox=%u", sns_read[0], sns_read[1]);
+    }
+
+    // update sampling interval
+    // gas_voc_params.mSamplingInterval = input.delta;
+    // gas_nox_params.mSamplingInterval = input.delta;
+
+    // perform gas index calculation
+    int32_t voc_index = 0;
+    int32_t nox_index = 0;
+    GasIndexAlgorithm_process(&sns_voc_params, sns_read[0], &voc_index);
+    GasIndexAlgorithm_process(&sns_nox_params, sns_read[1], &nox_index);
 
     // calculate values
     if (SNS_DEBUG) {
-      float voc = (float)sns_read[0];
-      float nox = (float)sns_read[1];
-      naos_log("sns: SGP values: voc=%f nox=%f", voc, nox);
+      naos_log("sns: SGP values: voc=%d nox=%d", voc_index, nox_index);
     }
-
-    // TODO: Use Sensirion Gas Index Algorithm to calculate tVOC and NOx.
 
     // advanced
     sns_pos++;
@@ -192,6 +213,10 @@ void sns_init() {
     sns_transfer(SNS_SGP, 0x3682, 0, 3, false);
     naos_log("sns: SGP serial %lu %lu %lu", sns_read[0], sns_read[1], sns_read[2]);
   }
+
+  // initialize gas index parameters
+  GasIndexAlgorithm_init_with_sampling_interval(&sns_voc_params, GasIndexAlgorithm_ALGORITHM_TYPE_VOC, 5.f);
+  GasIndexAlgorithm_init_with_sampling_interval(&sns_nox_params, GasIndexAlgorithm_ALGORITHM_TYPE_NOX, 5.f);
 
   // start periodic measurement
   sns_transfer(SNS_SCD, 0x21b1, 0, 0, false);

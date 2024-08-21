@@ -44,6 +44,8 @@ set(SOURCE_FILES
         src/sig.h
         src/sns.c
         src/sns.h
+        src/sns_gas.c
+        src/sns_gas.h
         src/stm.c
         src/stm.h
         src/sys.c
