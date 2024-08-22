@@ -11,6 +11,8 @@
 #ifndef DAT_TEST
 #include <esp_vfs_fat.h>
 #include <esp_partition.h>
+#include <tinyusb.h>
+#include <tusb_msc_storage.h>
 #else
 #include <assert.h>
 #define ESP_FAIL 1
@@ -19,6 +21,7 @@
 
 #include "dat.h"
 #include "sys.h"
+#include "tusb_tasks.h"
 
 #ifdef DAT_TEST
 #define DAT_ROOT "./fs"
@@ -35,12 +38,52 @@
 
 #define DAT_DEBUG false
 
+static wl_handle_t dat_wl_handle;
 static uint16_t dat_counter;
 static dat_file_t *dat_files;
 static size_t dat_files_length = 0;
 
 // TODO: Handle file overflow.
 // TODO: Only reference files by their number an not index.
+// TODO: Explore need for high speed USB support.
+// TODO: Support USB reset with VBus detection.
+
+static tusb_desc_device_t dat_usb_dev_desc = {
+    .bLength = sizeof(dat_usb_dev_desc),
+    .bDescriptorType = TUSB_DESC_DEVICE,
+    .bcdUSB = 0x0200,
+    .bDeviceClass = TUSB_CLASS_MISC,
+    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
+    .bDeviceProtocol = MISC_PROTOCOL_IAD,
+    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor = USB_ESPRESSIF_VID,
+    .idProduct = 0x4002,
+    .bcdDevice = 0x100,
+    .iManufacturer = 0x01,
+    .iProduct = 0x02,
+    .iSerialNumber = 0x03,
+    .bNumConfigurations = 0x01,
+};
+
+static uint8_t const dat_usb_cfg_desc[] = {
+    // config number, interface count, string index, total length, attribute, power in mA
+    TUD_CONFIG_DESCRIPTOR(1, 1, 0, TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+    // interface number, string index, EP Out & EP In address, EP size
+    TUD_MSC_DESCRIPTOR(0, 0, 0x01, 0x81, 64),
+};
+
+static char const *dat_usb_str_desc[] = {
+    (const char[]){0x09, 0x04},  // supported language is English (0x0409)
+    "TinyUSB",                   // manufacturer
+    "TinyUSB Device",            // product
+    "123456",                    // serials
+    "Example MSC",               // MSC
+};
+
+static void dat_usb_msc_cb(tinyusb_msc_event_t *event) {
+  // log event
+  naos_log("dat: MSC event=%d mounted=%d", event->type, event->mount_changed_data.is_mounted);
+}
 
 float lerp(float a, float b, float f) { return a * (1.f - f) + (b * f); }
 
@@ -167,13 +210,12 @@ void dat_init() {
 
 #ifndef DAT_TEST
   // mount FAT file system
-  wl_handle_t wl_handle;
   const esp_vfs_fat_mount_config_t mount_config = {
       .max_files = 2,
       .format_if_mount_failed = true,
       .allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
   };
-  ESP_ERROR_CHECK(esp_vfs_fat_spiflash_mount_rw_wl(DAT_ROOT, "storage", &mount_config, &wl_handle));
+  ESP_ERROR_CHECK(esp_vfs_fat_spiflash_mount_rw_wl(DAT_ROOT, "storage", &mount_config, &dat_wl_handle));
 #endif
 
   // check for tag
@@ -242,6 +284,9 @@ void dat_init() {
 
     // read size
     size_t size = info.st_size;
+    if (size < sizeof(dat_head_t)) {
+      continue;
+    }
 
     // read head
     dat_head_t head = {0};
@@ -589,4 +634,64 @@ void dat_reset() {
   // reset counter and length
   dat_counter = 0;
   dat_files_length = 0;
+}
+
+void dat_enable_usb() {
+  // unmount storage
+  ESP_ERROR_CHECK(esp_vfs_fat_spiflash_unmount_rw_wl(DAT_ROOT, dat_wl_handle));
+
+  // find partition
+  const esp_partition_t *data_partition =
+      esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "storage");
+  if (data_partition == NULL) {
+    ESP_ERROR_CHECK(ESP_ERR_NOT_FOUND);
+  }
+
+  // initialize wear levelling
+  ESP_ERROR_CHECK(wl_mount(data_partition, &dat_wl_handle));
+
+  // initialize USB mass storage
+  const tinyusb_msc_spiflash_config_t config_spi = {
+      .wl_handle = dat_wl_handle,
+      .callback_mount_changed = dat_usb_msc_cb,
+      .callback_premount_changed = dat_usb_msc_cb,
+      .mount_config =
+          {
+              .max_files = 2,
+              .format_if_mount_failed = true,
+              .allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
+          },
+  };
+  ESP_ERROR_CHECK(tinyusb_msc_storage_init_spiflash(&config_spi));
+
+  // initialize USB driver
+  const tinyusb_config_t usb_cfg = {
+      .device_descriptor = &dat_usb_dev_desc,
+      .string_descriptor = dat_usb_str_desc,
+      .string_descriptor_count = sizeof(dat_usb_str_desc) / sizeof(dat_usb_str_desc[0]),
+      .configuration_descriptor = dat_usb_cfg_desc,
+  };
+  ESP_ERROR_CHECK(tinyusb_driver_install(&usb_cfg));
+}
+
+void dat_disable_usb() {
+  // stop USB task
+  ESP_ERROR_CHECK(tusb_stop_task());
+
+  // uninstall driver
+  ESP_ERROR_CHECK(tinyusb_driver_uninstall());
+
+  // de-initialize USB mass storage
+  tinyusb_msc_storage_deinit();
+
+  // unmount wear levelling
+  ESP_ERROR_CHECK(wl_unmount(dat_wl_handle));
+
+  // remount storage
+  const esp_vfs_fat_mount_config_t mount_config = {
+      .max_files = 2,
+      .format_if_mount_failed = true,
+      .allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
+  };
+  ESP_ERROR_CHECK(esp_vfs_fat_spiflash_mount_rw_wl(DAT_ROOT, "storage", &mount_config, &dat_wl_handle));
 }

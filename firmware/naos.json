@@ -5,6 +5,8 @@
     "CONFIG_ESPTOOLPY_FLASHSIZE_4MB": null,
     "CONFIG_ESPTOOLPY_FLASHSIZE_8MB": "y",
     "CONFIG_ESPTOOLPY_FLASHSIZE": "8MB",
+    "CONFIG_TINYUSB_MSC_ENABLED": "y",
+    "CONFIG_TINYUSB_MSC_BUFSIZE": "4096",
     "CONFIG_FATFS_LFN_HEAP": "y",
     "CONFIG_LV_COLOR_DEPTH_16": null,
     "CONFIG_LV_COLOR_DEPTH_1": "y",
@@ -17,6 +19,10 @@
     "CONFIG_LV_LOG_LEVEL": "1"
   },
   "components": {
+    "esp_tinyusb": {
+      "registry": "espressif/esp_tinyusb",
+      "version": "1.4.4"
+    },
     "lvgl": {
       "repository": "https://github.com/lvgl/lvgl.git",
       "version": "v8.4.0"

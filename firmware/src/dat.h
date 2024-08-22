@@ -60,4 +60,7 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
 
 void dat_reset();
 
+void dat_enable_usb();
+void dat_disable_usb();
+
 #endif  // DAT_H

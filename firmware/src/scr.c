@@ -1108,6 +1108,53 @@ static void* scr_explore() {
   }
 }
 
+static void* scr_usb() {
+  // check recording
+  if (rec_running()) {
+    // show message
+    scr_message("Messung läuft!", 2000);
+
+    return scr_settings;
+  }
+
+  // check connection
+  if (!pwr_get().usb) {
+    // show message
+    scr_message("USB nicht angeschlossen!", 2000);
+
+    return scr_settings;
+  }
+
+  // begin draw
+  gfx_begin(false, false);
+
+  // add title
+  lv_obj_t* title = lv_label_create(lv_scr_act());
+  lv_label_set_text(title, "USB-Modus Aktiv");
+  lv_obj_align(title, LV_ALIGN_CENTER, 0, 0);
+
+  // add signs
+  lvx_sign_t back = {.title = "B", .text = "Zurück", .align = LV_ALIGN_BOTTOM_LEFT};
+  lvx_sign_create(&back, lv_scr_act());
+
+  // end draw
+  gfx_end(false);
+
+  // enable USB
+  dat_enable_usb();
+
+  // await escape
+  sig_await(SIG_ESCAPE, 0);
+
+  // disable USB
+  dat_disable_usb();
+
+  // cleanup
+  scr_cleanup(false);
+
+  return scr_settings;
+}
+
 static void* scr_reset() {
   // begin draw
   gfx_begin(false, true);
@@ -1180,19 +1227,21 @@ static void* scr_settings() {
   // add signs
   lvx_sign_t datetime = {.title = "↑", .text = "Uhr + Datum", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
   lvx_sign_t back = {.title = "B", .text = "Zurück", .align = LV_ALIGN_BOTTOM_LEFT};
+  lvx_sign_t usb = {.title = "↓", .text = "USB", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -50};
   lvx_sign_t off = {.title = ">", .text = "Ausschalten", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -25};
   lvx_sign_t reset = {.title = "<", .text = "Zurücksetzen", .align = LV_ALIGN_BOTTOM_RIGHT};
   lvx_sign_create(&datetime, lv_scr_act());
   lvx_sign_create(&reset, lv_scr_act());
   lvx_sign_create(&back, lv_scr_act());
   lvx_sign_create(&off, lv_scr_act());
+  lvx_sign_create(&usb, lv_scr_act());
 
   // end draw
   gfx_end(false);
 
   for (;;) {
     // await event
-    sig_type_t filter = SIG_UP | SIG_LEFT | SIG_RIGHT | SIG_ESCAPE;
+    sig_type_t filter = SIG_UP | SIG_DOWN | SIG_LEFT | SIG_RIGHT | SIG_ESCAPE;
 #if DEV_MODE
     filter |= SIG_ENTER;
 #endif
@@ -1205,6 +1254,8 @@ static void* scr_settings() {
     switch (event.type) {
       case SIG_UP:
         return scr_date;
+      case SIG_DOWN:
+        return scr_usb;
       case SIG_LEFT:
         return scr_reset;
       case SIG_RIGHT:
