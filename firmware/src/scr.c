@@ -1242,7 +1242,7 @@ static void* scr_settings() {
   for (;;) {
     // await event
     sig_type_t filter = SIG_UP | SIG_DOWN | SIG_LEFT | SIG_RIGHT | SIG_ESCAPE;
-#if DEV_MODE
+#if DEV_DEBUG_MENU
     filter |= SIG_ENTER;
 #endif
     sig_event_t event = sig_await(filter, SCR_ACTION_TIMEOUT);
@@ -1536,7 +1536,7 @@ static void* scr_menu() {
     // enter screen saver on timeout
     if (event.type == SIG_TIMEOUT) {
       // skip in dev mode
-      if (DEV_MODE) {
+      if (DEV_DEBUG_MENU) {
         return scr_menu;
       }
 

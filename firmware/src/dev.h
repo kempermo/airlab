@@ -7,7 +7,7 @@
 
 #define DEV_VERSION "0.2.0"
 
-#define DEV_MODE false
+#define DEV_DEBUG_MENU false
 
 void dev_init();
 
