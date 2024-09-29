@@ -3,6 +3,7 @@
 #include "led.h"
 
 #define LED_ADDR 0x30
+#define LED_LIMIT(val) (val < 0 ? 0 : val > 1 ? 1 : val)
 
 static void led_write(uint8_t reg, uint8_t val, bool may_fail) {
   // write data
@@ -30,7 +31,28 @@ void led_set(float r, float g, float b) {
   led_write(0x04, 0b01000000 | state, false);
 
   // set color
-  led_write(0x01, (uint8_t)(b * 191), false);
-  led_write(0x02, (uint8_t)(g * 191), false);
-  led_write(0x03, (uint8_t)(r * 191), false);
+  led_write(0x06, (uint8_t)(LED_LIMIT(b) * 191), false);
+  led_write(0x07, (uint8_t)(LED_LIMIT(g) * 191), false);
+  led_write(0x08, (uint8_t)(LED_LIMIT(r) * 191), false);
+}
+
+void led_flash(float r, float g, float b) {
+  // configure flash period
+  led_write(0x01, 18, false);  // ~3s
+
+  // configure ON percentage
+  led_write(0x02, 128, false);  // 50%
+  led_write(0x03, 128, false);  // 50%
+
+  // configure rise/fall times
+  led_write(0x05, 0b01100110, false);  // 768/768ms
+
+  // set LEDs on/off
+  uint8_t state = (b > 0) << 1 | (g > 0) << 3 | (r > 0) << 5;
+  led_write(0x04, 0b01000000 | state, false);
+
+  // set color
+  led_write(0x06, (uint8_t)(LED_LIMIT(b) * 191), false);
+  led_write(0x07, (uint8_t)(LED_LIMIT(g) * 191), false);
+  led_write(0x08, (uint8_t)(LED_LIMIT(r) * 191), false);
 }
