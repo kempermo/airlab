@@ -21,6 +21,8 @@ void led_init() {
   // disable auto blink
   led_write(0x09, 0b00000110, false);
 
+  // TODO: Verify that device enters shutdown mode whenever there are no LEDs on.
+
   // turn LEDs off
   led_set(0, 0, 0);
 }
