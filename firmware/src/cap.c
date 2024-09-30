@@ -160,11 +160,11 @@ void cap_check() {
 
   // read debug status
   if (CAP_DEBUG) {
-    uint8_t cp = cap_read8(0xdd);  // pF
-    uint16_t dc = cap_read16(0xde);
-    uint16_t bl = cap_read16(0xe0);
-    uint16_t rc = cap_read16(0xe2);
-    uint16_t arc = cap_read16(0xe4);
+    uint8_t cp = cap_read8(0xdd);     // pF
+    uint16_t dc = cap_read16(0xde);   // difference count
+    uint16_t bl = cap_read16(0xe0);   // baseline
+    uint16_t rc = cap_read16(0xe2);   // raw count
+    uint16_t arc = cap_read16(0xe4);  // average raw count
     naos_log("cap: debug cp=%d dc=%d bl=%d rc=%d arc=%d", cp, dc, bl, rc, arc);
   }
 
