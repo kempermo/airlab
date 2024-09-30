@@ -18,6 +18,7 @@
 #include "stm.h"
 #include "rtc.h"
 #include "acc.h"
+#include "cap.h"
 
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
@@ -393,16 +394,26 @@ static void* scr_saver() {
       // turn off sensor
       sns_set(false);
 
-      // sleep display
+      // sleep peripherals
       epd_sleep();
+      cap_sleep();
 
       // perform deep sleep
       pwr_sleep(true, 60 * 1000);
+
+      // no return
     }
+
+    // sleep peripherals
+    epd_sleep();
+    cap_sleep();
 
     // otherwise, light sleep for 5s-30s (0-5min) if recording
     int64_t timeout = a32_safe_map_l(duration, 0, 300000, 5000, 30000);
     pwr_cause_t cause = pwr_sleep(false, timeout);
+
+    // wake peripherals
+    cap_wake();
 
     // handle unlock
     if (cause == PWR_UNLOCK) {

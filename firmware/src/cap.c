@@ -7,6 +7,7 @@
 #define CAP_DEBUG false
 #define CAP_DEBUG_SENSOR 0
 
+static naos_mutex_t cap_mutex;
 static uint8_t cap_map[8] = {2, 6, 1, 0, 5, 4, 3};
 
 static void cap_read(uint8_t reg, uint8_t *buf, size_t len) {
@@ -133,6 +134,9 @@ float cap_middle(uint8_t num) {
 }
 
 void cap_check() {
+  // lock mutex
+  naos_lock(cap_mutex);
+
   // read touches
   uint8_t touches;
   cap_read(0xAA, &touches, 1);
@@ -170,6 +174,9 @@ void cap_check() {
 
   // calculate position
   // naos_log("cap: middle=%f", cap_middle(touches));
+
+  // unlock mutex
+  naos_unlock(cap_mutex);
 }
 
 void static cap_signal() {
@@ -178,6 +185,9 @@ void static cap_signal() {
 }
 
 void cap_init() {
+  // create mutex
+  cap_mutex = naos_mutex();
+
   // await device
   cap_read8(0x86);
 
@@ -235,4 +245,27 @@ void cap_init() {
   };
   ESP_ERROR_CHECK(gpio_config(&cfg));
   ESP_ERROR_CHECK(gpio_isr_handler_add(CAP_INT, cap_signal, NULL));
+}
+
+void cap_sleep() {
+  // lock mutex
+  naos_lock(cap_mutex);
+
+  // enter low power mode
+  cap_read8(0x86);
+  cap_write8(0x86, 7);
+
+  // unlock mutex
+  naos_unlock(cap_mutex);
+}
+
+void cap_wake() {
+  // lock mutex
+  naos_lock(cap_mutex);
+
+  // exit low power mode
+  cap_read8(0x86);
+
+  // unlock mutex
+  naos_unlock(cap_mutex);
 }
