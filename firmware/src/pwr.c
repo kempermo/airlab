@@ -11,7 +11,6 @@
 
 #define PWR_ADDR 0x6B
 #define PWR_HOLD GPIO_NUM_21
-#define PWR_LED GPIO_NUM_5
 #define PWR_LOW GPIO_NUM_14
 #define PWR_USB_CC1 ADC1_CHANNEL_5  // IO6
 #define PWR_USB_CC2 ADC1_CHANNEL_6  // IO7
@@ -107,11 +106,10 @@ void pwr_init() {
   // hold power
   gpio_config_t cfg = {
       .mode = GPIO_MODE_OUTPUT,
-      .pin_bit_mask = BIT64(PWR_HOLD) | BIT64(PWR_LED),
+      .pin_bit_mask = BIT64(PWR_HOLD),
   };
   ESP_ERROR_CHECK(gpio_config(&cfg));
   ESP_ERROR_CHECK(gpio_set_level(PWR_HOLD, 1));
-  ESP_ERROR_CHECK(gpio_set_level(PWR_LED, 0));
 
   // low power
   cfg = (gpio_config_t){
