@@ -1,6 +1,7 @@
 #include <naos.h>
 #include <naos/sys.h>
 #include <driver/i2c.h>
+#include <driver/rmt_tx.h>
 
 #define CAP_ADDR 0x37
 #define CAP_INT GPIO_NUM_11
@@ -8,7 +9,10 @@
 #define CAP_DEBUG_SENSOR 0
 
 static naos_mutex_t cap_mutex;
+static rmt_channel_handle_t cap_buzzer;
+static rmt_encoder_handle_t cap_encoder;
 static uint8_t cap_map[8] = {2, 6, 1, 0, 5, 4, 3};
+static uint8_t cap_last = 0;
 
 static void cap_read(uint8_t reg, uint8_t *buf, size_t len) {
   // read data
@@ -95,7 +99,7 @@ static void cap_exec(uint8_t cmd) {
   }
 }
 
-float cap_middle(uint8_t num) {
+static float cap_middle(uint8_t num) {
   // prepare state
   int start = -1, end = -1;
   int cur_len = 0, max_len = 0;
@@ -133,7 +137,26 @@ float cap_middle(uint8_t num) {
   return (float)(start + end) / 2.0f;
 }
 
-void cap_check() {
+void static cap_buzz(int us) {
+  // prepare buzz
+  rmt_symbol_word_t items[1] = {
+      {
+          .level0 = 1,
+          .duration0 = (uint16_t)us,
+          .level1 = 0,
+          .duration1 = 1,
+      },
+  };
+
+  // perform buzz
+  rmt_transmit_config_t cfg = {
+      .flags.eot_level = 0,
+      .flags.queue_nonblocking = 1,
+  };
+  ESP_ERROR_CHECK(rmt_transmit(cap_buzzer, cap_encoder, items, sizeof(items), &cfg));
+}
+
+static void cap_check() {
   // lock mutex
   naos_lock(cap_mutex);
 
@@ -149,6 +172,15 @@ void cap_check() {
     }
   }
   touches = mapped;
+
+  // check if changed
+  if (touches == cap_last) {
+    naos_unlock(cap_mutex);
+    return;
+  }
+
+  // update last
+  cap_last = touches;
 
   // log touches
   if (CAP_DEBUG) {
@@ -174,6 +206,9 @@ void cap_check() {
 
   // calculate position
   // naos_log("cap: middle=%f", cap_middle(touches));
+
+  // buzz once
+  cap_buzz(125);
 
   // unlock mutex
   naos_unlock(cap_mutex);
@@ -236,15 +271,30 @@ void cap_init() {
   }
 
   // setup interrupt
-  gpio_config_t cfg = {
+  gpio_config_t io_cfg = {
       .pin_bit_mask = BIT64(CAP_INT),
       .mode = GPIO_MODE_INPUT,
       .pull_up_en = GPIO_PULLUP_ENABLE,
       .pull_down_en = GPIO_PULLDOWN_DISABLE,
       .intr_type = GPIO_INTR_NEGEDGE,
   };
-  ESP_ERROR_CHECK(gpio_config(&cfg));
+  ESP_ERROR_CHECK(gpio_config(&io_cfg));
   ESP_ERROR_CHECK(gpio_isr_handler_add(CAP_INT, cap_signal, NULL));
+
+  // setup buzzer
+  rmt_tx_channel_config_t rmt_cfg = {
+      .gpio_num = GPIO_NUM_5,
+      .clk_src = RMT_CLK_SRC_DEFAULT,
+      .resolution_hz = 1000 * 1000,  // 1 us
+      .mem_block_symbols = 48,
+      .trans_queue_depth = 16,
+  };
+  ESP_ERROR_CHECK(rmt_new_tx_channel(&rmt_cfg, &cap_buzzer));
+  ESP_ERROR_CHECK(rmt_enable(cap_buzzer));
+
+  // setup buzzer encoder
+  rmt_copy_encoder_config_t enc_cfg = {};
+  ESP_ERROR_CHECK(rmt_new_copy_encoder(&enc_cfg, &cap_encoder));
 }
 
 void cap_sleep() {
