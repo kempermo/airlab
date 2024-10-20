@@ -306,6 +306,14 @@ static void* scr_saver() {
   lv_obj_t* tmp = lv_label_create(lv_scr_act());
   lv_obj_t* hum = lv_label_create(lv_scr_act());
 
+  // add big values
+  lv_obj_t* co2_big = lv_label_create(lv_scr_act());
+  lv_obj_t* tmp_big = lv_label_create(lv_scr_act());
+  lv_obj_t* hum_big = lv_label_create(lv_scr_act());
+  lv_obj_set_style_text_font(co2_big, &fnt_24, LV_PART_MAIN);
+  lv_obj_set_style_text_font(tmp_big, &fnt_24, LV_PART_MAIN);
+  lv_obj_set_style_text_font(hum_big, &fnt_24, LV_PART_MAIN);
+
   // end draw
   gfx_end(true);
 
@@ -335,6 +343,9 @@ static void* scr_saver() {
     // begin draw
     gfx_begin(false, false);
 
+    // determine vertical
+    bool vertical = !acc.lock && (acc.rot == 90 || acc.rot == 270);
+
     // set display rotation
     if (!acc.lock) {
       lv_disp_set_rotation(NULL, acc.rot / 90);
@@ -355,25 +366,51 @@ static void* scr_saver() {
       lv_img_set_src(battery, &img_bat0);
     }
 
+    // TODO: Show VOC and NOx values.
+
     // update values
     lv_label_set_text(time, scr_fmt("%02d:%02d", hour, minute));
-    if (sensor.ok) {
-      lv_label_set_text(co2, scr_fmt("%.0f ppm CO2", sensor.co2));
+    if (vertical) {
+      lv_label_set_text(co2, "ppm CO2");
+      lv_label_set_text(tmp, "° Celsius");
+      lv_label_set_text(hum, "% RH");
+      lv_label_set_text(co2_big, scr_fmt("%.0f", sensor.co2));
+      lv_label_set_text(tmp_big, scr_fmt("%.1f", sensor.tmp));
+      lv_label_set_text(hum_big, scr_fmt("%.1f", sensor.hum));
+    } else {
+      lv_label_set_text(co2, scr_fmt("%.0f ppm", sensor.co2));
       lv_label_set_text(tmp, scr_fmt("%.1f °C", sensor.tmp));
       lv_label_set_text(hum, scr_fmt("%.1f%% RH", sensor.hum));
-      // TODO: Show VOC and NOx values.
     }
 
     // align objects
-    lv_align_t align = right ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT;
-    lv_obj_align(lock, align, right ? -19 : 19, 19);
-    lv_obj_align(battery, align, right ? -39 : 39, 19);
-    lv_obj_align(time, align, right ? -19 : 19, 41);
-    lv_obj_align(co2, align, right ? -19 : 19, 59);
-    lv_obj_align(tmp, align, right ? -19 : 19, 77);
-    lv_obj_align(hum, align, right ? -19 : 19, 95);
-    if (record != NULL) {
-      lv_obj_align(record, align, right ? -55 : 55, 20);
+    if (vertical) {
+      lv_obj_align(co2_big, LV_ALIGN_TOP_MID, 0, 25);
+      lv_obj_align(co2, LV_ALIGN_TOP_MID, 0, 25 + 27);
+      lv_obj_align(tmp_big, LV_ALIGN_TOP_MID, 0, 100);
+      lv_obj_align(tmp, LV_ALIGN_TOP_MID, 0, 100 + 27);
+      lv_obj_align(hum_big, LV_ALIGN_TOP_MID, 0, 175);
+      lv_obj_align(hum, LV_ALIGN_TOP_MID, 0, 175 + 27);
+      lv_obj_align(time, LV_ALIGN_BOTTOM_RIGHT, -25, -25);
+      lv_obj_align(lock, LV_ALIGN_BOTTOM_LEFT, 25, -25);
+      lv_obj_align(battery, LV_ALIGN_BOTTOM_LEFT, 45, -25);
+      if (record != NULL) {
+        lv_obj_align(record, LV_ALIGN_BOTTOM_LEFT, 65, -25);
+      }
+    } else {
+      lv_align_t align = right ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT;
+      lv_obj_align(lock, align, right ? -19 : 19, 19);
+      lv_obj_align(battery, align, right ? -39 : 39, 19);
+      if (record != NULL) {
+        lv_obj_align(record, align, right ? -55 : 55, 20);
+      }
+      lv_obj_align(time, align, right ? -19 : 19, 41);
+      lv_obj_align(co2, align, right ? -19 : 19, 59);
+      lv_obj_align(tmp, align, right ? -19 : 19, 77);
+      lv_obj_align(hum, align, right ? -19 : 19, 95);
+      lv_obj_align(co2_big, 0, -100, -100);
+      lv_obj_align(tmp_big, 0, -100, -100);
+      lv_obj_align(hum_big, 0, -100, -100);
     }
 
     // end draw
