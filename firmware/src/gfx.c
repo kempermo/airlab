@@ -122,7 +122,7 @@ void gfx_init() {
   gfx_group = lv_group_create();
 
   // initialize theme
-  gfx_theme = lv_theme_mono_init(gfx_display, false, &fnt_big);
+  gfx_theme = lv_theme_mono_init(gfx_display, false, &fnt_16);
 
   // assign theme to display
   lv_disp_set_theme(gfx_display, gfx_theme);

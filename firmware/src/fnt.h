@@ -5,7 +5,8 @@
 
 #define FNT_OFF 2
 
-extern const lv_font_t fnt_big;
-extern const lv_font_t fnt_small;
+extern const lv_font_t fnt_24;
+extern const lv_font_t fnt_16;
+extern const lv_font_t fnt_8;
 
 #endif  // FNT_H

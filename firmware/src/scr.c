@@ -661,7 +661,7 @@ static void* scr_view() {
     // draw chart labels
     lv_draw_label_dsc_t lbl_desc;
     lv_draw_label_dsc_init(&lbl_desc);
-    lbl_desc.font = &fnt_small;
+    lbl_desc.font = &fnt_8;
     lbl_desc.align = LV_TEXT_ALIGN_LEFT;
     for (size_t i = 0; i < 3; i++) {
       // labels are position on the nearest minute mark using the following grid
@@ -678,7 +678,7 @@ static void* scr_view() {
 
       // calculate coordinate
       lv_coord_t x = (lv_coord_t)a32_map_f(pos, (float)start, (float)end, 0, 288);
-      x -= lv_txt_get_width(str, strlen(str), &fnt_small, 0, 0) / 2;
+      x -= lv_txt_get_width(str, strlen(str), &fnt_8, 0, 0) / 2;
 
       // draw label
       lv_canvas_draw_text(chart, x, 88, 99, &lbl_desc, str);

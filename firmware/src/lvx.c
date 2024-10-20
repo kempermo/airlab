@@ -305,7 +305,7 @@ void lvx_bubble_update(lvx_bubble_t* bubble) {
   if (bubble->text != NULL) {
     // calculate height
     lv_point_t size = {0};
-    lv_txt_get_size(&size, bubble->text, &fnt_big, 0, 0, 200, 0);
+    lv_txt_get_size(&size, bubble->text, &fnt_16, 0, 0, 200, 0);
 
     // update frame
     lv_obj_clear_flag(bubble->_frame, LV_OBJ_FLAG_HIDDEN);
