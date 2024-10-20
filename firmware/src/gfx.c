@@ -102,6 +102,11 @@ void gfx_init() {
   // allocate buffers
   gfx_frame_buffer = calloc(GFX_WIDTH * GFX_HEIGHT, sizeof(lv_color_t));
   gfx_frame = calloc(EPD_FRAME, sizeof(uint8_t));
+  if (gfx_frame_buffer == NULL) {
+    ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
+  } else if (gfx_frame == NULL) {
+    ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
+  }
 
   // initialize
   lv_init();

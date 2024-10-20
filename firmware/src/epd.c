@@ -363,6 +363,9 @@ void epd_init() {
 
   // allocate buffers
   epd_buffer = calloc(EPD_BUFFER, sizeof(uint8_t));
+  if (epd_buffer == NULL) {
+    ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
+  }
 
   // initialize pins
   gpio_config_t pin = {

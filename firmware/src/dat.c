@@ -207,6 +207,9 @@ static void dat_delete_file(const char *name) {
 void dat_init() {
   // allocate files
   dat_files = calloc(DAT_FILES, sizeof(dat_file_t));
+  if (dat_files == NULL) {
+    ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
+  }
 
 #ifndef DAT_TEST
   // mount FAT file system
@@ -312,6 +315,11 @@ void dat_init() {
       } else {
         break;
       }
+    }
+
+    // check size
+    if (dat_files_length >= DAT_FILES) {
+      ESP_ERROR_CHECK(ESP_FAIL);
     }
 
     // add file
