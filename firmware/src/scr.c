@@ -1109,32 +1109,25 @@ static void* scr_explore() {
     gfx_end(false);
 
     // await event
-    sig_event_t event = sig_await(SIG_UP | SIG_DOWN | SIG_META, SCR_ACTION_TIMEOUT);
+    sig_event_t event = sig_await(SIG_UP | SIG_DOWN | SIG_META | SIG_SCROLL, SCR_ACTION_TIMEOUT);
 
     // handle arrows
-    if (event.type == SIG_UP) {
-      if (selected == 0) {
-        selected = (int)total - 1;
-        if (selected > offset + 3) {
-          offset = selected - 3;
-        }
+    if ((event.type & (SIG_UP | SIG_DOWN | SIG_SCROLL)) != 0) {
+      if (event.type == SIG_SCROLL) {
+        selected += (int)(event.touch * 2);
       } else {
-        selected--;
-        if (offset > selected) {
-          offset = selected;
-        }
+        selected += event.type == SIG_UP ? -1 : 1;
       }
-      continue;
-    }
-    if (event.type == SIG_DOWN) {
-      if (selected >= total - 1) {
-        selected = 0;
-        offset = 0;
-      } else {
-        selected++;
-        if (selected > offset + 3) {
-          offset = selected - 3;
-        }
+      while (selected < 0) {
+        selected += (int)total;
+      }
+      while (selected > total - 1) {
+        selected -= (int)total;
+      }
+      if (selected > offset + 3) {
+        offset = selected - 3;
+      } else if (selected < offset) {
+        offset = selected;
       }
       continue;
     }
