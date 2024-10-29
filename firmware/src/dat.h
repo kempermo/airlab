@@ -28,11 +28,9 @@ typedef struct {
 
 typedef struct {
   dat_head_t head;
-  size_t size;     // points
-  int32_t stop;    // ms since start
-  int8_t marks;    // num marks
-  char title[14];  // "Messung XXX"
-  char date[12];   // "01.01.2023"
+  size_t size;   // points
+  int32_t stop;  // ms since start
+  int8_t marks;  // num marks
 } dat_file_t;
 
 typedef struct {

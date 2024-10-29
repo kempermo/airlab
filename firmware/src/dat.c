@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <time.h>
 #include <dirent.h>
 #include <errno.h>
 #include <string.h>
@@ -86,16 +85,6 @@ static void dat_usb_msc_cb(tinyusb_msc_event_t *event) {
 }
 
 float lerp(float a, float b, float f) { return a * (1.f - f) + (b * f); }
-
-static void dat_format_file(dat_file_t *file) {
-  // format title
-  snprintf(file->title, sizeof(file->title), "Messung %u", file->head.num);
-
-  // format date
-  time_t time = (time_t)(file->head.start / 1000);
-  struct tm ts = *gmtime(&time);
-  strftime(file->date, sizeof(file->date), "%d.%m.%Y", &ts);
-}
 
 static dat_file_t *dat_find_file(uint16_t num, int *index) {
   // find file
@@ -298,7 +287,6 @@ void dat_init() {
     // prepare file
     dat_file_t file = {.head = head};
     file.size = (size - sizeof(dat_head_t)) / sizeof(dat_point_t);
-    dat_format_file(&file);
 
     // read last point and set stop if available
     if (file.size > 0) {
@@ -380,7 +368,6 @@ size_t dat_create(int64_t start) {
 
   // prepare file
   dat_file_t file = {.head = head};
-  dat_format_file(&file);
 
   // add file
   dat_files[dat_files_length] = file;

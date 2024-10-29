@@ -3,6 +3,8 @@
 #include <art32/numbers.h>
 #include <lvgl.h>
 #include <math.h>
+#include <utime.h>
+#include <time.h>
 
 #include "gfx.h"
 #include "sig.h"
@@ -116,6 +118,7 @@ typedef struct {
   const char* back;
   const char* next;
   const char* cancel;
+  const char* measurement;
   const char* exit__stop;
   const char* exit__back;
   const char* exit__stopped;
@@ -157,6 +160,7 @@ static const scr_trans_t scr_trans_map[] = {
             .back = "Zurück",
             .next = "Weiter",
             .cancel = "Abbrechen",
+            .measurement = "Messung %u",
             .exit__stop = "%s beenden",
             .exit__back = "Zurück zum Labor",
             .exit__stopped = "%s\n beendet!",
@@ -196,6 +200,7 @@ static const scr_trans_t scr_trans_map[] = {
             .back = "Back",
             .next = "Next",
             .cancel = "Cancel",
+            .measurement = "Measurement %u",
             .exit__stop = "Stop %s",
             .exit__back = "Back to Lab",
             .exit__stopped = "%s\n stopped!",
@@ -233,6 +238,20 @@ static const scr_trans_t scr_trans_map[] = {
 };
 
 static const scr_trans_t* scr_trans() { return &scr_trans_map[scr_lang]; }
+
+/* Formatters */
+
+static const char* scr_file_name(dat_file_t* file) { return scr_fmt(scr_trans()->measurement, file->head.num); }
+
+static const char* scr_file_date(dat_file_t* file) {
+  static char buf[24];
+
+  // format date
+  time_t time = (time_t)(file->head.start / 1000);
+  struct tm ts = *gmtime(&time);
+  strftime(buf, sizeof(buf), "%d.%m.%Y", &ts);
+  return buf;
+}
 
 /* Screens */
 
@@ -607,7 +626,7 @@ static void* scr_exit() {
   // add signs
   lvx_sign_t stop = {
       .title = "A",
-      .text = scr_fmt(scr_trans()->exit__stop, file->title),
+      .text = scr_fmt(scr_trans()->exit__stop, scr_file_name(file)),
       .align = LV_ALIGN_CENTER,
       .offset = -15,
   };
@@ -648,7 +667,7 @@ static void* scr_exit() {
     rec_stop();
 
     // show message
-    scr_message(scr_fmt(scr_trans()->exit__stopped, file->title), 2000);
+    scr_message(scr_fmt(scr_trans()->exit__stopped, scr_file_name(file)), 2000);
 
     // set action
     scr_action = STM_COMP_MEASUREMENT;
@@ -1062,7 +1081,7 @@ static void* scr_delete() {
 
   // add text
   lv_obj_t* text = lv_label_create(lv_scr_act());
-  lv_label_set_text(text, scr_fmt(scr_trans()->delete__confirm, file->title));
+  lv_label_set_text(text, scr_fmt(scr_trans()->delete__confirm, scr_file_name(file)));
   lv_obj_align(text, LV_ALIGN_TOP_MID, 0, 25);
   lv_obj_set_style_text_align(text, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
 
@@ -1117,12 +1136,12 @@ static void* scr_edit() {
 
   // add title
   lv_obj_t* title = lv_label_create(lv_scr_act());
-  lv_label_set_text(title, file->title);
+  lv_label_set_text(title, scr_file_name(file));
   lv_obj_align(title, LV_ALIGN_TOP_LEFT, 5, 5);
 
   // add date
   lv_obj_t* date = lv_label_create(lv_scr_act());
-  lv_label_set_text(date, file->date);
+  lv_label_set_text(date, scr_file_date(file));
   lv_obj_align(date, LV_ALIGN_TOP_LEFT, 5, 26);
 
   // add length
@@ -1264,8 +1283,8 @@ static void* scr_explore() {
       dat_file_t* file = dat_get_file(index);
 
       // update labels
-      lv_label_set_text(names[i], file->title);
-      lv_label_set_text(dates[i], file->date);
+      lv_label_set_text(names[i], scr_file_name(file));
+      lv_label_set_text(dates[i], scr_file_date(file));
 
       // handle selected
       if (index == selected) {
