@@ -21,17 +21,24 @@
 #include "rtc.h"
 #include "acc.h"
 #include "cap.h"
+#include "led.h"
 
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
 #define SCR_CHART_POINTS 72
 #define SCR_MIN_RESOLUTION 5000
 
+typedef enum {
+  SCR_LED_USB = 1 << 0,
+  SCR_LED_OFF = 1 << 1,
+} scr_led_flag_t;
+
 static stm_action_t scr_action = 0;
 DEV_KEEP static size_t scr_file = 0;
 DEV_KEEP static int64_t scr_saver_enter = 0;
 DEV_KEEP static void* scr_return_timeout = NULL;
 DEV_KEEP static void* scr_return_unlock = NULL;
+static scr_led_flag_t scr_led_flags = 0;
 
 /* Helpers */
 
@@ -92,6 +99,9 @@ static void scr_message(const char* text, uint32_t timeout) {
 }
 
 static void scr_power_off() {
+  // turn off LED
+  scr_led_flags |= SCR_LED_OFF;
+
   // cleanup screen
   scr_cleanup(true);
   naos_delay(7500);
@@ -1373,6 +1383,9 @@ static void* scr_usb() {
     return scr_settings;
   }
 
+  // set USB flag
+  scr_led_flags |= SCR_LED_USB;
+
   // begin draw
   gfx_begin(false, false);
 
@@ -1403,6 +1416,9 @@ static void* scr_usb() {
 
   // cleanup
   scr_cleanup(false);
+
+  // clear USB flag
+  scr_led_flags &= ~SCR_LED_USB;
 
   return scr_settings;
 }
@@ -2060,7 +2076,7 @@ static void* scr_intro() {
 
 /* Management */
 
-void scr_task() {
+static void scr_task() {
   // prepare handler
   void* (*handler)() = scr_menu;
 
@@ -2081,7 +2097,46 @@ void scr_task() {
   }
 }
 
+void scr_led() {
+  // handle off
+  if (scr_led_flags & SCR_LED_OFF) {
+    led_set(0, 0, 0);
+    return;
+  }
+
+  // get power state
+  pwr_state_t state = pwr_get();
+
+  // get recording state
+  bool recording = rec_running();
+
+  // determine color
+  float r = 0, g = 0, b = 0;
+  if (scr_led_flags & SCR_LED_USB) {
+    r = .8f;
+    b = .7f;
+  } else if (recording) {
+    r = .8f;
+    g = .02f;
+    b = .02f;
+  } else {
+    r = .7f;
+    g = .15f;
+    b = .2f;
+  }
+
+  // set LED
+  if (state.usb) {
+    led_set(r, g, b);
+  } else {
+    led_flash(r, g, b);
+  }
+}
+
 void scr_run() {
   // run screen task
   naos_run("scr", 8192, 1, scr_task);
+
+  // run led control
+  naos_repeat("led", 500, scr_led);
 }

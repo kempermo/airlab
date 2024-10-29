@@ -40,14 +40,14 @@ void led_set(float r, float g, float b) {
 
 void led_flash(float r, float g, float b) {
   // configure flash period
-  led_write(0x01, 18, false);  // ~3s
+  led_write(0x01, 38, false);  // ~5s (0.256 + v * 0.128)
 
   // configure ON percentage
-  led_write(0x02, 128, false);  // 50%
-  led_write(0x03, 128, false);  // 50%
+  led_write(0x02, 12, false);  // 12% = 0.6s
+  led_write(0x03, 12, false);  // 12% = 0.6s
 
   // configure rise/fall times
-  led_write(0x05, 0b01100110, false);  // 768/768ms
+  led_write(0x05, 0b00100010, false);  // 256/256ms
 
   // set LEDs on/off
   uint8_t state = (b > 0) << 1 | (g > 0) << 3 | (r > 0) << 5;
