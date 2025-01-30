@@ -5,6 +5,7 @@
 #include <esp_adc_cal.h>
 #include <art32/numbers.h>
 #include <esp_sleep.h>
+#include <driver/rtc_io.h>
 
 #include "pwr.h"
 #include "sig.h"
@@ -104,16 +105,13 @@ void pwr_init() {
   pwr_mutex = naos_mutex();
 
   // hold power
-  gpio_config_t cfg = {
-      .mode = GPIO_MODE_OUTPUT,
-      .pin_bit_mask = BIT64(PWR_HOLD),
-  };
-  ESP_ERROR_CHECK(gpio_config(&cfg));
-  ESP_ERROR_CHECK(gpio_set_level(PWR_HOLD, 1));
-  ESP_ERROR_CHECK(gpio_hold_en(PWR_HOLD));
+  ESP_ERROR_CHECK(rtc_gpio_init(PWR_HOLD));
+  ESP_ERROR_CHECK(rtc_gpio_set_direction(PWR_HOLD, RTC_GPIO_MODE_OUTPUT_ONLY));
+  ESP_ERROR_CHECK(rtc_gpio_set_level(PWR_HOLD, 1));
+  ESP_ERROR_CHECK(rtc_gpio_hold_en(PWR_HOLD));
 
   // low power
-  cfg = (gpio_config_t){
+  gpio_config_t cfg = (gpio_config_t){
       .mode = GPIO_MODE_INPUT,
       .pin_bit_mask = BIT64(PWR_LOW),
   };
@@ -149,8 +147,8 @@ pwr_state_t pwr_get() {
 
 void pwr_off() {
   // power down
-  ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_hold_dis(PWR_HOLD));
-  ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_set_level(PWR_HOLD, 0));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(rtc_gpio_hold_dis(PWR_HOLD));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(rtc_gpio_set_level(PWR_HOLD, 0));
 
   // delay
   naos_delay(2000);
@@ -158,8 +156,8 @@ void pwr_off() {
   /* power off did not work */
 
   // power up
-  ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_set_level(PWR_HOLD, 1));
-  ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_hold_en(PWR_HOLD));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(rtc_gpio_set_level(PWR_HOLD, 1));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(rtc_gpio_hold_en(PWR_HOLD));
 
   // go to deep sleep
   pwr_sleep(true, 0);
