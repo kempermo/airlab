@@ -18,6 +18,7 @@ typedef enum {
   SIG_STOP = (1 << 10),
   SIG_TOUCH = (1 << 11),
   SIG_SCROLL = (1 << 12),
+  SIG_EJECT = (1 << 13),
 
   SIG_META = SIG_ENTER | SIG_ESCAPE,
   SIG_ARROWS = SIG_UP | SIG_DOWN | SIG_LEFT | SIG_RIGHT,

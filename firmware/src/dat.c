@@ -19,6 +19,7 @@
 #endif
 
 #include "dat.h"
+#include "sig.h"
 
 #ifdef DAT_TEST
 #define DAT_ROOT "./fs"
@@ -78,7 +79,16 @@ static char const *dat_usb_str_desc[] = {
 
 static void dat_usb_msc_cb(tinyusb_msc_event_t *event) {
   // log event
-  naos_log("dat: MSC event=%d mounted=%d", event->type, event->mount_changed_data.is_mounted);
+  if (DAT_DEBUG) {
+    naos_log("dat: MSC event=%d mounted=%d", event->type, event->mount_changed_data.is_mounted);
+  }
+
+  // dispatch eject event on device-side re-mount
+  if (event->type == TINYUSB_MSC_EVENT_MOUNT_CHANGED && event->mount_changed_data.is_mounted) {
+    sig_dispatch((sig_event_t){
+        .type = SIG_EJECT,
+    });
+  }
 }
 
 float lerp(float a, float b, float f) { return a * (1.f - f) + (b * f); }

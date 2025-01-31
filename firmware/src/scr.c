@@ -147,6 +147,7 @@ typedef struct {
   const char* usb__running;
   const char* usb__disconnected;
   const char* usb__active;
+  const char* usb__eject;
   const char* reset__confirm;
   const char* reset__yes;
   const char* reset__no;
@@ -189,6 +190,7 @@ static const scr_trans_t scr_trans_map[] = {
             .usb__running = "Messung läuft!",
             .usb__disconnected = "USB nicht angeschlossen!",
             .usb__active = "USB-Modus Aktiv",
+            .usb__eject = "USB-Verbindung getrennt",
             .reset__confirm = "Air Lab\nwirklich zurücksetzen?",
             .reset__yes = "Ja",
             .reset__no = "Nein",
@@ -229,6 +231,7 @@ static const scr_trans_t scr_trans_map[] = {
             .usb__running = "Measurement running!",
             .usb__disconnected = "USB not connected!",
             .usb__active = "USB Mode Active",
+            .usb__eject = "USB-Connection disconnected",
             .reset__confirm = "Fully Reset Air Lab?",
             .reset__yes = "Yes",
             .reset__no = "No",
@@ -1409,7 +1412,7 @@ static void* scr_usb() {
   dat_enable_usb();
 
   // await escape
-  sig_await(SIG_ESCAPE, 0);
+  sig_event_t event = sig_await(SIG_ESCAPE | SIG_EJECT, 0);
 
   // disable USB
   dat_disable_usb();
@@ -1419,6 +1422,11 @@ static void* scr_usb() {
 
   // clear USB flag
   scr_led_flags &= ~SCR_LED_USB;
+
+  // show message on eject
+  if (event.type == SIG_EJECT) {
+    scr_message(scr_trans()->usb__eject, 2000);
+  }
 
   return scr_settings;
 }
