@@ -665,6 +665,8 @@ void dat_enable_usb() {
       .string_descriptor = dat_usb_str_desc,
       .string_descriptor_count = sizeof(dat_usb_str_desc) / sizeof(dat_usb_str_desc[0]),
       .configuration_descriptor = dat_usb_cfg_desc,
+      .self_powered = true,
+      .vbus_monitor_io = GPIO_NUM_18,
   };
   ESP_ERROR_CHECK(tinyusb_driver_install(&usb_cfg));
 }
