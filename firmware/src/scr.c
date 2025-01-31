@@ -98,6 +98,146 @@ static void scr_message(const char* text, uint32_t timeout) {
   scr_cleanup(false);
 }
 
+static int scr_list(const char** labels, const char* select, const char* cancel, int start) {
+  // prepare variables
+  static int selected = 0;
+  static int offset = 0;
+
+  // count labels
+  int total = 0;
+  while (labels[total] != NULL) {
+    total++;
+  }
+
+  // handle empty
+  if (total <= 0) {
+    return -1;
+  }
+
+  // set selected
+  selected = start;
+
+  // adjust offset
+  if (selected > offset + 3) {
+    offset = selected - 3;
+  } else if (selected < offset) {
+    offset = selected;
+  }
+
+  // begin draw
+  gfx_begin(false, false);
+
+  // add list
+  lv_obj_t* rects[4];
+  lv_obj_t* names[4];
+  for (int i = 0; i < 4; i++) {
+    rects[i] = lv_obj_create(lv_scr_act());
+    names[i] = lv_label_create(lv_scr_act());
+    lv_obj_set_size(rects[i], lv_pct(100), 25);
+    lv_obj_align(rects[i], LV_ALIGN_TOP_LEFT, 0, 0 + i * 25);
+    lv_obj_align(names[i], LV_ALIGN_TOP_LEFT, 5, 5 + i * 25);
+    lv_obj_set_style_border_width(rects[i], 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(rects[i], 0, LV_PART_MAIN);
+  }
+
+  // add signs
+  lvx_sign_t back = {
+      .title = "B",
+      .text = cancel,
+      .align = LV_ALIGN_BOTTOM_LEFT,
+  };
+  lvx_sign_create(&back, lv_scr_act());
+  lvx_sign_t open = {
+      .title = "A",
+      .text = select,
+      .align = LV_ALIGN_BOTTOM_RIGHT,
+  };
+  lvx_sign_create(&open, lv_scr_act());
+
+  // add info
+  lv_obj_t* info = lv_label_create(lv_scr_act());
+  lv_obj_align(info, LV_ALIGN_BOTTOM_MID, 0, -5);
+
+  // end draw
+  gfx_end(true);
+
+  for (;;) {
+    // begin draw
+    gfx_begin(false, false);
+
+    // fill list
+    for (int i = 0; i < +4; i++) {
+      // get index
+      int index = offset + i;
+
+      // handle empty
+      if (index >= total) {
+        // clear labels and rectangle
+        lv_label_set_text(names[i], "");
+        lv_obj_set_style_bg_color(rects[i], lv_color_white(), LV_PART_MAIN);
+
+        continue;
+      }
+
+      // update labels
+      lv_label_set_text(names[i], labels[index]);
+
+      // handle selected
+      if (index == selected) {
+        lv_obj_set_style_text_color(names[i], lv_color_white(), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(rects[i], lv_color_black(), LV_PART_MAIN);
+      } else {
+        lv_obj_set_style_text_color(names[i], lv_color_black(), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(rects[i], lv_color_white(), LV_PART_MAIN);
+      }
+    }
+
+    // update info
+    lv_label_set_text(info, scr_fmt("%d/%d", selected + 1, total));
+
+    // end draw
+    gfx_end(false);
+
+    // await event
+    sig_event_t event = sig_await(SIG_UP | SIG_DOWN | SIG_META | SIG_SCROLL, SCR_ACTION_TIMEOUT);
+
+    // handle arrows
+    if ((event.type & (SIG_UP | SIG_DOWN | SIG_SCROLL)) != 0) {
+      if (event.type == SIG_SCROLL) {
+        selected += (int)(event.touch * 2);
+      } else {
+        selected += event.type == SIG_UP ? -1 : 1;
+      }
+      while (selected < 0) {
+        selected += total;
+      }
+      while (selected > total - 1) {
+        selected -= total;
+      }
+      if (selected > offset + 3) {
+        offset = selected - 3;
+      } else if (selected < offset) {
+        offset = selected;
+      }
+      continue;
+    }
+
+    /* handle meta and timeout */
+
+    // cleanup
+    scr_cleanup(false);
+
+    // handle escape and timeout
+    if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
+      return -1;
+    }
+
+    /* handle enter */
+
+    return selected;
+  }
+}
+
 static void scr_power_off() {
   // turn off LED
   scr_led_flags |= SCR_LED_OFF;
@@ -352,16 +492,10 @@ static void* scr_debug() {
   // add signs
   lvx_sign_t start = {.title = "B", .text = "Menu", .align = LV_ALIGN_BOTTOM_LEFT};
   lvx_sign_t white = {.title = "A", .text = "Test", .align = LV_ALIGN_BOTTOM_RIGHT};
-  lvx_sign_t light = {.title = "↑", .text = "Light", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -50};
-  lvx_sign_t deep = {.title = "↓", .text = "Deep", .align = LV_ALIGN_BOTTOM_LEFT, .offset = -25};
   lvx_sign_t save = {.title = "<", .text = "Save", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -50};
-  lvx_sign_t off = {.title = ">", .text = "Off", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -25};
   lvx_sign_create(&start, lv_scr_act());
   lvx_sign_create(&white, lv_scr_act());
-  lvx_sign_create(&light, lv_scr_act());
-  lvx_sign_create(&deep, lv_scr_act());
   lvx_sign_create(&save, lv_scr_act());
-  lvx_sign_create(&off, lv_scr_act());
 
   // end draw
   gfx_end(true);
@@ -390,38 +524,6 @@ static void* scr_debug() {
 
     // loop on sensor
     if (event.type == SIG_SENSOR) {
-      continue;
-    }
-
-    // power off on right
-    if (event.type == SIG_RIGHT) {
-      scr_power_off();
-      continue;
-    }
-
-    // handle up and down
-    if (event.type == SIG_UP || event.type == SIG_DOWN) {
-      // log sleep
-      naos_log("sleeping... (deep=%d)", event.type == SIG_DOWN);
-
-      // disable sensor
-      sns_set(false);
-
-      // sleep display
-      epd_sleep();
-
-      // set return
-      scr_return_unlock = scr_debug;
-
-      // perform sleep
-      pwr_sleep(event.type == SIG_DOWN, 0);
-
-      // log wakeup
-      naos_log("woke up!");
-
-      // enable sensor
-      sns_set(true);
-
       continue;
     }
 
@@ -1582,6 +1684,56 @@ static void* scr_settings() {
   }
 }
 
+static void* scr_develop() {
+  // prepare labels
+  const char* labels[] = {
+      "Light Sleep", "Deep Sleep", "Power Reset", "Power Off", NULL,
+  };
+
+  // handle list
+  int ret = 0;
+  for (;;) {
+    ret = scr_list(labels, "Select", "Cancel", ret);
+    if (ret < 0) {
+      return scr_menu;
+    }
+
+    // handle light/deep sleep
+    if (ret == 0 || ret == 1) {
+      // log sleep
+      naos_log("sleeping... (deep=%d)", ret == 1);
+
+      // disable sensor
+      sns_set(false);
+
+      // sleep display
+      epd_sleep();
+
+      // set return
+      scr_return_unlock = scr_develop;
+
+      // perform sleep
+      pwr_sleep(ret == 1, 0);
+
+      // log wakeup
+      naos_log("woke up!");
+
+      // enable sensor
+      sns_set(true);
+    }
+
+    // handle power set
+    if (ret == 2) {
+      esp_restart();
+    }
+
+    // handle power off
+    if (ret == 3) {
+      scr_power_off();
+    }
+  }
+}
+
 static void* scr_menu() {
   // prepare variables
   static int8_t mode = 0;  // co2, tmp, hum
@@ -1700,6 +1852,8 @@ static void* scr_menu() {
       lv_img_set_src(icon, &img_folder);
     } else if (opt == 2) {
       lv_img_set_src(icon, &img_cog);
+    } else if (opt == 3) {
+      lv_img_set_src(icon, &img_wrench);
     }
 
     // set fan
@@ -1832,12 +1986,12 @@ static void* scr_menu() {
     if (event.type == SIG_LEFT) {
       opt--;
       if (opt < 0) {
-        opt = 2;
+        opt = 3;
       }
       continue;
     } else if (event.type == SIG_RIGHT) {
       opt++;
-      if (opt > 2) {
+      if (opt > 3) {
         opt = 0;
       }
       continue;
@@ -1879,6 +2033,8 @@ static void* scr_menu() {
           return scr_explore;
         case 2:  // settings
           return scr_settings;
+        case 3:  // develop
+          return scr_develop;
         default:
           ESP_ERROR_CHECK(ESP_FAIL);
       }
