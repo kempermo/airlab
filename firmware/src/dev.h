@@ -7,7 +7,6 @@
 
 #define DEV_VERSION "0.2.0"
 
-#define DEV_DEBUG_MENU false
 #define DEV_RECORD_SCREEN false
 
 #define DEV_BTN_A GPIO_NUM_12

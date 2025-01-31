@@ -1,5 +1,6 @@
 #include <naos.h>
 #include <naos/sys.h>
+#include <naos/cpu.h>
 #include <art32/numbers.h>
 #include <lvgl.h>
 #include <math.h>
@@ -420,10 +421,11 @@ static void* scr_edit();
 static void* scr_explore();
 static void* scr_menu();
 static void* scr_settings();
+static void* scr_develop();
 static void* scr_date();
 static void* scr_intro();
 
-static void* scr_test() {
+static void* scr_test_bubbles() {
   // begin draw
   gfx_begin(false, false);
 
@@ -480,7 +482,7 @@ static void* scr_test() {
     // cleanup screen
     scr_cleanup(false);
 
-    return scr_debug;
+    return scr_develop;
   }
 }
 
@@ -496,9 +498,7 @@ static void* scr_debug() {
 
   // add signs
   lvx_sign_t start = {.title = "B", .text = "Close", .align = LV_ALIGN_BOTTOM_LEFT};
-  lvx_sign_t white = {.title = "A", .text = "Test", .align = LV_ALIGN_BOTTOM_RIGHT};
   lvx_sign_create(&start, lv_scr_act());
-  lvx_sign_create(&white, lv_scr_act());
 
   // end draw
   gfx_end(true);
@@ -512,10 +512,14 @@ static void* scr_debug() {
     sys_get_date(&year, &month, &day);
     sys_get_time(&hour, &minute, &seconds);
 
+    // get CPU usage
+    float cpu0 = 0, cpu1 = 0;
+    naos_cpu_get(&cpu0, &cpu1);
+
     // prepare text
-    const char* text = scr_fmt("%llds - %.0f%% - P%d - F%d\n%04d-%02d-%02d %02d:%02d:%02d\n%lu B", naos_millis() / 1000,
-                               bat.battery * 100, bat.usb, bat.fast, year, month, day, hour, minute, seconds,
-                               esp_get_free_heap_size());
+    const char* text = scr_fmt("%llds - %.0f%% - P%d - F%d\n%04d-%02d-%02d %02d:%02d:%02d\n%lu kB - %.1f%% - %.1f%%",
+                               naos_millis() / 1000, bat.battery * 100, bat.usb, bat.fast, year, month, day, hour,
+                               minute, seconds, esp_get_free_heap_size() / 1024, cpu0 * 100, cpu1 * 100);
 
     // update label
     gfx_begin(false, false);
@@ -523,7 +527,7 @@ static void* scr_debug() {
     gfx_end(false);
 
     // await event
-    sig_event_t event = sig_await(SIG_SENSOR | SIG_META, 0);
+    sig_event_t event = sig_await(SIG_SENSOR | SIG_ESCAPE, 0);
 
     // loop on sensor
     if (event.type == SIG_SENSOR) {
@@ -534,11 +538,6 @@ static void* scr_debug() {
 
     // cleanup
     scr_cleanup(event.type == SIG_ESCAPE);
-
-    // handle enter
-    if (event.type == SIG_ENTER) {
-      return scr_test;
-    }
 
     /* handle escape */
 
@@ -1643,9 +1642,6 @@ static void* scr_settings() {
   for (;;) {
     // await event
     sig_type_t filter = SIG_UP | SIG_DOWN | SIG_LEFT | SIG_RIGHT | SIG_ESCAPE;
-#if DEV_DEBUG_MENU
-    filter |= SIG_ENTER;
-#endif
     sig_event_t event = sig_await(filter, SCR_ACTION_TIMEOUT);
 
     // cleanup
@@ -1668,8 +1664,6 @@ static void* scr_settings() {
         scr_action = STM_FROM_SETTINGS;
 
         return scr_menu;
-      case SIG_ENTER:
-        return scr_debug;
       default:
         ESP_ERROR_CHECK(ESP_FAIL);
     }
@@ -1679,7 +1673,8 @@ static void* scr_settings() {
 static void* scr_develop() {
   // prepare labels
   const char* labels[] = {
-      "Light Sleep", "Deep Sleep", "Power Reset", "Power Off", "Ship Mode", "Screen Saver", "Clear Display", NULL,
+      "Light Sleep",  "Deep Sleep",    "Power Reset",  "Power Off",   "Ship Mode",
+      "Screen Saver", "Clear Display", "Test Bubbles", "System Info", NULL,
   };
 
   // handle list
@@ -1752,6 +1747,16 @@ static void* scr_develop() {
     if (ret == 6) {
       scr_cleanup(true);
       naos_delay(7500);
+    }
+
+    // handle bubbles test
+    if (ret == 7) {
+      return scr_test_bubbles;
+    }
+
+    // handle system info
+    if (ret == 8) {
+      return scr_debug;
     }
   }
 }
@@ -2027,11 +2032,6 @@ static void* scr_menu() {
 
     // enter screen saver on timeout
     if (event.type == SIG_TIMEOUT) {
-      // skip in dev mode
-      if (DEV_DEBUG_MENU) {
-        return scr_menu;
-      }
-
       // set return
       scr_return_unlock = scr_menu;
 

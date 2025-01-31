@@ -1,4 +1,5 @@
 #include <naos.h>
+#include <naos/cpu.h>
 
 #include "dev.h"
 #include "sig.h"
@@ -58,5 +59,6 @@ static naos_config_t config = {
 void app_main() {
   // run naos
   naos_init(&config);
+  naos_cpu_init();
   naos_start();
 }
