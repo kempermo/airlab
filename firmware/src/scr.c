@@ -495,12 +495,10 @@ static void* scr_debug() {
   lv_obj_set_style_text_line_space(label, 6, LV_PART_MAIN);
 
   // add signs
-  lvx_sign_t start = {.title = "B", .text = "Menu", .align = LV_ALIGN_BOTTOM_LEFT};
+  lvx_sign_t start = {.title = "B", .text = "Close", .align = LV_ALIGN_BOTTOM_LEFT};
   lvx_sign_t white = {.title = "A", .text = "Test", .align = LV_ALIGN_BOTTOM_RIGHT};
-  lvx_sign_t save = {.title = "<", .text = "Save", .align = LV_ALIGN_BOTTOM_RIGHT, .offset = -50};
   lvx_sign_create(&start, lv_scr_act());
   lvx_sign_create(&white, lv_scr_act());
-  lvx_sign_create(&save, lv_scr_act());
 
   // end draw
   gfx_end(true);
@@ -525,7 +523,7 @@ static void* scr_debug() {
     gfx_end(false);
 
     // await event
-    sig_event_t event = sig_await(SIG_SENSOR | SIG_KEYS, 0);
+    sig_event_t event = sig_await(SIG_SENSOR | SIG_META, 0);
 
     // loop on sensor
     if (event.type == SIG_SENSOR) {
@@ -536,17 +534,6 @@ static void* scr_debug() {
 
     // cleanup
     scr_cleanup(event.type == SIG_ESCAPE);
-
-    // handle left
-    if (event.type == SIG_LEFT) {
-      // set return
-      scr_return_unlock = scr_debug;
-
-      // set enter
-      scr_saver_enter = sys_get_timestamp();
-
-      return scr_saver;
-    }
 
     // handle enter
     if (event.type == SIG_ENTER) {
@@ -1692,7 +1679,7 @@ static void* scr_settings() {
 static void* scr_develop() {
   // prepare labels
   const char* labels[] = {
-      "Light Sleep", "Deep Sleep", "Power Reset", "Power Off", "Ship Mode", NULL,
+      "Light Sleep", "Deep Sleep", "Power Reset", "Power Off", "Ship Mode", "Screen Saver", NULL,
   };
 
   // handle list
@@ -1748,6 +1735,17 @@ static void* scr_develop() {
 
       // clean up in case ship mode did not work
       scr_cleanup(false);
+    }
+
+    // handle screen saver
+    if (ret == 5) {
+      // set return
+      scr_return_unlock = scr_develop;
+
+      // set enter
+      scr_saver_enter = sys_get_timestamp();
+
+      return scr_saver;
     }
   }
 }
