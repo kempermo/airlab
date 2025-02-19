@@ -21,13 +21,16 @@ void led_init() {
   // disable auto blink
   led_write(0x09, 0b00000110, false);
 
-  // TODO: Verify that device enters shutdown mode whenever there are no LEDs on.
-
   // turn LEDs off
   led_set(0, 0, 0);
 }
 
 void led_set(float r, float g, float b) {
+  // scale values to 0-17mA
+  r *= 0.7f;
+  g *= 0.7f;
+  b *= 0.7f;
+
   // set LEDs on/off
   uint8_t state = (b > 0) | (g > 0) << 2 | (r > 0) << 4;
   led_write(0x04, 0b01000000 | state, false);
