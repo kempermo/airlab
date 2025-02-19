@@ -44,6 +44,7 @@ static struct {
       uint8_t ichg : 6;
       uint8_t _omitted : 2;
     };
+    uint8_t raw;
   } reg2;
   // status
   union {
