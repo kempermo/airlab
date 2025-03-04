@@ -92,7 +92,7 @@ static void gfx_flush(lv_disp_drv_t* driver, const lv_area_t* area, lv_color_t* 
   // dispatch refresh
   if (gfx_refresh) {
     sig_dispatch((sig_event_t){
-      .type = SIG_REFRESH,
+        .type = SIG_REFRESH,
     });
   }
 }

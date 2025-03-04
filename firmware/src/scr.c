@@ -304,7 +304,6 @@ typedef struct {
   const char* settings__title;
   const char* settings__storage;
   const char* settings__date_time;
-  const char* settings__usb;
   const char* settings__off;
   const char* settings__reset;
   const char* menu__no_data;
@@ -347,7 +346,6 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__title = "Einstellungen",
             .settings__storage = "Speicher: %.1f%% belegt",
             .settings__date_time = "Datum & Zeit",
-            .settings__usb = "USB",
             .settings__off = "Ausschalten",
             .settings__reset = "Zurücksetzen",
             .menu__no_data = "Keine Daten",
@@ -388,7 +386,6 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__title = "Settings",
             .settings__storage = "Storage: %.1f%% used",
             .settings__date_time = "Date & Time",
-            .settings__usb = "USB",
             .settings__off = "Power Off",
             .settings__reset = "Reset",
             .menu__no_data = "No Data",
@@ -1471,7 +1468,7 @@ static void* scr_usb() {
     // show message
     scr_message(scr_trans()->usb__running, 2000);
 
-    return scr_settings;
+    return scr_menu;
   }
 
   // check connection
@@ -1479,7 +1476,7 @@ static void* scr_usb() {
     // show message
     scr_message(scr_trans()->usb__disconnected, 2000);
 
-    return scr_settings;
+    return scr_menu;
   }
 
   // set USB flag
@@ -1524,7 +1521,7 @@ static void* scr_usb() {
     scr_message(scr_trans()->usb__eject, 2000);
   }
 
-  return scr_settings;
+  return scr_menu;
 }
 
 static void* scr_reset() {
@@ -1616,12 +1613,6 @@ static void* scr_settings() {
       .text = scr_trans()->back,
       .align = LV_ALIGN_BOTTOM_LEFT,
   };
-  lvx_sign_t usb = {
-      .title = "↓",
-      .text = scr_trans()->settings__usb,
-      .align = LV_ALIGN_BOTTOM_RIGHT,
-      .offset = -50,
-  };
   lvx_sign_t off = {
       .title = ">",
       .text = scr_trans()->settings__off,
@@ -1637,7 +1628,6 @@ static void* scr_settings() {
   lvx_sign_create(&reset, lv_scr_act());
   lvx_sign_create(&back, lv_scr_act());
   lvx_sign_create(&off, lv_scr_act());
-  lvx_sign_create(&usb, lv_scr_act());
 
   // end draw
   gfx_end(false);
@@ -1766,7 +1756,7 @@ static void* scr_develop() {
 static void* scr_menu() {
   // prepare variables
   static int8_t mode = 0;  // co2, tmp, hum
-  static int8_t opt = 0;   // create, explore, settings
+  static int8_t opt = 0;   // create, explore, settings, usb, develop
   static bool fan_alt = false;
 
   // begin draw
@@ -1882,6 +1872,8 @@ static void* scr_menu() {
     } else if (opt == 2) {
       lv_img_set_src(icon, &img_cog);
     } else if (opt == 3) {
+      lv_img_set_src(icon, &img_usb);
+    } else if (opt == 4) {
       lv_img_set_src(icon, &img_wrench);
     }
 
@@ -2015,12 +2007,12 @@ static void* scr_menu() {
     if (event.type == SIG_LEFT) {
       opt--;
       if (opt < 0) {
-        opt = 3;
+        opt = 4;
       }
       continue;
     } else if (event.type == SIG_RIGHT) {
       opt++;
-      if (opt > 3) {
+      if (opt > 4) {
         opt = 0;
       }
       continue;
@@ -2057,7 +2049,9 @@ static void* scr_menu() {
           return scr_explore;
         case 2:  // settings
           return scr_settings;
-        case 3:  // develop
+        case 3:  // usb
+          return scr_usb;
+        case 4:  // develop
           return scr_develop;
         default:
           ESP_ERROR_CHECK(ESP_FAIL);
