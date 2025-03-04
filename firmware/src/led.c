@@ -10,7 +10,8 @@ static void led_write(uint8_t reg, uint8_t val, bool may_fail) {
   uint8_t data[2] = {reg, val};
   esp_err_t err = i2c_master_write_to_device(I2C_NUM_0, LED_ADDR, data, 2, 1000);
   if (!may_fail || err != ESP_FAIL) {
-    ESP_ERROR_CHECK(err);
+    // TODO: LED writes may fail after waking from light sleep.
+    ESP_ERROR_CHECK_WITHOUT_ABORT(err);
   }
 }
 
