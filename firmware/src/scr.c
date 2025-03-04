@@ -271,7 +271,8 @@ typedef enum {
   SCR_EN,
 } scr_lang_t;
 
-static const scr_lang_t scr_lang = SCR_EN;
+// TODO: Make settings persistent.
+static scr_lang_t scr_lang = SCR_EN;
 
 typedef struct {
   const char* back;
@@ -304,12 +305,14 @@ typedef struct {
   const char* settings__title;
   const char* settings__storage;
   const char* settings__date_time;
+  const char* settings__language;
   const char* settings__off;
   const char* settings__reset;
   const char* menu__no_data;
   const char* time__message;
   const char* time__continue;
   const char* date__message;
+  const char* language__message;
   const char* intro_message;
 } scr_trans_t;
 
@@ -346,12 +349,14 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__title = "Einstellungen",
             .settings__storage = "Speicher: %.1f%% belegt",
             .settings__date_time = "Datum & Zeit",
+            .settings__language = "Sprache",
             .settings__off = "Ausschalten",
             .settings__reset = "Zurücksetzen",
             .menu__no_data = "Keine Daten",
             .time__message = "Und wie spät ist es gerade?",
             .time__continue = "Wie die Zeit vergeht...\nKomm, lass uns ins Labor gehen.",
             .date__message = "Ich habe zieeemlich\nlang geschlafen!\nWelcher Tag ist heute?",
+            .language__message = "In welcher Sprache\nmöchtest du quatschen?",
             .intro_message = "Hi! Ich bin Robin,\nProfessor für Luftwiss-\nenschaften im Air Lab.",
         },
     [SCR_EN] =
@@ -386,12 +391,14 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__title = "Settings",
             .settings__storage = "Storage: %.1f%% used",
             .settings__date_time = "Date & Time",
+            .settings__language = "Language",
             .settings__off = "Power Off",
             .settings__reset = "Reset",
             .menu__no_data = "No Data",
             .time__message = "What time is it?",
             .time__continue = "Time flies...\nLet's go to the lab.",
             .date__message = "I slept for a\nloooong time!\nWhat day is it?",
+            .language__message = "In which language\nwould you like to chat?",
             .intro_message = "Hi! I'm Robin,\nprofessor of air\nsciences at Air Lab.",
         },
 };
@@ -423,6 +430,7 @@ static void* scr_menu();
 static void* scr_settings();
 static void* scr_develop();
 static void* scr_date();
+static void* scr_language();
 static void* scr_intro();
 
 static void* scr_test_bubbles() {
@@ -1613,6 +1621,12 @@ static void* scr_settings() {
       .text = scr_trans()->back,
       .align = LV_ALIGN_BOTTOM_LEFT,
   };
+  lvx_sign_t lang = {
+      .title = "↓",
+      .text = scr_trans()->settings__language,
+      .align = LV_ALIGN_BOTTOM_RIGHT,
+      .offset = -50,
+  };
   lvx_sign_t off = {
       .title = ">",
       .text = scr_trans()->settings__off,
@@ -1628,6 +1642,7 @@ static void* scr_settings() {
   lvx_sign_create(&reset, lv_scr_act());
   lvx_sign_create(&back, lv_scr_act());
   lvx_sign_create(&off, lv_scr_act());
+  lvx_sign_create(&lang, lv_scr_act());
 
   // end draw
   gfx_end(false);
@@ -1645,7 +1660,7 @@ static void* scr_settings() {
       case SIG_UP:
         return scr_date;
       case SIG_DOWN:
-        return scr_usb;
+        return scr_language;
       case SIG_LEFT:
         return scr_reset;
       case SIG_RIGHT:
@@ -2221,6 +2236,25 @@ static void* scr_date() {
 
     return scr_time;
   }
+}
+
+static void* scr_language() {
+  // show message
+  scr_message(scr_trans()->language__message, 5000);
+
+  // prepare labels
+  const char* labels[] = {"Deutsch", "English", NULL};
+
+  // add row
+  int ret = scr_list(labels, "Select", "Cancel", scr_lang);
+  if (ret < 0) {
+    return scr_settings;
+  }
+
+  // set language
+  scr_lang = ret;
+
+  return scr_settings;
 }
 
 static void* scr_intro() {
