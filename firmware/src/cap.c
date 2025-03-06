@@ -8,7 +8,7 @@
 #define CAP_ADDR 0x37
 #define CAP_INT GPIO_NUM_11
 #define CAP_DEBUG false
-#define CAP_DEBUG_SENSOR -1
+#define CAP_DEBUG_SENSOR (-1)
 
 static naos_mutex_t cap_mutex;
 static rmt_channel_handle_t cap_buzzer;
@@ -142,13 +142,11 @@ static float cap_middle(uint8_t num) {
 
 void static cap_buzz(int us) {
   // prepare buzz
-  rmt_symbol_word_t items[1] = {
-      {
-          .level0 = 1,
-          .duration0 = (uint16_t)us,
-          .level1 = 0,
-          .duration1 = 1,
-      },
+  rmt_symbol_word_t item = {
+      .level0 = 1,
+      .duration0 = (uint16_t)us,
+      .level1 = 0,
+      .duration1 = 1,
   };
 
   // perform buzz
@@ -156,7 +154,7 @@ void static cap_buzz(int us) {
       .flags.eot_level = 0,
       .flags.queue_nonblocking = 1,
   };
-  ESP_ERROR_CHECK(rmt_transmit(cap_buzzer, cap_encoder, items, sizeof(items), &cfg));
+  ESP_ERROR_CHECK(rmt_transmit(cap_buzzer, cap_encoder, &item, sizeof(item), &cfg));
 }
 
 static void cap_check() {
