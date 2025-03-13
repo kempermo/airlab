@@ -8,6 +8,7 @@
 #include <time.h>
 
 #include <al/led.h>
+#include <al/accel.h>
 
 #include "gfx.h"
 #include "sig.h"
@@ -22,7 +23,6 @@
 #include "dev.h"
 #include "stm.h"
 #include "rtc.h"
-#include "acc.h"
 #include "cap.h"
 
 #define SCR_ACTION_TIMEOUT 10000
@@ -606,8 +606,8 @@ static void* scr_saver() {
     // read power
     pwr_state_t power = pwr_get();
 
-    // read accelerometer
-    acc_state_t acc = acc_get();
+    // get accelerometer state
+    al_accel_state_t acc = al_accel_get();
 
     // flip side
     right = !right;

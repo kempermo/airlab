@@ -6,7 +6,6 @@
 #include "dev.h"
 #include "sig.h"
 #include "rtc.h"
-#include "acc.h"
 #include "cap.h"
 #include "pwr.h"
 #include "btn.h"
@@ -30,7 +29,6 @@ static void setup() {
   sig_init();
   pwr_init();
   btn_init();
-  acc_init();
   cap_init();
   epd_init();
   gfx_init();
