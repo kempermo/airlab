@@ -7,6 +7,8 @@
 #include <utime.h>
 #include <time.h>
 
+#include <al/led.h>
+
 #include "gfx.h"
 #include "sig.h"
 #include "sns.h"
@@ -22,7 +24,6 @@
 #include "rtc.h"
 #include "acc.h"
 #include "cap.h"
-#include "led.h"
 
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
@@ -2316,7 +2317,7 @@ static void scr_task() {
 void scr_led() {
   // handle off
   if (scr_led_flags & SCR_LED_OFF) {
-    led_set(0, 0, 0);
+    al_led_set(0, 0, 0);
     return;
   }
 
@@ -2343,9 +2344,9 @@ void scr_led() {
 
   // set LED
   if (state.usb) {
-    led_set(r, g, b);
+    al_led_set(r, g, b);
   } else {
-    led_flash(r, g, b);
+    al_led_flash(r, g, b);
   }
 }
 
