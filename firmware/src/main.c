@@ -1,6 +1,8 @@
 #include <naos.h>
 #include <naos/cpu.h>
 
+#include <al/core.h>
+
 #include "dev.h"
 #include "sig.h"
 #include "rtc.h"
@@ -20,6 +22,9 @@
 static void setup() {
   // log
   naos_log("setup");
+
+  // init core
+  al_init();
 
   // initialize
   dev_init();

@@ -9,6 +9,9 @@ set(CMAKE_C_STANDARD 99)
 
 # add your source files
 set(SOURCE_FILES
+        lib/buzzer.c
+        lib/buzzer.h
+        lib/core.c
         src/acc.c
         src/acc.h
         src/btn.c

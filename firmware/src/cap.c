@@ -1,7 +1,8 @@
 #include <naos.h>
 #include <naos/sys.h>
 #include <driver/i2c.h>
-#include <driver/rmt_tx.h>
+
+#include <al/buzzer.h>
 
 #include "sig.h"
 
@@ -11,8 +12,6 @@
 #define CAP_DEBUG_SENSOR (-1)
 
 static naos_mutex_t cap_mutex;
-static rmt_channel_handle_t cap_buzzer;
-static rmt_encoder_handle_t cap_encoder;
 static uint8_t cap_map[8] = {2, 6, 1, 0, 5, 4, 3};
 static uint8_t cap_last = 0;
 static float cap_delta = 0;
@@ -140,23 +139,6 @@ static float cap_middle(uint8_t num) {
   return (float)(start + end) / 2.0f;
 }
 
-void static cap_buzz(int us) {
-  // prepare buzz
-  rmt_symbol_word_t item = {
-      .level0 = 1,
-      .duration0 = (uint16_t)us,
-      .level1 = 0,
-      .duration1 = 1,
-  };
-
-  // perform buzz
-  rmt_transmit_config_t cfg = {
-      .flags.eot_level = 0,
-      .flags.queue_nonblocking = 1,
-  };
-  ESP_ERROR_CHECK(rmt_transmit(cap_buzzer, cap_encoder, &item, sizeof(item), &cfg));
-}
-
 static void cap_check() {
   // lock mutex
   naos_lock(cap_mutex);
@@ -180,8 +162,8 @@ static void cap_check() {
     return;
   }
 
-  // buzz once
-  cap_buzz(125);
+  // tick once
+  al_buzzer_tick();
 
   // capture and update last touches
   uint8_t last = cap_last;
@@ -332,21 +314,6 @@ void cap_init() {
   };
   ESP_ERROR_CHECK(gpio_config(&io_cfg));
   ESP_ERROR_CHECK(gpio_isr_handler_add(CAP_INT, cap_signal, NULL));
-
-  // setup buzzer
-  rmt_tx_channel_config_t rmt_cfg = {
-      .gpio_num = GPIO_NUM_5,
-      .clk_src = RMT_CLK_SRC_DEFAULT,
-      .resolution_hz = 1000 * 1000,  // 1 us
-      .mem_block_symbols = 48,
-      .trans_queue_depth = 16,
-  };
-  ESP_ERROR_CHECK(rmt_new_tx_channel(&rmt_cfg, &cap_buzzer));
-  ESP_ERROR_CHECK(rmt_enable(cap_buzzer));
-
-  // setup buzzer encoder
-  rmt_copy_encoder_config_t enc_cfg = {};
-  ESP_ERROR_CHECK(rmt_new_copy_encoder(&enc_cfg, &cap_encoder));
 
   // run monitor
   naos_repeat("cap", 300, cap_monitor);

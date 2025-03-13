@@ -26,6 +26,9 @@
     "CONFIG_LV_LOG_LEVEL": "1"
   },
   "components": {
+    "lib": {
+      "path": "./lib"
+    },
     "lvgl": {
       "repository": "https://github.com/lvgl/lvgl.git",
       "version": "v8.4.0"
