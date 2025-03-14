@@ -3,6 +3,8 @@
 #include <driver/i2c.h>
 #include <esp_sleep.h>
 
+#include <al/core.h>
+
 #include "internal.h"
 
 void al_init() {
@@ -45,4 +47,39 @@ void al_init() {
   uint64_t pin_mask = BIT64(AL_BUTTONS_A) | BIT64(AL_BUTTONS_B) | BIT64(AL_BUTTONS_C) | BIT64(AL_BUTTONS_D) |
                       BIT64(AL_BUTTONS_E) | BIT64(AL_BUTTONS_F) | BIT64(AL_ACCEL_INT);
   ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(pin_mask, ESP_EXT1_WAKEUP_ANY_LOW));
+}
+
+void al_sleep(bool deep, uint64_t timeout) {
+  // enable deep sleep hold
+  gpio_deep_sleep_hold_en();
+
+  // configure timeout
+  if (timeout > 0) {
+    ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(timeout * 1000));
+  } else {
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+  }
+
+  // perform sleep
+  if (deep) {
+    esp_deep_sleep_start();
+  } else {
+    ESP_ERROR_CHECK(esp_light_sleep_start());
+  }
+
+  // disable deep sleep hold
+  gpio_deep_sleep_hold_dis();
+}
+
+al_trigger_t al_trigger() {
+  // get cause
+  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+  switch (cause) {
+    case ESP_SLEEP_WAKEUP_TIMER:
+      return AL_TIMEOUT;
+    case ESP_SLEEP_WAKEUP_EXT1:
+      return AL_UNLOCK;
+    default:
+      return AL_NONE;
+  }
 }

@@ -2,11 +2,11 @@
 #include <naos/sys.h>
 #include <driver/i2c.h>
 #include <driver/adc.h>
+#include <driver/rtc_io.h>
 #include <esp_adc_cal.h>
 #include <art32/numbers.h>
-#include <esp_sleep.h>
-#include <driver/rtc_io.h>
 
+#include <al/core.h>
 #include <al/power.h>
 
 #define AL_POWER_ADDR 0x6B
@@ -209,47 +209,7 @@ void al_power_off() {
   ESP_ERROR_CHECK_WITHOUT_ABORT(rtc_gpio_hold_en(AL_POWER_HOLD));
 
   // go to deep sleep
-  al_power_sleep(true, 0);
-}
-
-al_power_cause_t al_power_sleep(bool deep, uint64_t timeout) {
-  // enable deep sleep hold
-  gpio_deep_sleep_hold_en();
-
-  // configure timeout
-  if (timeout > 0) {
-    ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(timeout * 1000));
-  } else {
-    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
-  }
-
-  // perform sleep
-  if (deep) {
-    esp_deep_sleep_start();
-  } else {
-    ESP_ERROR_CHECK(esp_light_sleep_start());
-  }
-
-  // disable deep sleep hold
-  gpio_deep_sleep_hold_dis();
-
-  // get cause
-  al_power_cause_t cause = al_power_cause();
-
-  return cause;
-}
-
-al_power_cause_t al_power_cause() {
-  // get cause
-  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-  switch (cause) {
-    case ESP_SLEEP_WAKEUP_TIMER:
-      return AL_POWER_TIMEOUT;
-    case ESP_SLEEP_WAKEUP_EXT1:
-      return AL_POWER_UNLOCK;
-    default:
-      return AL_POWER_NONE;
-  }
+  al_sleep(true, 0);
 }
 
 void al_power_ship() {

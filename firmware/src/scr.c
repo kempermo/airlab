@@ -7,6 +7,7 @@
 #include <utime.h>
 #include <time.h>
 
+#include <al/core.h>
 #include <al/accel.h>
 #include <al/led.h>
 #include <al/power.h>
@@ -707,7 +708,7 @@ static void* scr_saver() {
       al_touch_sleep();
 
       // perform deep sleep
-      al_power_sleep(true, 60 * 1000);
+      al_sleep(true, 60 * 1000);
 
       // no return
     }
@@ -717,10 +718,11 @@ static void* scr_saver() {
 
     // otherwise, light sleep for 5s-30s (0-5min) if recording
     int64_t timeout = a32_safe_map_l(duration, 0, 300000, 5000, 30000);
-    al_power_cause_t cause = al_power_sleep(false, timeout);
+    al_sleep(false, timeout);
 
     // capture enter when unlocked
-    if (cause == AL_POWER_UNLOCK) {
+    al_trigger_t trigger = al_trigger();
+    if (trigger == AL_UNLOCK) {
       sig_await(SIG_ENTER, 1000);
     }
 
@@ -728,7 +730,7 @@ static void* scr_saver() {
     al_touch_wake();
 
     // handle unlock
-    if (cause == AL_POWER_UNLOCK) {
+    if (trigger == AL_UNLOCK) {
       break;
     }
 
@@ -1708,10 +1710,10 @@ static void* scr_develop() {
       scr_return_unlock = scr_develop;
 
       // perform sleep
-      al_power_cause_t cause = al_power_sleep(ret == 1, 0);
+      al_sleep(ret == 1, 0);
 
       // capture enter when unlocked
-      if (cause == AL_POWER_UNLOCK) {
+      if (al_trigger() == AL_UNLOCK) {
         sig_await(SIG_ENTER, 1000);
       }
 
@@ -2299,13 +2301,11 @@ static void scr_task() {
   // prepare handler
   void* (*handler)() = scr_menu;
 
-  // get wake up cause
-  al_power_cause_t cause = al_power_cause();
-
   // handle return
-  if (cause == AL_POWER_UNLOCK && scr_return_unlock != NULL) {
+  al_trigger_t trigger = al_trigger();
+  if (trigger == AL_UNLOCK && scr_return_unlock != NULL) {
     handler = scr_return_unlock;
-  } else if (cause == AL_POWER_TIMEOUT && scr_return_timeout != NULL) {
+  } else if (trigger == AL_TIMEOUT && scr_return_timeout != NULL) {
     handler = scr_return_timeout;
   }
 
