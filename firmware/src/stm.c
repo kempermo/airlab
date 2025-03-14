@@ -1,7 +1,8 @@
 #include <esp_random.h>
 
+#include <al/sensor.h>
+
 #include "stm.h"
-#include "sns.h"
 
 stm_entry_t stm_entries[] = {
     /* Exclaims */
@@ -195,7 +196,7 @@ stm_entry_t* stm_get(size_t i) { return i < stm_num ? &stm_entries[i] : NULL; }
 
 stm_entry_t* stm_query(bool exclaim, stm_action_t action) {
   // get sensor data
-  sns_state_t sensor = sns_get();
+  al_sensor_state_t sensor = al_sensor_get();
 
   // de/select and count entries
   int selected = 0;

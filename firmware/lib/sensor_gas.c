@@ -29,7 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sns_gas.h"
+#include "sensor_gas.h"
 
 #include <math.h>
 

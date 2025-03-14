@@ -17,6 +17,7 @@ set(SOURCE_FILES
         lib/al/epd.h
         lib/al/led.h
         lib/al/power.h
+        lib/al/sensor.h
         lib/al/touch.h
         lib/accel.c
         lib/buttons.c
@@ -27,6 +28,9 @@ set(SOURCE_FILES
         lib/epd.c
         lib/led.c
         lib/power.c
+        lib/sensor.c
+        lib/sensor_gas.c
+        lib/sensor_gas.h
         lib/touch.c
         src/dat.c
         src/dat.h
@@ -48,10 +52,6 @@ set(SOURCE_FILES
         src/scr.h
         src/sig.c
         src/sig.h
-        src/sns.c
-        src/sns.h
-        src/sns_gas.c
-        src/sns_gas.h
         src/stm.c
         src/stm.h
         src/sys.c

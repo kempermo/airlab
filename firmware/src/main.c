@@ -3,16 +3,23 @@
 
 #include <al/core.h>
 #include <al/clock.h>
+#include <al/sensor.h>
 
 #include "dev.h"
 #include "sig.h"
 #include "hmi.h"
 #include "gfx.h"
-#include "sns.h"
 #include "dat.h"
 #include "rec.h"
 #include "scr.h"
 #include "sys.h"
+
+static void sensor_hook(al_sensor_state_t) {
+  // dispatch event
+  sig_dispatch((sig_event_t){
+      .type = SIG_SENSOR,
+  });
+}
 
 static void setup() {
   // log
@@ -25,9 +32,11 @@ static void setup() {
   sig_init();
   hmi_init();
   gfx_init();
-  sns_init();
   dat_init();
   rec_init();
+
+  // wire sensor
+  al_sensor_config(sensor_hook);
 
   // check storage
   dat_info_t info = dat_info();

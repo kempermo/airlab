@@ -1,8 +1,9 @@
 #include <naos/sys.h>
 
+#include <al/sensor.h>
+
 #include "rec.h"
 #include "sys.h"
-#include "sns.h"
 #include "sig.h"
 
 #define REC_MIN_FREE_NEW (3 * CONFIG_WL_SECTOR_SIZE)
@@ -19,7 +20,7 @@ static void rec_task() {
   for (;;) {
     // await next state (without mutex)
     naos_unlock(rec_mutex);
-    sns_state_t state = sns_next();
+    al_sensor_state_t state = al_sensor_next();
     naos_lock(rec_mutex);
 
     // check free space

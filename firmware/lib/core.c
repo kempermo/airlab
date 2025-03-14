@@ -39,6 +39,7 @@ void al_init() {
   al_buttons_init();
   al_epd_init();
   al_touch_init();
+  al_sensor_init();
 
   // configure wakeup source
   uint64_t pin_mask = BIT64(AL_BUTTONS_A) | BIT64(AL_BUTTONS_B) | BIT64(AL_BUTTONS_C) | BIT64(AL_BUTTONS_D) |

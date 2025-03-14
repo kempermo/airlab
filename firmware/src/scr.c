@@ -11,11 +11,11 @@
 #include <al/led.h>
 #include <al/power.h>
 #include <al/clock.h>
+#include <al/sensor.h>
 #include <al/touch.h>
 
 #include "gfx.h"
 #include "sig.h"
-#include "sns.h"
 #include "fnt.h"
 #include "img.h"
 #include "lvx.h"
@@ -594,12 +594,12 @@ static void* scr_saver() {
     sys_get_time(&hour, &minute, &seconds);
 
     // read sensor
-    sns_state_t sensor = sns_get();
+    al_sensor_state_t sensor = al_sensor_get();
 
     // await sensor if missing (deep sleep return)
     if (!sensor.ok) {
       sig_await(SIG_SENSOR, 0);
-      sensor = sns_get();
+      sensor = al_sensor_get();
     }
 
     // read power
@@ -701,7 +701,7 @@ static void* scr_saver() {
     // deep sleep for 1min if not recording
     if (!rec_running()) {
       // turn off sensor
-      sns_set(false);
+      al_sensor_set(false);
 
       // sleep peripherals
       al_touch_sleep();
@@ -1702,7 +1702,7 @@ static void* scr_develop() {
       naos_log("sleeping... (deep=%d)", ret == 1);
 
       // disable sensor
-      sns_set(false);
+      al_sensor_set(false);
 
       // set return
       scr_return_unlock = scr_develop;
@@ -1719,7 +1719,7 @@ static void* scr_develop() {
       naos_log("woke up!");
 
       // enable sensor
-      sns_set(true);
+      al_sensor_set(true);
     }
 
     // handle power set
@@ -1850,14 +1850,14 @@ static void* scr_menu() {
     sys_get_time(&hour, &minute, &seconds);
 
     // read sensor
-    sns_state_t sensor = sns_get();
+    al_sensor_state_t sensor = al_sensor_get();
 
     // query sensor
-    sns_hist_t hist = sns_query(mode == 0   ? SNS_CO2
-                                : mode == 1 ? SNS_TMP
-                                : mode == 2 ? SNS_HUM
-                                : mode == 3 ? SNS_VOC
-                                            : SNS_NOX);
+    al_sensor_hist_t hist = al_sensor_query(mode == 0   ? AL_SENSOR_CO2
+                                            : mode == 1 ? AL_SENSOR_TMP
+                                            : mode == 2 ? AL_SENSOR_HUM
+                                            : mode == 3 ? AL_SENSOR_VOC
+                                                        : AL_SENSOR_NOX);
 
     // query statement
     if (statement == NULL && (exclaim || fun)) {
@@ -1907,19 +1907,19 @@ static void* scr_menu() {
 
     // draw chart
     lv_canvas_fill_bg(chart, lv_color_white(), LV_OPA_COVER);
-    lv_point_t points[SNS_HIST] = {0};
-    for (size_t i = 0; i < SNS_HIST; i++) {
-      points[i].x = (lv_coord_t)a32_safe_map_i(i, 0, SNS_HIST - 1, 0, 24);
+    lv_point_t points[AL_SENSOR_HIST] = {0};
+    for (size_t i = 0; i < AL_SENSOR_HIST; i++) {
+      points[i].x = (lv_coord_t)a32_safe_map_i(i, 0, AL_SENSOR_HIST - 1, 0, 24);
       points[i].y = (lv_coord_t)a32_safe_map_f(hist.values[i], hist.min, hist.max, 14, 2);
     }
     lv_draw_line_dsc_t line_dsc;
     lv_draw_line_dsc_init(&line_dsc);
     line_dsc.width = 2;
-    lv_canvas_draw_line(chart, points, SNS_HIST, &line_dsc);
+    lv_canvas_draw_line(chart, points, AL_SENSOR_HIST, &line_dsc);
 
     // draw drain
     lv_canvas_fill_bg(drain, lv_color_white(), LV_OPA_COVER);
-    lv_coord_t drain_height = (lv_coord_t)a32_safe_map_f(hist.values[SNS_HIST - 1], hist.min, hist.max, 0, 9);
+    lv_coord_t drain_height = (lv_coord_t)a32_safe_map_f(hist.values[AL_SENSOR_HIST - 1], hist.min, hist.max, 0, 9);
     lv_draw_rect_dsc_t rect_dsc;
     lv_draw_rect_dsc_init(&rect_dsc);
     rect_dsc.bg_color = lv_color_black();
