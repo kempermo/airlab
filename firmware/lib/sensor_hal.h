@@ -13,12 +13,12 @@ typedef struct {
 } al_sensor_ops_t;
 
 typedef struct {
-  float co2;  // ppm
-  float tmp;  // °C
-  float hum;  // % rH
-  uint16_t voc;  // raw
-  uint16_t nox;  // raw
-  float prs;  // hPa
+  uint16_t co2;
+  uint16_t tmp;
+  uint16_t hum;
+  uint16_t voc;
+  uint16_t nox;
+  uint32_t prs;
 } al_sensor_raw_t;
 
 void al_sensor_wire(al_sensor_ops_t ops);

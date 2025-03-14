@@ -169,55 +169,27 @@ bool al_sensor_ready() {
   return true;
 }
 
-bool al_sensor_read(al_sensor_raw_t* out) {
+bool al_sensor_read(al_sensor_raw_t* raw) {
   // read SCD sensor
   AL_CHECK(al_sensor_transfer(AL_SENSOR_SCD, 0xec05, 0, 3, false));
-
-  // calculate values
-  float co2 = (float)al_sensor_buf_read[0];                                          // ppm
-  float tmp = -45.f + 175.f * ((float)al_sensor_buf_read[1] / (float)(UINT16_MAX));  // °C
-  float hum = 100.f * ((float)al_sensor_buf_read[2] / (float)(UINT16_MAX));          // % rH
-  if (AL_SENSOR_DEBUG) {
-    al_sensor_ops.log("sns: SCD values: co2=%.0f tmp=%.1f hum=%.1f", co2, tmp, hum);
-  }
-
-  // prepare compensation values
-  al_sensor_to_ticks(hum, tmp, &al_sensor_buf_write[0], &al_sensor_buf_write[1]);
-  if (AL_SENSOR_DEBUG) {
-    al_sensor_ops.log("sns: SCD ticks: rh=%u t=%u", al_sensor_buf_write[0], al_sensor_buf_write[1]);
-  }
+  raw->co2 = al_sensor_buf_read[0];
+  raw->tmp = al_sensor_buf_read[1];
+  raw->hum = al_sensor_buf_read[2];
 
   // read SGP sensor
+  al_sensor_buf_write[0] = raw->hum;
+  al_sensor_buf_write[1] = raw->tmp;
   AL_CHECK(al_sensor_transfer(AL_SENSOR_SGP, 0x2619, 2, 0, false));
   al_sensor_ops.delay(50);
   AL_CHECK(al_sensor_receive(AL_SENSOR_SGP, 2));
+  raw->voc = al_sensor_buf_read[0];
+  raw->nox = al_sensor_buf_read[1];
 
-  // get values
-  uint16_t voc = al_sensor_buf_read[0];
-  uint16_t nox = al_sensor_buf_read[1];
-  if (AL_SENSOR_DEBUG) {
-    al_sensor_ops.log("sns: SGP ticks: voc=%u nox=%u", voc, nox);
-  }
-
-  // read LPS pressure
+  // read LPS sensor
   AL_CHECK(al_sensor_read_lps(0x28, &al_sensor_buf_transfer[0]));
   AL_CHECK(al_sensor_read_lps(0x29, &al_sensor_buf_transfer[1]));
   AL_CHECK(al_sensor_read_lps(0x2a, &al_sensor_buf_transfer[2]));
-  float prs =
-      (float)(al_sensor_buf_transfer[0] | al_sensor_buf_transfer[1] << 8 | al_sensor_buf_transfer[2] << 16) / 4096.f;
-  if (AL_SENSOR_DEBUG) {
-    al_sensor_ops.log("sns: LPS pressure: %.2f hPa", prs);
-  }
-
-  // create raw
-  *out = (al_sensor_raw_t){
-      .co2 = co2,
-      .tmp = tmp,
-      .hum = hum,
-      .voc = voc,
-      .nox = nox,
-      .prs = prs,
-  };
+  raw->prs = al_sensor_buf_transfer[0] | al_sensor_buf_transfer[1] << 8 | al_sensor_buf_transfer[2] << 16;
 
   return true;
 }

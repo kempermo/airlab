@@ -53,6 +53,14 @@ static void al_sensor_check() {
       ESP_ERROR_CHECK(ESP_FAIL);
     }
 
+    // calculate ppm, °C, % rH
+    float co2 = (float)raw.co2;
+    float tmp = -45.f + 175.f * ((float)raw.tmp / (float)(UINT16_MAX));
+    float hum = 100.f * ((float)raw.hum / (float)(UINT16_MAX));
+    if (AL_SENSOR_DEBUG) {
+      naos_log("sns: SCD values: co2=%.0f tmp=%.1f hum=%.1f", co2, tmp, hum);
+    }
+
     // update sampling interval
     // gas_voc_params.mSamplingInterval = input.delta;
     // gas_nox_params.mSamplingInterval = input.delta;
@@ -66,6 +74,12 @@ static void al_sensor_check() {
       naos_log("sns: SGP values: voc=%d nox=%d", voc_index, nox_index);
     }
 
+    // calculate pressure
+    float prs = (float)raw.prs / 4096.f;
+    if (AL_SENSOR_DEBUG) {
+      naos_log("sns: LPS pressure: %.2f hPa", prs);
+    }
+
     // advance
     al_sensor_pos++;
     if (al_sensor_pos >= AL_SENSOR_HIST) {
@@ -75,12 +89,12 @@ static void al_sensor_check() {
     // create state
     al_sensor_state_t state = {
         .ok = true,
-        .co2 = raw.co2,
-        .tmp = raw.tmp,
-        .hum = raw.hum,
+        .co2 = co2,
+        .tmp = tmp,
+        .hum = hum,
         .voc = (float)voc_index,
         .nox = (float)nox_index,
-        .prs = raw.prs,
+        .prs = prs,
     };
 
     // set state
