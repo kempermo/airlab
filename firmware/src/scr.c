@@ -1562,9 +1562,6 @@ static void* scr_reset() {
   // reset data
   dat_reset();
 
-  // reset date & time
-  al_clock_set((al_clock_state_t){});
-
   // show message
   scr_message(scr_trans()->reset__reset, 2000);
 
@@ -2130,11 +2127,8 @@ static void* scr_time() {
     // save time
     sys_set_time(hour.value, minute.value, 0);
 
-    // sync RTC
-    al_clock_state_t rtc = al_clock_get();
-    rtc.hours = hour.value;
-    rtc.minutes = minute.value;
-    al_clock_set(rtc);
+    // update clock
+    al_clock_update();
 
     // show message
     scr_message(scr_trans()->time__continue, 5000);
@@ -2215,11 +2209,8 @@ static void* scr_date() {
     // save date
     sys_set_date(year.value, month.value, day.value);
 
-    // sync RTC
-    al_clock_state_t rtc = al_clock_get();
-    rtc.year = year.value;
-    rtc.month = month.value;
-    al_clock_set(rtc);
+    // update clock
+    al_clock_update();
 
     return scr_time;
   }

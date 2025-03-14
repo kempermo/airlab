@@ -1,10 +1,21 @@
 #include <naos.h>
+#include <sys/time.h>
 #include <driver/i2c.h>
 
 #include <al/clock.h>
 
 #define AL_CLOCK_ADDR 0x68
 #define AL_CLOCK_DEBUG false
+
+typedef struct {
+  uint8_t hours;   /* 0-23 */
+  uint8_t minutes; /* 0-59 */
+  uint8_t seconds; /* 0-59 */
+  uint8_t weekday; /* 1-7 */
+  uint8_t day;     /* 1-31 */
+  uint8_t month;   /* 1-12 */
+  uint16_t year;   /* 2000-2099 */
+} al_clock_state_t;
 
 static struct {
   union {
@@ -75,7 +86,7 @@ static void al_clock_write(uint8_t reg, uint8_t val) {
   ESP_ERROR_CHECK(i2c_master_write_to_device(I2C_NUM_0, AL_CLOCK_ADDR, data, 2, 1000));
 }
 
-al_clock_state_t al_clock_get() {
+static al_clock_state_t al_clock_get() {
   // read RTC fully
   al_clock_read(0x00, (uint8_t *)&al_clock_bq32000, sizeof(al_clock_bq32000));
 
@@ -127,7 +138,7 @@ al_clock_state_t al_clock_get() {
   };
 }
 
-void al_clock_set(al_clock_state_t state) {
+static void al_clock_set(al_clock_state_t state) {
   // trim years
   state.year = state.year % 100;
 
@@ -160,4 +171,53 @@ void al_clock_set(al_clock_state_t state) {
   al_clock_write(0x04, al_clock_bq32000.r4);
   al_clock_write(0x05, al_clock_bq32000.r5);
   al_clock_write(0x06, al_clock_bq32000.r6);
+}
+
+void al_clock_init() {
+  // get clock
+  al_clock_state_t state = al_clock_get();
+
+  // get time
+  time_t t = time(NULL);
+  struct tm *cal = gmtime(&t);
+
+  // update time
+  cal->tm_year = state.year - 1900;
+  cal->tm_mon = state.month - 1;
+  cal->tm_mday = state.day;
+  cal->tm_hour = state.hours;
+  cal->tm_min = state.minutes;
+  cal->tm_sec = state.seconds;
+
+  // set time
+  t = mktime(cal);
+  struct timeval tv = {.tv_sec = t};
+  settimeofday(&tv, NULL);
+
+  // print time
+  naos_log("clock: sync %02d-%02d-%02d %02d:%02d:%02d", state.year, state.month, state.day, state.hours, state.minutes,
+           state.seconds);
+}
+
+void al_clock_update() {
+  // get time
+  time_t t = time(NULL);
+  struct tm *cal = gmtime(&t);
+
+  // prepare state
+  al_clock_state_t state = {
+      .year = cal->tm_year + 1900,
+      .month = cal->tm_mon + 1,
+      .day = cal->tm_mday,
+      .hours = cal->tm_hour,
+      .minutes = cal->tm_min,
+      .seconds = cal->tm_sec,
+  };
+
+  // set clock
+  al_clock_set(state);
+
+  // print time
+  naos_log("clock: update %02d-%02d-%02d %02d:%02d:%02d", state.year, state.month, state.day, state.hours,
+           state.minutes, state.seconds);
 }

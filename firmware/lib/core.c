@@ -5,6 +5,7 @@
 #include <naos.h>
 
 #include <al/core.h>
+#include <al/clock.h>
 
 #include "internal.h"
 
@@ -47,6 +48,9 @@ void al_init() {
   al_epd_init();
   al_touch_init();
   al_sensor_init();
+
+  // sync clock
+  al_clock_init();
 
   // configure wakeup source
   uint64_t pin_mask = AL_BUTTONS | BIT64(AL_ACCEL_INT);

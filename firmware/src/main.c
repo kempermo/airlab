@@ -2,7 +2,6 @@
 #include <naos/cpu.h>
 
 #include <al/core.h>
-#include <al/clock.h>
 
 #include "dev.h"
 #include "sig.h"
@@ -11,7 +10,6 @@
 #include "dat.h"
 #include "rec.h"
 #include "scr.h"
-#include "sys.h"
 
 static void setup() {
   // init core
@@ -30,13 +28,6 @@ static void setup() {
   // check storage
   dat_info_t info = dat_info();
   naos_log("main: space total=%lu free=%lu usage=%.1f%%", info.total, info.free, info.usage * 100.f);
-
-  // sync time
-  al_clock_state_t state = al_clock_get();
-  sys_set_date(state.year, state.month, state.day);
-  sys_set_time(state.hours, state.minutes, state.seconds);
-  naos_log("main: time %02d-%02d-%02d %02d:%02d:%02d", state.year, state.month, state.day, state.hours, state.minutes,
-           state.seconds);
 
   // run screen
   scr_run();
