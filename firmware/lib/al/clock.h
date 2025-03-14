@@ -1,6 +1,8 @@
 #ifndef AL_CLOCK_H
 #define AL_CLOCK_H
 
+#include <stdint.h>
+
 typedef struct {
   uint8_t hours;   /* 0-23 */
   uint8_t minutes; /* 0-59 */

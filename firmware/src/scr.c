@@ -13,7 +13,6 @@
 #include <al/power.h>
 #include <al/clock.h>
 #include <al/sensor.h>
-#include <al/touch.h>
 
 #include "gfx.h"
 #include "sig.h"
@@ -708,12 +707,12 @@ static void* scr_saver() {
 
     // capture enter when unlocked
     al_trigger_t trigger = al_trigger();
-    if (trigger == AL_UNLOCK) {
+    if (trigger == AL_BUTTON) {
       sig_await(SIG_ENTER, 1000);
     }
 
     // handle unlock
-    if (trigger == AL_UNLOCK) {
+    if (trigger == AL_BUTTON) {
       break;
     }
 
@@ -1696,7 +1695,7 @@ static void* scr_develop() {
       al_sleep(ret == 1, 0);
 
       // capture enter when unlocked
-      if (al_trigger() == AL_UNLOCK) {
+      if (al_trigger() == AL_BUTTON) {
         sig_await(SIG_ENTER, 1000);
       }
 
@@ -2286,7 +2285,7 @@ static void scr_task() {
 
   // handle return
   al_trigger_t trigger = al_trigger();
-  if (trigger == AL_UNLOCK && scr_return_unlock != NULL) {
+  if ((trigger == AL_BUTTON || trigger == AL_MOTION) && scr_return_unlock != NULL) {
     handler = scr_return_unlock;
   } else if (trigger == AL_TIMEOUT && scr_return_timeout != NULL) {
     handler = scr_return_timeout;

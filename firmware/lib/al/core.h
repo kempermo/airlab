@@ -8,13 +8,14 @@
  * The available triggers that can wake the device.
  */
 typedef enum {
-  AL_NONE,
+  AL_RESET,
   AL_TIMEOUT,
-  AL_UNLOCK,
+  AL_BUTTON,
+  AL_MOTION,
 } al_trigger_t;
 
 /**
- * Initializes the Air Lab library.
+ * Initializes the Air Lab.
  */
 void al_init();
 
@@ -28,8 +29,6 @@ void al_sleep(bool deep, uint64_t timeout);
 
 /**
  * Returns the trigger that woke the device.
- *
- * @return The trigger that woke the device.
  */
 al_trigger_t al_trigger();
 

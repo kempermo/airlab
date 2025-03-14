@@ -22,11 +22,11 @@ static void sensor_hook(al_sensor_state_t) {
 }
 
 static void setup() {
-  // log
-  naos_log("setup");
-
   // init core
   al_init();
+
+  // print trigger
+  naos_log("main: trigger=%d", al_trigger());
 
   // initialize
   sig_init();
