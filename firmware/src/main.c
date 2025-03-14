@@ -1,64 +1,18 @@
 #include <naos.h>
 #include <naos/cpu.h>
-#include <naos/sys.h>
 
 #include <al/core.h>
 #include <al/clock.h>
-#include <al/touch.h>
-#include <al/buzzer.h>
 
 #include "dev.h"
 #include "sig.h"
-#include "btn.h"
+#include "hmi.h"
 #include "gfx.h"
 #include "sns.h"
 #include "dat.h"
 #include "rec.h"
 #include "scr.h"
 #include "sys.h"
-
-static naos_mutex_t hmi_mutex;
-static float hmi_touch_delta;
-
-static void hmi_touch_hook(al_touch_event_t event) {
-  // buzz
-  al_buzzer_tick();
-
-  // stop if not touched
-  if (event.touches == 0) {
-    return;
-  }
-
-  // update delta
-  naos_lock(hmi_mutex);
-  hmi_touch_delta += event.delta;
-  naos_unlock(hmi_mutex);
-
-  // dispatch event
-  sig_dispatch((sig_event_t){
-      .type = SIG_TOUCH,
-      .touch = event.position,
-  });
-}
-
-static void hmi_touch_monitor() {
-  // capture delta
-  naos_lock(hmi_mutex);
-  float delta = hmi_touch_delta;
-  hmi_touch_delta = 0;
-  naos_unlock(hmi_mutex);
-
-  // stop, if zero
-  if (delta == 0) {
-    return;
-  }
-
-  // dispatch event
-  sig_dispatch((sig_event_t){
-      .type = SIG_SCROLL,
-      .touch = delta,
-  });
-}
 
 static void setup() {
   // log
@@ -69,16 +23,11 @@ static void setup() {
 
   // initialize
   sig_init();
-  btn_init();
+  hmi_init();
   gfx_init();
   sns_init();
   dat_init();
   rec_init();
-
-  // setup HMI
-  hmi_mutex = naos_mutex();
-  al_touch_config(hmi_touch_hook);
-  naos_repeat("hmi", 300, hmi_touch_monitor);
 
   // check storage
   dat_info_t info = dat_info();

@@ -28,8 +28,6 @@ set(SOURCE_FILES
         lib/led.c
         lib/power.c
         lib/touch.c
-        src/btn.c
-        src/btn.h
         src/dat.c
         src/dat.h
         src/dev.h
@@ -37,6 +35,8 @@ set(SOURCE_FILES
         src/fnt.c
         src/gfx.c
         src/gfx.h
+        src/hmi.c
+        src/hmi.h
         src/img.c
         src/img.h
         src/lvx.c
