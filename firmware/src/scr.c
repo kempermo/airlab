@@ -1853,11 +1853,7 @@ static void* scr_menu() {
     al_sensor_state_t sensor = al_sensor_get();
 
     // query sensor
-    al_sensor_hist_t hist = al_sensor_query(mode == 0   ? AL_SENSOR_CO2
-                                            : mode == 1 ? AL_SENSOR_TMP
-                                            : mode == 2 ? AL_SENSOR_HUM
-                                            : mode == 3 ? AL_SENSOR_VOC
-                                                        : AL_SENSOR_NOX);
+    al_sensor_hist_t hist = al_sensor_query((al_sensor_mode_t)mode);
 
     // query statement
     if (statement == NULL && (exclaim || fun)) {
@@ -1881,6 +1877,8 @@ static void* scr_menu() {
       bar.value = scr_fmt("%.0f VOC", sensor.voc);
     } else if (mode == 4) {
       bar.value = scr_fmt("%.0f NOx", sensor.nox);
+    } else if (mode == 5) {
+      bar.value = scr_fmt("%.0f hPa", sensor.prs);
     }
     lvx_bar_update(&bar);
 
@@ -2011,14 +2009,14 @@ static void* scr_menu() {
     // change mode on up/down
     if (event.type == SIG_UP) {
       mode++;
-      if (mode > 4) {
+      if (mode > 5) {
         mode = 0;
       }
       continue;
     } else if (event.type == SIG_DOWN) {
       mode--;
       if (mode < 0) {
-        mode = 4;
+        mode = 5;
       }
       continue;
     }

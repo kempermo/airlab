@@ -174,10 +174,10 @@ static void al_sensor_check() {
     }
 
     // read LPS pressure
-    float pressure =
+    float prs =
         (al_sensor_read_lps(0x28) | (al_sensor_read_lps(0x29) << 8) | (al_sensor_read_lps(0x2a) << 16)) / 4096.f;
     if (AL_SENSOR_DEBUG) {
-      naos_log("sns: LPS pressure: %.2f hPa", pressure);
+      naos_log("sns: LPS pressure: %.2f hPa", prs);
     }
 
     // advanced
@@ -194,6 +194,7 @@ static void al_sensor_check() {
         .hum = hum,
         .voc = (float)voc_index,
         .nox = (float)nox_index,
+        .prs = prs,
     };
 
     // set state
@@ -332,6 +333,9 @@ al_sensor_hist_t al_sensor_query(al_sensor_mode_t mode) {
         break;
       case AL_SENSOR_NOX:
         hist.values[i] = al_sensor_history[pos].nox;
+        break;
+      case AL_SENSOR_PRS:
+        hist.values[i] = al_sensor_history[pos].prs;
         break;
     }
   }

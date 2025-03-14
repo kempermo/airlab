@@ -11,6 +11,7 @@ typedef enum {
   AL_SENSOR_HUM,
   AL_SENSOR_VOC,
   AL_SENSOR_NOX,
+  AL_SENSOR_PRS,
 } al_sensor_mode_t;
 
 typedef struct {
@@ -20,6 +21,7 @@ typedef struct {
   float hum;  // % rH
   float voc;  // indexed
   float nox;  // indexed
+  float prs;  // hPa
 } al_sensor_state_t;
 
 typedef struct {

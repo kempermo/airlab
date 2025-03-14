@@ -2,6 +2,8 @@
 
 #include <al/sensor.h>
 
+// TODO: Also record pressure.
+
 #include "rec.h"
 #include "sys.h"
 #include "sig.h"
