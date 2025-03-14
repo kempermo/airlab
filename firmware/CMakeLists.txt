@@ -17,6 +17,7 @@ set(SOURCE_FILES
         lib/al/epd.h
         lib/al/led.h
         lib/al/power.h
+        lib/al/touch.h
         lib/accel.c
         lib/buttons.c
         lib/buzzer.c
@@ -26,10 +27,9 @@ set(SOURCE_FILES
         lib/epd.c
         lib/led.c
         lib/power.c
+        lib/touch.c
         src/btn.c
         src/btn.h
-        src/cap.c
-        src/cap.h
         src/dat.c
         src/dat.h
         src/dev.h

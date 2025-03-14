@@ -22,4 +22,6 @@ void al_led_init();
 
 void al_power_init();
 
+void al_touch_init();
+
 #endif // AL_INTERNAL_H

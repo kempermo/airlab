@@ -11,6 +11,7 @@
 #include <al/led.h>
 #include <al/power.h>
 #include <al/clock.h>
+#include <al/touch.h>
 
 #include "gfx.h"
 #include "sig.h"
@@ -22,7 +23,6 @@
 #include "rec.h"
 #include "dev.h"
 #include "stm.h"
-#include "cap.h"
 
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
@@ -704,7 +704,7 @@ static void* scr_saver() {
       sns_set(false);
 
       // sleep peripherals
-      cap_sleep();
+      al_touch_sleep();
 
       // perform deep sleep
       al_power_sleep(true, 60 * 1000);
@@ -713,7 +713,7 @@ static void* scr_saver() {
     }
 
     // sleep peripherals
-    cap_sleep();
+    al_touch_sleep();
 
     // otherwise, light sleep for 5s-30s (0-5min) if recording
     int64_t timeout = a32_safe_map_l(duration, 0, 300000, 5000, 30000);
@@ -725,7 +725,7 @@ static void* scr_saver() {
     }
 
     // wake peripherals
-    cap_wake();
+    al_touch_wake();
 
     // handle unlock
     if (cause == AL_POWER_UNLOCK) {
