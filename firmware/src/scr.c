@@ -422,7 +422,7 @@ static const char* scr_file_date(dat_file_t* file) {
 
 /* Screens */
 
-static void* scr_debug();
+static void* scr_info();
 static void* scr_saver();
 static void* scr_view();
 static void* scr_edit();
@@ -495,19 +495,15 @@ static void* scr_test_bubbles() {
   }
 }
 
-static void* scr_debug() {
+static void* scr_info() {
   // begin draw
   gfx_begin(false, false);
 
   // add label
   lv_obj_t* label = lv_label_create(lv_scr_act());
-  lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
   lv_obj_set_style_text_line_space(label, 6, LV_PART_MAIN);
-
-  // add signs
-  lvx_sign_t start = {.title = "B", .text = "Close", .align = LV_ALIGN_BOTTOM_LEFT};
-  lvx_sign_create(&start, lv_scr_act());
 
   // end draw
   gfx_end(true);
@@ -536,21 +532,17 @@ static void* scr_debug() {
     gfx_end(false);
 
     // await event
-    sig_event_t event = sig_await(SIG_SENSOR | SIG_ESCAPE, 0);
+    sig_event_t event = sig_await(SIG_KEYS, 1000);
 
-    // loop on sensor
-    if (event.type == SIG_SENSOR) {
+    // loop on timeout
+    if (event.type == SIG_TIMEOUT) {
       continue;
     }
 
-    /* handle meta keys */
-
     // cleanup
-    scr_cleanup(event.type == SIG_ESCAPE);
+    scr_cleanup(false);
 
-    /* handle escape */
-
-    return scr_settings;
+    return scr_develop;
   }
 }
 
@@ -1761,7 +1753,7 @@ static void* scr_develop() {
 
     // handle system info
     if (ret == 8) {
-      return scr_debug;
+      return scr_info;
     }
   }
 }
