@@ -15,6 +15,7 @@ set(SOURCE_FILES
         lib/al/core.h
         lib/al/epd.h
         lib/al/led.h
+        lib/al/power.h
         lib/accel.c
         lib/buttons.c
         lib/buzzer.c
@@ -22,6 +23,7 @@ set(SOURCE_FILES
         lib/internal.h
         lib/epd.c
         lib/led.c
+        lib/power.c
         src/btn.c
         src/btn.h
         src/cap.c
@@ -38,8 +40,6 @@ set(SOURCE_FILES
         src/lvx.c
         src/lvx.h
         src/main.c
-        src/pwr.c
-        src/pwr.h
         src/rec.c
         src/rec.h
         src/rtc.c

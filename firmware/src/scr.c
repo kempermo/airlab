@@ -8,13 +8,12 @@
 #include <time.h>
 
 #include <al/accel.h>
-#include <al/epd.h>
 #include <al/led.h>
+#include <al/power.h>
 
 #include "gfx.h"
 #include "sig.h"
 #include "sns.h"
-#include "pwr.h"
 #include "fnt.h"
 #include "img.h"
 #include "lvx.h"
@@ -262,7 +261,7 @@ static void scr_power_off() {
   scr_return_unlock = NULL;
 
   // power off
-  pwr_off();
+  al_power_off();
 }
 
 /* Translations */
@@ -514,7 +513,7 @@ static void* scr_debug() {
 
   for (;;) {
     // get power
-    pwr_state_t bat = pwr_get();
+    al_power_state_t bat = al_power_get();
 
     // get date and time
     uint16_t year, month, day, hour, minute, seconds;
@@ -604,7 +603,7 @@ static void* scr_saver() {
     }
 
     // read power
-    pwr_state_t power = pwr_get();
+    al_power_state_t power = al_power_get();
 
     // get accelerometer state
     al_accel_state_t acc = al_accel_get();
@@ -708,7 +707,7 @@ static void* scr_saver() {
       cap_sleep();
 
       // perform deep sleep
-      pwr_sleep(true, 60 * 1000);
+      al_power_sleep(true, 60 * 1000);
 
       // no return
     }
@@ -718,13 +717,18 @@ static void* scr_saver() {
 
     // otherwise, light sleep for 5s-30s (0-5min) if recording
     int64_t timeout = a32_safe_map_l(duration, 0, 300000, 5000, 30000);
-    pwr_cause_t cause = pwr_sleep(false, timeout);
+    al_power_cause_t cause = al_power_sleep(false, timeout);
+
+    // capture enter when unlocked
+    if (cause == AL_POWER_UNLOCK) {
+      sig_await(SIG_ENTER, 1000);
+    }
 
     // wake peripherals
     cap_wake();
 
     // handle unlock
-    if (cause == PWR_UNLOCK) {
+    if (cause == AL_POWER_UNLOCK) {
       break;
     }
 
@@ -1479,7 +1483,7 @@ static void* scr_usb() {
   }
 
   // check connection
-  if (!pwr_get().usb) {
+  if (!al_power_get().usb) {
     // show message
     scr_message(scr_trans()->usb__disconnected, 2000);
 
@@ -1704,7 +1708,12 @@ static void* scr_develop() {
       scr_return_unlock = scr_develop;
 
       // perform sleep
-      pwr_sleep(ret == 1, 0);
+      al_power_cause_t cause = al_power_sleep(ret == 1, 0);
+
+      // capture enter when unlocked
+      if (cause == AL_POWER_UNLOCK) {
+        sig_await(SIG_ENTER, 1000);
+      }
 
       // log wakeup
       naos_log("woke up!");
@@ -1730,7 +1739,7 @@ static void* scr_develop() {
       naos_delay(1000);
 
       // enable ship mode
-      pwr_ship();
+      al_power_ship();
 
       // clean up in case ship mode did not work
       scr_cleanup(false);
@@ -2293,12 +2302,12 @@ static void scr_task() {
   void* (*handler)() = scr_menu;
 
   // get wake up cause
-  pwr_cause_t cause = pwr_cause();
+  al_power_cause_t cause = al_power_cause();
 
   // handle return
-  if (cause == PWR_UNLOCK && scr_return_unlock != NULL) {
+  if (cause == AL_POWER_UNLOCK && scr_return_unlock != NULL) {
     handler = scr_return_unlock;
-  } else if (cause == PWR_TIMEOUT && scr_return_timeout != NULL) {
+  } else if (cause == AL_POWER_TIMEOUT && scr_return_timeout != NULL) {
     handler = scr_return_timeout;
   }
 
@@ -2317,7 +2326,7 @@ void scr_led() {
   }
 
   // get power state
-  pwr_state_t state = pwr_get();
+  al_power_state_t state = al_power_get();
 
   // get recording state
   bool recording = rec_running();

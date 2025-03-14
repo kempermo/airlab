@@ -1,0 +1,277 @@
+#include <naos.h>
+#include <naos/sys.h>
+#include <driver/i2c.h>
+#include <driver/adc.h>
+#include <esp_adc_cal.h>
+#include <art32/numbers.h>
+#include <esp_sleep.h>
+#include <driver/rtc_io.h>
+
+#include <al/power.h>
+
+#define AL_POWER_ADDR 0x6B
+#define AL_POWER_HOLD GPIO_NUM_21
+#define AL_POWER_LOW GPIO_NUM_14
+#define AL_POWER_USB_CC1 ADC1_CHANNEL_5  // IO6
+#define AL_POWER_USB_CC2 ADC1_CHANNEL_6  // IO7
+#define AL_POWER_BAT_LVL ADC1_CHANNEL_7  // IO8
+#define AL_POWER_DEBUG false
+
+static naos_mutex_t al_power_mutex;
+static esp_adc_cal_characteristics_t al_power_calib;
+static al_power_state_t al_power_state = {0};
+
+static struct {
+  // config
+  union {
+    struct {
+      uint8_t iindpm : 5;
+      uint8_t _omitted : 3;
+    };
+    uint8_t raw;
+  } reg0;
+  union {
+    struct {
+      uint8_t _omitted1 : 6;
+      uint8_t wdt_rst : 1;
+      uint8_t _omitted2 : 1;
+    };
+    uint8_t raw;
+  } reg1;
+  union {
+    struct {
+      uint8_t ichg : 6;
+      uint8_t _omitted : 2;
+    };
+    uint8_t raw;
+  } reg2;
+  // status
+  union {
+    struct {
+      uint8_t vsys_stat : 1;
+      uint8_t therm_stat : 1;
+      uint8_t pg_stat : 1;
+      uint8_t chrg_stat : 2;
+      uint8_t vbus_stat : 3;
+    };
+    uint8_t raw;
+  } reg8;
+  union {
+    struct {
+      uint8_t ntc_fault : 3;
+      uint8_t bat_fault : 1;
+      uint8_t chrg_fault : 2;
+      uint8_t boost_fault : 1;
+      uint8_t wd_fault : 1;
+    };
+    uint8_t raw;
+  } reg9;
+  union {
+    struct {
+      uint8_t int_mask : 2;
+      uint8_t acov_stat : 1;
+      uint8_t topoff_active : 1;
+      uint8_t _reserved : 1;
+      uint8_t iindpm_stat : 1;
+      uint8_t vindpm_stat : 1;
+      uint8_t vbus_gd : 1;
+    };
+    uint8_t raw;
+  } regA;
+} al_power_bq25601;
+
+static void al_power_read(uint8_t reg, uint8_t *buf, size_t len) {
+  // read data
+  ESP_ERROR_CHECK(i2c_master_write_read_device(I2C_NUM_0, AL_POWER_ADDR, &reg, 1, buf, len, 1000));
+}
+
+static void al_power_write(uint8_t reg, uint8_t val) {
+  // write data
+  uint8_t data[2] = {reg, val};
+  ESP_ERROR_CHECK(i2c_master_write_to_device(I2C_NUM_0, AL_POWER_ADDR, data, 2, 1000));
+}
+
+void al_power_check() {
+  // acquire mutex
+  naos_lock(al_power_mutex);
+
+  // read inputs
+  bool low = gpio_get_level(AL_POWER_LOW) == 0;
+  int cc1 = (int)esp_adc_cal_raw_to_voltage(adc1_get_raw(AL_POWER_USB_CC1), &al_power_calib);
+  int cc2 = (int)esp_adc_cal_raw_to_voltage(adc1_get_raw(AL_POWER_USB_CC2), &al_power_calib);
+  int bat = (int)esp_adc_cal_raw_to_voltage(adc1_get_raw(AL_POWER_BAT_LVL), &al_power_calib) * 2;
+  if (AL_POWER_DEBUG) {
+    naos_log("bat: inputs low=%d cc1=%dmV cc2=%dmV bat=%dmV", low, cc1, cc2, bat);
+  }
+
+  // read config
+  al_power_read(0x00, &al_power_bq25601.reg0.raw, 3);
+  bool fast_charge = al_power_bq25601.reg0.iindpm > 0x4;  // 500mA
+  if (AL_POWER_DEBUG) {
+    naos_log("pwr: config fast_charge=%d iindpm=%d ichg=%d", fast_charge, al_power_bq25601.reg0.iindpm,
+             al_power_bq25601.reg2.ichg);
+  }
+
+  // read status
+  al_power_read(0x08, &al_power_bq25601.reg8.raw, 3);
+  bool charging = al_power_bq25601.reg8.chrg_stat != 0;
+  bool power_good = al_power_bq25601.reg8.pg_stat == 1;
+  bool any_fault = al_power_bq25601.reg9.raw != 0;
+  bool usb_pwr = al_power_bq25601.regA.vbus_gd == 1;
+  if (AL_POWER_DEBUG) {
+    naos_log("pwr: status charging=%d power_good=%d any_fault=%d usb_pwr=%d", charging, power_good, any_fault, usb_pwr);
+    if (any_fault) {
+      naos_log("pwr: faults ntc=%d bat=%d chrg=%d boost=%d wd=%d", al_power_bq25601.reg9.ntc_fault,
+               al_power_bq25601.reg9.bat_fault, al_power_bq25601.reg9.chrg_fault, al_power_bq25601.reg9.boost_fault,
+               al_power_bq25601.reg9.wd_fault);
+    }
+  }
+
+  // set state
+  al_power_state.battery = a32_safe_map_f((float)bat, 3200.f, 4000.f, 0.f, 1.f);
+  al_power_state.usb = cc1 > 10 || cc2 > 10;
+  al_power_state.fast = cc1 > 700 || cc2 > 700;  // 1.5A
+  al_power_state.charging = charging;
+  if (AL_POWER_DEBUG) {
+    naos_log("pwr: state battery=%f usb=%d fast=%d", al_power_state.battery, al_power_state.usb, al_power_state.fast);
+  }
+
+  // update max current setting to 900mA
+  if (al_power_state.fast != fast_charge) {
+    al_power_bq25601.reg0.iindpm = al_power_state.fast ? 0x8 : 0x4;
+    al_power_write(0x00, al_power_bq25601.reg0.raw);
+  }
+
+  // reset watchdog
+  al_power_bq25601.reg1.wdt_rst = 1;
+  al_power_write(0x01, al_power_bq25601.reg1.raw);
+
+  // release mutex
+  naos_unlock(al_power_mutex);
+}
+
+void al_power_init() {
+  // create mutex
+  al_power_mutex = naos_mutex();
+
+  // hold power
+  ESP_ERROR_CHECK(rtc_gpio_init(AL_POWER_HOLD));
+  ESP_ERROR_CHECK(rtc_gpio_set_direction(AL_POWER_HOLD, RTC_GPIO_MODE_OUTPUT_ONLY));
+  ESP_ERROR_CHECK(rtc_gpio_set_level(AL_POWER_HOLD, 1));
+  ESP_ERROR_CHECK(rtc_gpio_hold_en(AL_POWER_HOLD));
+
+  // low power
+  gpio_config_t cfg = (gpio_config_t){
+      .mode = GPIO_MODE_INPUT,
+      .pin_bit_mask = BIT64(AL_POWER_LOW),
+  };
+  ESP_ERROR_CHECK(gpio_config(&cfg));
+
+  // verify access
+  al_power_read(0x08, &al_power_bq25601.reg8.raw, 1);
+
+  // configure ADC (4096 = ~2.45V)
+  ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
+  ESP_ERROR_CHECK(adc1_config_channel_atten(AL_POWER_USB_CC1, ADC_ATTEN_DB_12));
+  ESP_ERROR_CHECK(adc1_config_channel_atten(AL_POWER_USB_CC2, ADC_ATTEN_DB_12));
+  ESP_ERROR_CHECK(adc1_config_channel_atten(AL_POWER_BAT_LVL, ADC_ATTEN_DB_12));
+  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12, 1100, &al_power_calib);
+
+  // run check
+  naos_repeat("al-pwr", 1000, al_power_check);
+}
+
+al_power_state_t al_power_get() {
+  // acquire mutex
+  naos_lock(al_power_mutex);
+
+  // get state
+  al_power_state_t state = al_power_state;
+
+  // release mutex
+  naos_unlock(al_power_mutex);
+
+  return state;
+}
+
+void al_power_off() {
+  // power down
+  ESP_ERROR_CHECK_WITHOUT_ABORT(rtc_gpio_hold_dis(AL_POWER_HOLD));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(rtc_gpio_set_level(AL_POWER_HOLD, 0));
+
+  // delay
+  naos_delay(2000);
+
+  /* power off did not work */
+
+  // power up
+  ESP_ERROR_CHECK_WITHOUT_ABORT(rtc_gpio_set_level(AL_POWER_HOLD, 1));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(rtc_gpio_hold_en(AL_POWER_HOLD));
+
+  // go to deep sleep
+  al_power_sleep(true, 0);
+}
+
+al_power_cause_t al_power_sleep(bool deep, uint64_t timeout) {
+  // enable deep sleep hold
+  gpio_deep_sleep_hold_en();
+
+  // configure timeout
+  if (timeout > 0) {
+    ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(timeout * 1000));
+  } else {
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+  }
+
+  // perform sleep
+  if (deep) {
+    esp_deep_sleep_start();
+  } else {
+    ESP_ERROR_CHECK(esp_light_sleep_start());
+  }
+
+  // disable deep sleep hold
+  gpio_deep_sleep_hold_dis();
+
+  // get cause
+  al_power_cause_t cause = al_power_cause();
+
+  return cause;
+}
+
+al_power_cause_t al_power_cause() {
+  // get cause
+  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+  switch (cause) {
+    case ESP_SLEEP_WAKEUP_TIMER:
+      return AL_POWER_TIMEOUT;
+    case ESP_SLEEP_WAKEUP_EXT1:
+      return AL_POWER_UNLOCK;
+    default:
+      return AL_POWER_NONE;
+  }
+}
+
+void al_power_ship() {
+  // read settings
+  uint8_t settings;
+  al_power_read(0x07, &settings, 1);
+
+  // set ship mode without delay
+  settings |= 0x20;
+  settings &= ~0x8;
+
+  // write settings
+  al_power_write(0x07, settings);
+
+  // delay
+  naos_delay(2000);
+
+  /* ship mode did not work */
+
+  // clear ship mode
+  settings &= ~0x20;
+
+  // write settings
+  al_power_write(0x07, settings);
+}

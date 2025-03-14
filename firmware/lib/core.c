@@ -32,6 +32,7 @@ void al_init() {
   ESP_ERROR_CHECK(i2c_param_config(I2C_NUM_0, &i2c));
 
   // initialize modules
+  al_power_init();
   al_buzzer_init();
   al_led_init();
   al_accel_init();

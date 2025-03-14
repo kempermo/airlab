@@ -361,9 +361,6 @@ void al_epd_init() {
       .queue_size = 1,
   };
   ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &dev, &al_epd_device));
-
-  // run periodic check
-  // naos_repeat("epd", 500, al_epd_check);
 }
 
 void al_epd_set(uint8_t *data, uint16_t x, uint16_t y, bool black) {

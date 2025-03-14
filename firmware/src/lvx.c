@@ -3,11 +3,12 @@
 #include <stdio.h>
 #include <math.h>
 
+#include <al/power.h>
+
 #include "lvx.h"
 #include "gfx.h"
 #include "fnt.h"
 #include "img.h"
-#include "pwr.h"
 #include "rec.h"
 
 /* Helpers */
@@ -262,7 +263,7 @@ void lvx_bar_update(lvx_bar_t* bar) {
   lv_label_set_text(bar->_time, bar->time);
 
   // read power
-  pwr_state_t power = pwr_get();
+  al_power_state_t power = al_power_get();
 
   // update power
   if (power.usb && power.charging) {
