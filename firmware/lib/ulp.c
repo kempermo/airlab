@@ -50,6 +50,10 @@ int al_ulp_readings() {
 }
 
 al_sensor_raw_t al_ulp_last_reading() {
-  // read last reading
-  return ((al_sensor_raw_t*)&ulp_readings)[ulp_counter - 1];
+  // return last reading if available
+  if (al_ulp_readings() > 0) {
+    return ((al_sensor_raw_t*)&ulp_readings)[ulp_counter - 1];
+  }
+
+  return (al_sensor_raw_t){0};
 }
