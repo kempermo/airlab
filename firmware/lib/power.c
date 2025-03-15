@@ -101,14 +101,14 @@ void al_power_check() {
   int cc2 = (int)esp_adc_cal_raw_to_voltage(adc1_get_raw(AL_POWER_USB_CC2), &al_power_calib);
   int bat = (int)esp_adc_cal_raw_to_voltage(adc1_get_raw(AL_POWER_BAT_LVL), &al_power_calib) * 2;
   if (AL_POWER_DEBUG) {
-    naos_log("bat: inputs low=%d cc1=%dmV cc2=%dmV bat=%dmV", low, cc1, cc2, bat);
+    naos_log("al-pwr: inputs low=%d cc1=%dmV cc2=%dmV bat=%dmV", low, cc1, cc2, bat);
   }
 
   // read config
   al_power_read(0x00, &al_power_bq25601.reg0.raw, 3);
   bool fast_charge = al_power_bq25601.reg0.iindpm > 0x4;  // 500mA
   if (AL_POWER_DEBUG) {
-    naos_log("pwr: config fast_charge=%d iindpm=%d ichg=%d", fast_charge, al_power_bq25601.reg0.iindpm,
+    naos_log("al-pwr: config fast_charge=%d iindpm=%d ichg=%d", fast_charge, al_power_bq25601.reg0.iindpm,
              al_power_bq25601.reg2.ichg);
   }
 
@@ -119,9 +119,10 @@ void al_power_check() {
   bool any_fault = al_power_bq25601.reg9.raw != 0;
   bool usb_pwr = al_power_bq25601.regA.vbus_gd == 1;
   if (AL_POWER_DEBUG) {
-    naos_log("pwr: status charging=%d power_good=%d any_fault=%d usb_pwr=%d", charging, power_good, any_fault, usb_pwr);
+    naos_log("al-pwr: status charging=%d power_good=%d any_fault=%d usb_pwr=%d", charging, power_good, any_fault,
+             usb_pwr);
     if (any_fault) {
-      naos_log("pwr: faults ntc=%d bat=%d chrg=%d boost=%d wd=%d", al_power_bq25601.reg9.ntc_fault,
+      naos_log("al-pwr: faults ntc=%d bat=%d chrg=%d boost=%d wd=%d", al_power_bq25601.reg9.ntc_fault,
                al_power_bq25601.reg9.bat_fault, al_power_bq25601.reg9.chrg_fault, al_power_bq25601.reg9.boost_fault,
                al_power_bq25601.reg9.wd_fault);
     }
@@ -133,7 +134,8 @@ void al_power_check() {
   al_power_state.fast = cc1 > 700 || cc2 > 700;  // 1.5A
   al_power_state.charging = charging;
   if (AL_POWER_DEBUG) {
-    naos_log("pwr: state battery=%f usb=%d fast=%d", al_power_state.battery, al_power_state.usb, al_power_state.fast);
+    naos_log("al-pwr: state battery=%f usb=%d fast=%d", al_power_state.battery, al_power_state.usb,
+             al_power_state.fast);
   }
 
   // update max current setting to 900mA

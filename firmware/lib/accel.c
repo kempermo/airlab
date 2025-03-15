@@ -49,7 +49,7 @@ static void al_accel_check() {
   uint16_t rot = al_accel_rot_map[(orientation >> 1) & 0b11];
   bool lock = orientation & 0b1000000;
   if (AL_ACCEL_DEBUG) {
-    naos_log("acc: front=%d rot=%d lock=%d", front, rot, lock);
+    naos_log("al-acc: front=%d rot=%d lock=%d", front, rot, lock);
   }
 
   // update state

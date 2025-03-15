@@ -36,7 +36,7 @@ static bool al_sensor_transfer(uint8_t target, uint8_t* wd, size_t wl, uint8_t* 
 
 static void al_sensor_debug(const char* msg) {
   // print message
-  naos_log("sns: %s", msg);
+  naos_log("al-sns: HAL %s", msg);
 }
 
 static al_sensor_state_t al_sensor_ingest(al_sensor_raw_t raw) {
@@ -45,7 +45,7 @@ static al_sensor_state_t al_sensor_ingest(al_sensor_raw_t raw) {
   float tmp = -45.f + 175.f * ((float)raw.tmp / (float)(UINT16_MAX));
   float hum = 100.f * ((float)raw.hum / (float)(UINT16_MAX));
   if (AL_SENSOR_DEBUG) {
-    naos_log("sns: SCD values: co2=%.0f tmp=%.1f hum=%.1f", co2, tmp, hum);
+    naos_log("al-sns: SCD values: co2=%.0f tmp=%.1f hum=%.1f", co2, tmp, hum);
   }
 
   // update sampling interval
@@ -58,13 +58,13 @@ static al_sensor_state_t al_sensor_ingest(al_sensor_raw_t raw) {
   GasIndexAlgorithm_process(&al_sensor_voc_params, raw.voc, &voc_index);
   GasIndexAlgorithm_process(&al_sensor_nox_params, raw.nox, &nox_index);
   if (AL_SENSOR_DEBUG) {
-    naos_log("sns: SGP values: voc=%d nox=%d", voc_index, nox_index);
+    naos_log("al-sns: SGP values: voc=%d nox=%d", voc_index, nox_index);
   }
 
   // calculate pressure
   float prs = (float)raw.prs / 4096.f;
   if (AL_SENSOR_DEBUG) {
-    naos_log("sns: LPS pressure: %.2f hPa", prs);
+    naos_log("al-sns: LPS pressure: %.2f hPa", prs);
   }
 
   // advance
@@ -144,7 +144,7 @@ void al_sensor_init(bool reset) {
     uint32_t ms = naos_millis();
     if (ms < 1100) {
       if (AL_SENSOR_DEBUG) {
-        naos_log("delay init by %dms", 1100 - ms);
+        naos_log("al-sns: delay init by %dms", 1100 - ms);
       }
       naos_delay(1100 - ms);
     }
@@ -160,7 +160,7 @@ void al_sensor_init(bool reset) {
   GasIndexAlgorithm_init_with_sampling_interval(&al_sensor_nox_params, GasIndexAlgorithm_ALGORITHM_TYPE_NOX, 5.f);
 
   // check ULP readings
-  naos_log("sns: ulp readings=%d", al_ulp_readings());
+  naos_log("al-sns: ulp readings=%d", al_ulp_readings());
 
   // ingest ULP reading
   if (al_ulp_readings() > 0) {
@@ -168,7 +168,7 @@ void al_sensor_init(bool reset) {
   }
 
   // run check task
-  naos_run("sns", 8192, 1, al_sensor_check);
+  naos_run("al-sns", 8192, 1, al_sensor_check);
 }
 
 void al_sensor_config(al_sensor_hook_t hook) {

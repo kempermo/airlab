@@ -25,7 +25,7 @@ static void al_touch_read(uint8_t reg, uint8_t *buf, size_t len) {
       return;
     }
     if (AL_TOUCH_DEBUG) {
-      naos_log("cap: retrying read...");
+      naos_log("al-tch: retrying read...");
     }
     naos_delay(100);
   }
@@ -70,33 +70,33 @@ static void al_touch_exec(uint8_t cmd) {
   // check command control
   uint8_t ctrl = al_touch_read8(0x86);
   if (ctrl != 0) {
-    naos_log("cap: busy ctrl=%02x", ctrl);
+    naos_log("al-tch: busy ctrl=%02x", ctrl);
     ESP_ERROR_CHECK(ESP_FAIL);
     return;
   }
 
   // execute command
   if (AL_TOUCH_DEBUG) {
-    naos_log("cap: exec cmd=%02x", cmd);
+    naos_log("al-tch: exec cmd=%02x", cmd);
   }
   al_touch_write8(0x86, cmd);
 
   // wait
   while (al_touch_read8(0x86) != 0) {
     if (AL_TOUCH_DEBUG) {
-      naos_log("cap: wait...");
+      naos_log("al-tch: wait...");
     }
     naos_delay(1);
   }
   if (AL_TOUCH_DEBUG) {
-    naos_log("cap: done");
+    naos_log("al-tch: done");
   }
 
   // check error
   uint8_t failed = al_touch_read8(0x88) & 0x01;
   uint8_t code = al_touch_read8(0x89);
   if (failed) {
-    naos_log("cap: failed code=%02x", code);
+    naos_log("al-tch: failed code=%02x", code);
     ESP_ERROR_CHECK(ESP_FAIL);
   }
 }
@@ -178,7 +178,7 @@ static void al_touch_check() {
     uint8_t t5 = (touches >> 4) & 0x01;
     uint8_t t6 = (touches >> 5) & 0x01;
     uint8_t t7 = (touches >> 6) & 0x01;
-    naos_log("cap: touches %d %d %d %d %d %d %d", t1, t2, t3, t4, t5, t6, t7);
+    naos_log("al-tch: touches %d %d %d %d %d %d %d", t1, t2, t3, t4, t5, t6, t7);
   }
 
   // read debug status
@@ -188,7 +188,7 @@ static void al_touch_check() {
     uint16_t bl = al_touch_read16(0xe0);   // baseline
     uint16_t rc = al_touch_read16(0xe2);   // raw count
     uint16_t arc = al_touch_read16(0xe4);  // average raw count
-    naos_log("cap: debug pad=%d cp=%d dc=%d bl=%d rc=%d arc=%d", AL_TOUCH_DEBUG_SENSOR, cp, dc, bl, rc, arc);
+    naos_log("al-tch: debug pad=%d cp=%d dc=%d bl=%d rc=%d arc=%d", AL_TOUCH_DEBUG_SENSOR, cp, dc, bl, rc, arc);
   }
 
   // prepare middle and position
@@ -200,7 +200,7 @@ static void al_touch_check() {
     // calculate middle
     middle = al_touch_middle(touches);
     if (AL_TOUCH_DEBUG) {
-      naos_log("cap: middle=%f", middle);
+      naos_log("al-tch: middle=%f", middle);
     }
 
     // calculate position
@@ -212,7 +212,7 @@ static void al_touch_check() {
   if (touches != 0 && last != 0) {
     delta = middle - al_touch_middle(last);
     if (AL_TOUCH_DEBUG) {
-      naos_log("cap: delta=%f", delta);
+      naos_log("al-tch: delta=%f", delta);
     }
   }
 

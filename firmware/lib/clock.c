@@ -5,7 +5,6 @@
 #include <al/clock.h>
 
 #define AL_CLOCK_ADDR 0x68
-#define AL_CLOCK_DEBUG false
 
 typedef struct {
   uint8_t hours;   /* 0-23 */
@@ -122,10 +121,8 @@ static al_clock_state_t al_clock_get() {
     year = 24;
   }
 
-  // log RTC state
-  if (AL_CLOCK_DEBUG) {
-    naos_log("rtc: get %02d:%02d:%02d %02d/%02d/%02d", hours, minutes, seconds, date, month, year);
-  }
+  // log
+  naos_log("al-clk: get %02d:%02d:%02d %02d/%02d/%02d", hours, minutes, seconds, date, month, year);
 
   return (al_clock_state_t){
       .hours = hours,
@@ -142,11 +139,9 @@ static void al_clock_set(al_clock_state_t state) {
   // trim years
   state.year = state.year % 100;
 
-  // log RTC state
-  if (AL_CLOCK_DEBUG) {
-    naos_log("rtc: set %02d:%02d:%02d %02d/%02d/%02d", state.hours, state.minutes, state.seconds, state.day,
-             state.month, state.year);
-  }
+  // log
+  naos_log("al-clk: set %02d:%02d:%02d %02d/%02d/%02d", state.hours, state.minutes, state.seconds, state.day,
+           state.month, state.year);
 
   // convert DEC to BCD
   al_clock_bq32000.seconds = state.seconds % 10;
@@ -193,10 +188,6 @@ void al_clock_init() {
   t = mktime(cal);
   struct timeval tv = {.tv_sec = t};
   settimeofday(&tv, NULL);
-
-  // print time
-  naos_log("clock: sync %02d-%02d-%02d %02d:%02d:%02d", state.year, state.month, state.day, state.hours, state.minutes,
-           state.seconds);
 }
 
 void al_clock_update() {
@@ -216,8 +207,4 @@ void al_clock_update() {
 
   // set clock
   al_clock_set(state);
-
-  // print time
-  naos_log("clock: update %02d-%02d-%02d %02d:%02d:%02d", state.year, state.month, state.day, state.hours,
-           state.minutes, state.seconds);
 }

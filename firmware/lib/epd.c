@@ -134,7 +134,7 @@ static void al_epd_bmp_print(const uint8_t *data, size_t length) {
 static void al_epd_write_buffer(uint8_t cmd, size_t len, const uint8_t *buf) {
   // log commands
   if (AL_EPD_DEBUG) {
-    naos_log("epd: write cmd=0x%x len=%ld", cmd, len);
+    naos_log("al-epd: write cmd=0x%x len=%ld", cmd, len);
   }
 
   // check length
@@ -183,7 +183,7 @@ static void al_epd_write_word(uint8_t cmd, uint8_t n, uint8_t w1, uint8_t w2, ui
 
 static void al_epd_wait(const char *task) {
   if (AL_EPD_DEBUG) {
-    naos_log("epd: waiting for '%s'...", task);
+    naos_log("al-epd: waiting for '%s'...", task);
   }
 
   // wait while busy
@@ -197,7 +197,7 @@ static void al_epd_wait(const char *task) {
   }
 
   if (AL_EPD_DEBUG) {
-    naos_log("epd: wait for '%s' took %lldms", task, naos_millis() - start);
+    naos_log("al-epd: wait for '%s' took %lldms", task, naos_millis() - start);
   }
 }
 
@@ -205,7 +205,7 @@ static void al_epd_wait(const char *task) {
 
 static void al_epd_reset() {
   if (AL_EPD_DEBUG) {
-    naos_log("epd: reset");
+    naos_log("al-epd: reset");
   }
 
   // perform hard reset
@@ -263,7 +263,7 @@ static void al_epd_set_pointer(uint16_t x, uint16_t y) {
 
 static void al_epd_display_full(uint8_t *data) {
   if (AL_EPD_DEBUG) {
-    naos_log("epd: display full");
+    naos_log("al-epd: display full");
   }
 
   // write frame to memory area 0
@@ -286,7 +286,7 @@ static void al_epd_display_full(uint8_t *data) {
 
 static void al_epd_display_partial(uint8_t *data, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
   if (AL_EPD_DEBUG) {
-    naos_log("epd: display partial x1=%ld y1=%ld x2=%ld y2=%ld", x1, y1, x2, y2);
+    naos_log("al-epd: display partial x1=%ld y1=%ld x2=%ld y2=%ld", x1, y1, x2, y2);
   }
 
   // calculate size
@@ -317,7 +317,7 @@ static void al_epd_display_partial(uint8_t *data, uint16_t x1, uint16_t y1, uint
 
 static void al_epd_set_sleep() {
   if (AL_EPD_DEBUG) {
-    naos_log("epd: sleep");
+    naos_log("al-epd: sleep");
   }
 
   // set deep sleep
