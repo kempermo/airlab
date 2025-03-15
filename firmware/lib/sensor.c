@@ -82,38 +82,33 @@ static al_sensor_state_t al_sensor_ingest(al_sensor_raw_t raw) {
 }
 
 static void al_sensor_check() {
-  for (;;) {
-    // wait a second
-    naos_delay(1000);
+  // acquire mutex
+  naos_lock(al_sensor_mutex);
 
-    // acquire mutex
-    naos_lock(al_sensor_mutex);
-
-    // check if SCD measurement is available
-    if (!al_sensor_ready()) {
-      naos_unlock(al_sensor_mutex);
-      continue;
-    }
-
-    // read sensor
-    al_sensor_raw_t raw;
-    if (!al_sensor_read(&raw)) {
-      ESP_ERROR_CHECK(ESP_FAIL);
-    }
-
-    // ingest sensor data
-    al_sensor_state_t state = al_sensor_ingest(raw);
-
-    // release mutex
+  // check if SCD measurement is available
+  if (!al_sensor_ready()) {
     naos_unlock(al_sensor_mutex);
+    return;
+  }
 
-    // trigger signal
-    naos_trigger(al_sensor_signal, 1, false);
+  // read sensor
+  al_sensor_raw_t raw;
+  if (!al_sensor_read(&raw)) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
 
-    // dispatch event
-    if (al_sensor_hook != NULL) {
-      al_sensor_hook(state);
-    }
+  // ingest sensor data
+  al_sensor_state_t state = al_sensor_ingest(raw);
+
+  // release mutex
+  naos_unlock(al_sensor_mutex);
+
+  // trigger signal
+  naos_trigger(al_sensor_signal, 1, false);
+
+  // dispatch event
+  if (al_sensor_hook != NULL) {
+    al_sensor_hook(state);
   }
 }
 
@@ -159,7 +154,7 @@ void al_sensor_init(bool reset) {
   }
 
   // run check task
-  naos_run("al-sns", 8192, 1, al_sensor_check);
+  naos_repeat("al-sns", 1000, al_sensor_check);
 }
 
 void al_sensor_config(al_sensor_hook_t hook) {
