@@ -26,7 +26,7 @@
     "CONFIG_LV_LOG_LEVEL": "1",
     "CONFIG_ULP_COPROC_ENABLED": "y",
     "CONFIG_ULP_COPROC_TYPE_RISCV": "y",
-    "CONFIG_ULP_COPROC_RESERVE_MEM": "7936"
+    "CONFIG_ULP_COPROC_RESERVE_MEM": "5120"
   },
   "components": {
     "lib": {
