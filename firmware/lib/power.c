@@ -167,15 +167,15 @@ void al_power_init() {
   };
   ESP_ERROR_CHECK(gpio_config(&cfg));
 
-  // verify access
-  al_power_read(0x08, &al_power_bq25601.reg8.raw, 1);
-
   // configure ADC (4096 = ~2.45V)
   ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
   ESP_ERROR_CHECK(adc1_config_channel_atten(AL_POWER_USB_CC1, ADC_ATTEN_DB_12));
   ESP_ERROR_CHECK(adc1_config_channel_atten(AL_POWER_USB_CC2, ADC_ATTEN_DB_12));
   ESP_ERROR_CHECK(adc1_config_channel_atten(AL_POWER_BAT_LVL, ADC_ATTEN_DB_12));
   esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12, 1100, &al_power_calib);
+
+  // check power
+  al_power_check();
 
   // run check
   naos_repeat("al-pwr", 1000, al_power_check);

@@ -126,19 +126,10 @@ static void al_sensor_check() {
   }
 }
 
-void al_sensor_init() {
+void al_sensor_init(bool reset) {
   // create mutex and signal
   al_sensor_mutex = naos_mutex();
   al_sensor_signal = naos_signal();
-
-  // wait at least one second
-  uint32_t ms = naos_millis();
-  if (ms < 1100) {
-    if (AL_SENSOR_DEBUG) {
-      naos_log("delay init by %dms", 1100 - ms);
-    }
-    naos_delay(1100 - ms);
-  }
 
   // wire sensor
   al_sensor_wire((al_sensor_ops_t){
@@ -147,9 +138,21 @@ void al_sensor_init() {
       .debug = al_sensor_debug,
   });
 
-  // reset sensor
-  if (!al_sensor_reset()) {
-    ESP_ERROR_CHECK(ESP_FAIL);
+  // perform reset
+  if (reset) {
+    // wait at least one second
+    uint32_t ms = naos_millis();
+    if (ms < 1100) {
+      if (AL_SENSOR_DEBUG) {
+        naos_log("delay init by %dms", 1100 - ms);
+      }
+      naos_delay(1100 - ms);
+    }
+
+    // reset sensor
+    if (!al_sensor_reset()) {
+      ESP_ERROR_CHECK(ESP_FAIL);
+    }
   }
 
   // initialize gas index parameters

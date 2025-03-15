@@ -42,18 +42,19 @@ void al_init() {
   };
   ESP_ERROR_CHECK(i2c_param_config(I2C_NUM_0, &i2c));
 
+  // determine reset
+  bool reset = !esp_sleep_get_wakeup_cause();
+
   // initialize modules
   al_power_init();
   al_buzzer_init();
-  al_led_init();
-  al_accel_init();
-  al_buttons_init();
+  al_led_init(reset);
+  al_accel_init(reset);
+  al_buttons_init(reset);
   al_epd_init();
-  al_touch_init();
-  al_sensor_init();
-
-  // sync clock
   al_clock_init();
+  al_touch_init(reset);
+  al_sensor_init(reset);
 
   // configure wakeup source
   uint64_t pin_mask = AL_BUTTONS | BIT64(AL_ACCEL_INT);

@@ -24,6 +24,24 @@ static uint8_t al_accel_read(uint8_t reg) {
   return val;
 }
 
+static void al_accel_reset() {
+  // reset device
+  al_accel_write(0x15, 0b10000000);
+
+  // configure interrupt polarity and wake from sleep
+  al_accel_write(0x18, 0b00010000);
+
+  // enable orientation interrupt
+  al_accel_write(0x20, 0b00001000);
+
+  // enable orientation detection with debounce
+  al_accel_write(0x29, 0b01000000);
+  al_accel_write(0x2A, 50);
+
+  // activate device
+  al_accel_write(0x15, 0b00000001);
+}
+
 static void al_accel_check() {
   // read orientation
   uint8_t orientation = al_accel_read(0x28);
@@ -45,22 +63,11 @@ static void al_accel_signal() {
   naos_defer_isr(al_accel_check);
 }
 
-void al_accel_init() {
-  // reset device
-  al_accel_write(0x15, 0b10000000);
-
-  // configure interrupt polarity and wake from sleep
-  al_accel_write(0x18, 0b00010000);
-
-  // enable orientation interrupt
-  al_accel_write(0x20, 0b00001000);
-
-  // enable orientation detection with debounce
-  al_accel_write(0x29, 0b01000000);
-  al_accel_write(0x2A, 50);
-
-  // activate device
-  al_accel_write(0x15, 0b00000001);
+void al_accel_init(bool reset) {
+  // perform reset
+  if (reset) {
+    al_accel_reset();
+  }
 
   // setup interrupt
   gpio_config_t cfg = {

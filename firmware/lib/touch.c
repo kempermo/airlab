@@ -4,6 +4,8 @@
 
 #include <al/touch.h>
 
+#include "internal.h"
+
 #define AL_TOUCH_ADDR 0x37
 #define AL_TOUCH_INT GPIO_NUM_11
 #define AL_TOUCH_DEBUG false
@@ -232,10 +234,7 @@ static void al_touch_signal() {
   naos_defer_isr(al_touch_check);
 }
 
-void al_touch_init() {
-  // create mutex
-  al_touch_mutex = naos_mutex();
-
+static void al_touch_reset() {
   // await device
   al_touch_read8(0x86);
 
@@ -282,6 +281,16 @@ void al_touch_init() {
   if (AL_TOUCH_DEBUG && AL_TOUCH_DEBUG_SENSOR >= 0) {
     al_touch_write8(0x82, al_touch_map[AL_TOUCH_DEBUG_SENSOR]);
   }
+}
+
+void al_touch_init(bool reset) {
+  // perform reset
+  if (reset) {
+    al_touch_reset();
+  }
+
+  // create mutex
+  al_touch_mutex = naos_mutex();
 
   // setup interrupt
   gpio_config_t io_cfg = {
