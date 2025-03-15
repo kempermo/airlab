@@ -79,12 +79,7 @@ static void scr_cleanup(bool refresh) {
   lv_disp_set_rotation(NULL, LV_DISP_ROT_NONE);
   lv_group_remove_all_objs(gfx_get_group());
   lv_obj_clean(lv_scr_act());
-  gfx_end(false, false);
-
-  // await refresh
-  if (refresh) {
-    sig_await(SIG_REFRESH, 0);
-  }
+  gfx_end(false, refresh);
 }
 
 static void scr_write(const char* text) {
