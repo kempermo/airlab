@@ -1,6 +1,8 @@
-#include <driver/i2c.h>
+#include <esp_err.h>
 
 #include <al/led.h>
+
+#include "internal.h"
 
 #define AL_LED_ADDR 0x30
 #define AL_LED_LIMIT(val) (val < 0 ? 0 : val > 1 ? 1 : val)
@@ -8,7 +10,7 @@
 static void al_led_write(uint8_t reg, uint8_t val, bool may_fail) {
   // write data
   uint8_t data[2] = {reg, val};
-  esp_err_t err = i2c_master_write_to_device(I2C_NUM_0, AL_LED_ADDR, data, 2, 1000);
+  esp_err_t err = al_i2c_transfer(AL_LED_ADDR, data, 2, NULL, 0, 1000);
   if (!may_fail || err != ESP_FAIL) {
     // TODO: LED writes may fail after waking from light sleep.
     ESP_ERROR_CHECK_WITHOUT_ABORT(err);

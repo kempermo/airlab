@@ -1,6 +1,5 @@
 #include <naos.h>
 #include <naos/sys.h>
-#include <driver/i2c.h>
 #include <driver/adc.h>
 #include <driver/rtc_io.h>
 #include <esp_adc_cal.h>
@@ -8,6 +7,8 @@
 
 #include <al/core.h>
 #include <al/power.h>
+
+#include "internal.h"
 
 #define AL_POWER_ADDR 0x6B
 #define AL_POWER_HOLD GPIO_NUM_21
@@ -82,13 +83,13 @@ static struct {
 
 static void al_power_read(uint8_t reg, uint8_t *buf, size_t len) {
   // read data
-  ESP_ERROR_CHECK(i2c_master_write_read_device(I2C_NUM_0, AL_POWER_ADDR, &reg, 1, buf, len, 1000));
+  ESP_ERROR_CHECK(al_i2c_transfer(AL_POWER_ADDR, &reg, 1, buf, len, 1000));
 }
 
 static void al_power_write(uint8_t reg, uint8_t val) {
   // write data
   uint8_t data[2] = {reg, val};
-  ESP_ERROR_CHECK(i2c_master_write_to_device(I2C_NUM_0, AL_POWER_ADDR, data, 2, 1000));
+  ESP_ERROR_CHECK(al_i2c_transfer(AL_POWER_ADDR, data, 2, NULL, 0, 1000));
 }
 
 void al_power_check() {

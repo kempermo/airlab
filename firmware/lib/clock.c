@@ -1,8 +1,10 @@
 #include <naos.h>
 #include <sys/time.h>
-#include <driver/i2c.h>
+#include <esp_err.h>
 
 #include <al/clock.h>
+
+#include "internal.h"
 
 #define AL_CLOCK_ADDR 0x68
 
@@ -76,13 +78,13 @@ static struct {
 
 static void al_clock_read(uint8_t reg, uint8_t *buf, size_t read) {
   // write and read device
-  ESP_ERROR_CHECK(i2c_master_write_read_device(I2C_NUM_0, AL_CLOCK_ADDR, &reg, 1, buf, read, 1000));
+  ESP_ERROR_CHECK(al_i2c_transfer(AL_CLOCK_ADDR, &reg, 1, buf, read, 1000));
 }
 
 static void al_clock_write(uint8_t reg, uint8_t val) {
   // write device
   uint8_t data[2] = {reg, val};
-  ESP_ERROR_CHECK(i2c_master_write_to_device(I2C_NUM_0, AL_CLOCK_ADDR, data, 2, 1000));
+  ESP_ERROR_CHECK(al_i2c_transfer(AL_CLOCK_ADDR, data, 2, NULL, 0, 1000));
 }
 
 static al_clock_state_t al_clock_get() {

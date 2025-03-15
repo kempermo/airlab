@@ -1,6 +1,6 @@
 #include <naos.h>
 #include <naos/sys.h>
-#include <driver/i2c.h>
+#include <driver/gpio.h>
 
 #include <al/touch.h>
 
@@ -19,7 +19,7 @@ static al_touch_hook_t al_touch_hook = NULL;
 static void al_touch_read(uint8_t reg, uint8_t *buf, size_t len) {
   // read data
   for (size_t i = 0; i < 10; i++) {
-    esp_err_t err = i2c_master_write_read_device(I2C_NUM_0, AL_TOUCH_ADDR, &reg, 1, buf, len, 1000);
+    esp_err_t err = al_i2c_transfer(AL_TOUCH_ADDR, &reg, 1, buf, len, 1000);
     if (err != ESP_FAIL) {
       ESP_ERROR_CHECK(err);
       return;
@@ -58,7 +58,7 @@ static void al_touch_write(uint8_t reg, const uint8_t *buf, size_t len) {
   }
 
   // read data
-  ESP_ERROR_CHECK(i2c_master_write_to_device(I2C_NUM_0, AL_TOUCH_ADDR, data, 1 + len, 1000));
+  ESP_ERROR_CHECK(al_i2c_transfer(AL_TOUCH_ADDR, data, 1 + len, NULL, 0, 1000));
 }
 
 static void al_touch_write8(uint8_t reg, uint8_t value) {

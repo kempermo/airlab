@@ -1,6 +1,6 @@
 #include <naos.h>
 #include <naos/sys.h>
-#include <driver/i2c.h>
+#include <driver/gpio.h>
 
 #include <al/accel.h>
 
@@ -15,12 +15,12 @@ static uint16_t al_accel_rot_map[] = {180, 0, 90, 270};
 static void al_accel_write(uint8_t reg, uint8_t val) {
   // write data
   uint8_t data[2] = {reg, val};
-  ESP_ERROR_CHECK(i2c_master_write_to_device(I2C_NUM_0, AL_ACCEL_ADDR, data, 2, 1000));
+  ESP_ERROR_CHECK(al_i2c_transfer(AL_ACCEL_ADDR, data, 2, NULL, 0, 1000));
 }
 
 static uint8_t al_accel_read(uint8_t reg) {
   uint8_t val;
-  ESP_ERROR_CHECK(i2c_master_write_read_device(I2C_NUM_0, AL_ACCEL_ADDR, &reg, 1, &val, 1, 1000));
+  ESP_ERROR_CHECK(al_i2c_transfer(AL_ACCEL_ADDR, &reg, 1, &val, 1, 1000));
   return val;
 }
 

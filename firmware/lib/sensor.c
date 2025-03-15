@@ -1,6 +1,5 @@
 #include <naos.h>
 #include <naos/sys.h>
-#include <driver/i2c.h>
 
 #include <al/sensor.h>
 
@@ -23,15 +22,7 @@ static GasIndexAlgorithmParams al_sensor_nox_params;
 static al_sensor_hook_t al_sensor_hook;
 
 static bool al_sensor_transfer(uint8_t target, uint8_t* wd, size_t wl, uint8_t* rd, size_t rl) {
-  esp_err_t err = ESP_OK;
-  if (wl > 0 && rl > 0) {
-    err = i2c_master_write_read_device(I2C_NUM_0, target, wd, wl, rd, rl, 1000);
-  } else if (wl > 0) {
-    err = i2c_master_write_to_device(I2C_NUM_0, target, wd, wl, 1000);
-  } else {
-    err = i2c_master_read_from_device(I2C_NUM_0, target, rd, rl, 1000);
-  }
-  return err == ESP_OK;
+  return al_i2c_transfer(target, wd, wl, rd, rl, 1000) == ESP_OK;
 }
 
 static void al_sensor_debug(const char* msg) {

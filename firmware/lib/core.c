@@ -5,7 +5,6 @@
 #include <esp_sleep.h>
 
 #include <al/core.h>
-#include <naos/sys.h>
 
 #include "internal.h"
 
@@ -59,6 +58,17 @@ void al_init() {
   // configure wakeup source
   uint64_t pin_mask = AL_BUTTONS | BIT64(AL_ACCEL_INT);
   ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(pin_mask, ESP_EXT1_WAKEUP_ANY_LOW));
+}
+
+esp_err_t al_i2c_transfer(uint8_t addr, uint8_t* tx, size_t tx_len, uint8_t* rx, size_t rx_len, int timeout) {
+  // perform appropriate I2C transfer
+  if (tx_len > 0 && rx_len > 0) {
+    return i2c_master_write_read_device(I2C_NUM_0, addr, tx, tx_len, rx, rx_len, pdMS_TO_TICKS(timeout));
+  } else if (tx_len > 0) {
+    return i2c_master_write_to_device(I2C_NUM_0, addr, tx, tx_len, pdMS_TO_TICKS(timeout));
+  } else {
+    return i2c_master_read_from_device(I2C_NUM_0, addr, rx, rx_len, pdMS_TO_TICKS(timeout));
+  }
 }
 
 void al_sleep(bool deep, uint64_t timeout) {
