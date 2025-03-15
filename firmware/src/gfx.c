@@ -79,6 +79,9 @@ static void gfx_flush(lv_disp_drv_t* driver, const lv_area_t* area, lv_color_t* 
   if (!gfx_skip) {
     // display frame
     al_epd_update(gfx_frame, !gfx_refresh);
+    if (GFX_DEBUG) {
+      naos_log("gfx: updated partial=%d", !gfx_refresh);
+    }
 
     // record screen, if enabled
     if (DEV_RECORD_SCREEN) {
@@ -141,6 +144,9 @@ void gfx_init() {
 
   // register logger
   lv_log_register_print_cb(gfx_log);
+
+  // skip initial draw
+  gfx_skip = true;
 
   // run task
   naos_run("gfx", 8192, 1, gfx_task);
