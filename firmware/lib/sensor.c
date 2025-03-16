@@ -20,8 +20,6 @@ static naos_mutex_t al_sensor_mutex;
 static naos_signal_t al_sensor_signal;
 static al_sensor_hook_t al_sensor_hook;
 
-AL_KEEP static size_t al_sensor_pos = 0;
-AL_KEEP static al_sensor_sample_t al_sensor_samples[AL_SENSOR_HIST] = {0};
 AL_KEEP static GasIndexAlgorithmParams al_sensor_voc_params = {0};
 AL_KEEP static GasIndexAlgorithmParams al_sensor_nox_params = {0};
 
@@ -33,11 +31,11 @@ RTC_FAST_ATTR static uint8_t al_sensor_store_skip_5s = 0;
 RTC_FAST_ATTR static al_sensor_sample_t al_sensor_store_5s[AL_SENSOR_STORE_5S] = {0};
 RTC_FAST_ATTR static al_sensor_sample_t al_sensor_store_30s[AL_SENSOR_STORE_30S] = {0};
 
-static bool al_sensor_transfer(uint8_t target, uint8_t* wd, size_t wl, uint8_t* rd, size_t rl) {
+static bool al_sensor_transfer(uint8_t target, uint8_t *wd, size_t wl, uint8_t *rd, size_t rl) {
   return al_i2c_transfer(target, wd, wl, rd, rl, 1000) == ESP_OK;
 }
 
-static void al_sensor_debug(const char* msg) {
+static void al_sensor_debug(const char *msg) {
   // print message
   naos_log("al-sns: HAL %s", msg);
 }
@@ -80,13 +78,6 @@ static al_sensor_sample_t al_sensor_ingest(al_sensor_raw_t raw) {
       .nox = (float)nox_index,
       .prs = prs,
   };
-
-  // add sample to history
-  al_sensor_samples[al_sensor_pos] = sample;
-  al_sensor_pos++;
-  if (al_sensor_pos >= AL_SENSOR_HIST) {
-    al_sensor_pos = 0;
-  }
 
   // add sample to 5s store
   al_sensor_store_5s[al_sensor_store_pos_5s] = sample;
@@ -203,7 +194,11 @@ void al_sensor_config(al_sensor_hook_t hook) {
 al_sensor_sample_t al_sensor_get() {
   // get sample
   naos_lock(al_sensor_mutex);
-  al_sensor_sample_t sample = al_sensor_samples[al_sensor_pos];
+  int pos = al_sensor_store_pos_5s - 1;
+  if (pos < 0) {
+    pos = AL_SENSOR_STORE_5S - 1;
+  }
+  al_sensor_sample_t sample = al_sensor_store_5s[pos];
   naos_unlock(al_sensor_mutex);
 
   return sample;
@@ -228,45 +223,83 @@ size_t al_sensor_count(al_sample_store_t store) {
   }
 }
 
-al_sensor_history_t al_sensor_query(al_sensor_t sensor) {
-  // prepare history
-  al_sensor_history_t history = {0};
+al_sensor_sample_t al_sensor_take(al_sample_store_t store, int num) {
+  // get store info
+  al_sensor_sample_t *samples = al_sensor_store_5s;
+  int count = al_sensor_store_count_5s;
+  int pos = al_sensor_store_pos_5s;
+  if (store == AL_SENSOR_30S) {
+    samples = al_sensor_store_30s;
+    count = al_sensor_store_count_30s;
+    pos = al_sensor_store_pos_30s;
+  }
+
+  // calculate absolute position
+  if (num < 0) {
+    num = count + num;
+  }
+  if (num >= count) {
+    num = count - 1;
+  }
+
+  // calculate relative position
+  size_t n = (pos + 1 + num) % count;
+
+  return samples[n];
+}
+
+size_t al_sensor_query(al_sample_store_t store, al_sensor_t sensor, int num, float *values, float *min, float *max) {
+  // limit number to count
+  int count = (int)al_sensor_count(store);
+  if (num > count) {
+    num = count;
+  }
+
+  // prepare from/to indexes
+  int from = 0;
+  int to = num;
+  if (num < 0) {
+    from = num;
+    to = 0;
+  }
 
   // copy values
-  for (size_t i = 0; i < AL_SENSOR_HIST; i++) {
-    size_t pos = (al_sensor_pos + 1 + i) % AL_SENSOR_HIST;
+  for (int i = from; i < to; i++) {
+    al_sensor_sample_t sample = al_sensor_take(store, i);
     switch (sensor) {
       case AL_SENSOR_CO2:
-        history.values[i] = al_sensor_samples[pos].co2;
+        values[i] = sample.co2;
         break;
       case AL_SENSOR_TMP:
-        history.values[i] = al_sensor_samples[pos].tmp;
+        values[i] = sample.tmp;
         break;
       case AL_SENSOR_HUM:
-        history.values[i] = al_sensor_samples[pos].hum;
+        values[i] = sample.hum;
         break;
       case AL_SENSOR_VOC:
-        history.values[i] = al_sensor_samples[pos].voc;
+        values[i] = sample.voc;
         break;
       case AL_SENSOR_NOX:
-        history.values[i] = al_sensor_samples[pos].nox;
+        values[i] = sample.nox;
         break;
       case AL_SENSOR_PRS:
-        history.values[i] = al_sensor_samples[pos].prs;
+        values[i] = sample.prs;
         break;
     }
   }
 
   // calculate min/max
-  history.min = 9999.f;
-  for (size_t i = 0; i < AL_SENSOR_HIST; i++) {
-    if (history.values[i] > history.max) {
-      history.max = history.values[i];
+  if (min != NULL) {
+    *min = 9999.f;
+  }
+  for (size_t i = 0; i < num; i++) {
+    if (max != NULL && values[i] > *max) {
+      *max = values[i];
     }
-    if (history.values[i] < history.min) {
-      history.min = history.values[i];
+    if (min != NULL && values[i] < *min) {
+      *min = values[i];
     }
   }
 
-  return history;
+  return num;
 }

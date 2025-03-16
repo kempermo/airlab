@@ -28,6 +28,7 @@
 #define SCR_IDLE_TIMEOUT 30000
 #define SCR_CHART_POINTS 72
 #define SCR_MIN_RESOLUTION 5000
+#define SCR_HIST_POINTS 8
 
 typedef enum {
   SCR_LED_USB = 1 << 0,
@@ -1739,7 +1740,9 @@ static void* scr_menu() {
     al_sensor_sample_t sample = al_sensor_get();
 
     // query sensor
-    al_sensor_history_t history = al_sensor_query((al_sensor_t)mode);
+    float values[SCR_HIST_POINTS] = {0};
+    float min = 0, max = 0;
+    al_sensor_query(AL_SENSOR_5S, (al_sensor_t)mode, SCR_HIST_POINTS, values, &min, &max);
 
     // query statement
     if (statement == NULL && (exclaim || fun)) {
@@ -1791,20 +1794,19 @@ static void* scr_menu() {
 
     // draw chart
     lv_canvas_fill_bg(chart, lv_color_white(), LV_OPA_COVER);
-    lv_point_t points[AL_SENSOR_HIST] = {0};
-    for (size_t i = 0; i < AL_SENSOR_HIST; i++) {
-      points[i].x = (lv_coord_t)a32_safe_map_i(i, 0, AL_SENSOR_HIST - 1, 0, 24);
-      points[i].y = (lv_coord_t)a32_safe_map_f(history.values[i], history.min, history.max, 14, 2);
+    lv_point_t points[SCR_HIST_POINTS] = {0};
+    for (size_t i = 0; i < SCR_HIST_POINTS; i++) {
+      points[i].x = (lv_coord_t)a32_safe_map_i(i, 0, SCR_HIST_POINTS - 1, 0, 24);
+      points[i].y = (lv_coord_t)a32_safe_map_f(values[i], min, max, 14, 2);
     }
     lv_draw_line_dsc_t line_dsc;
     lv_draw_line_dsc_init(&line_dsc);
     line_dsc.width = 2;
-    lv_canvas_draw_line(chart, points, AL_SENSOR_HIST, &line_dsc);
+    lv_canvas_draw_line(chart, points, SCR_HIST_POINTS, &line_dsc);
 
     // draw drain
     lv_canvas_fill_bg(drain, lv_color_white(), LV_OPA_COVER);
-    lv_coord_t drain_height =
-        (lv_coord_t)a32_safe_map_f(history.values[AL_SENSOR_HIST - 1], history.min, history.max, 0, 9);
+    lv_coord_t drain_height = (lv_coord_t)a32_safe_map_f(values[SCR_HIST_POINTS - 1], min, max, 0, 9);
     lv_draw_rect_dsc_t rect_dsc;
     lv_draw_rect_dsc_init(&rect_dsc);
     rect_dsc.bg_color = lv_color_black();

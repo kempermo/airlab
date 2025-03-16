@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define AL_SENSOR_HIST 8
-
 /**
  * The available sensors.
  */
@@ -38,15 +36,6 @@ typedef enum {
   AL_SENSOR_5S,
   AL_SENSOR_30S,
 } al_sample_store_t;
-
-/**
- * A sensor history.
- */
-typedef struct {
-  float values[AL_SENSOR_HIST];
-  float min;
-  float max;
-} al_sensor_history_t;
 
 /**
  * A sensor hook.
@@ -85,11 +74,19 @@ al_sensor_sample_t al_sensor_next();
 size_t al_sensor_count(al_sample_store_t store);
 
 /**
+ * Reads a sensor sample from a store.
+ *
+ * @param store The store.
+ * @param num The sample index if positive or the offset from the last sample if negative.
+ */
+al_sensor_sample_t al_sensor_take(al_sample_store_t store, int num);
+
+/**
  * Queries the sensor history.
  *
  * @param sensor The sensor.
  * @return The sensor history.
  */
-al_sensor_history_t al_sensor_query(al_sensor_t sensor);
+size_t al_sensor_query(al_sample_store_t store, al_sensor_t sensor, int num, float *values, float *min, float *max);
 
 #endif  // AL_SENSOR_H
