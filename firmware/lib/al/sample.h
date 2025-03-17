@@ -17,12 +17,13 @@ typedef enum {
  * A single sample.
  */
 typedef struct __attribute__((packed)) {
-  float co2;  // ppm
-  float tmp;  // °C
-  float hum;  // % rH
-  float voc;  // indexed
-  float nox;  // indexed
-  float prs;  // hPa
+  int32_t off;  // ms
+  float co2;    // ppm
+  float tmp;    // °C
+  float hum;    // % rH
+  float voc;    // indexed
+  float nox;    // indexed
+  float prs;    // hPa
 } al_sample_t;
 
 #endif  // AL_SAMPLE_H

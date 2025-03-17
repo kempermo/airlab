@@ -17,14 +17,9 @@ typedef struct __attribute__((packed)) {
 // TODO: Safe space by using int16_t?
 // TODO: Add battery level/voltage?
 
-typedef struct __attribute__((packed)) {
-  int32_t offset;  // ms since start (24d)
-  al_sample_t sample;
-} dat_point_t;
-
 typedef struct {
   dat_head_t head;
-  size_t size;   // points
+  size_t size;   // samples
   int32_t stop;  // ms since start
   int8_t marks;  // num marks
 } dat_file_t;
@@ -45,12 +40,12 @@ uint16_t dat_next();
 size_t dat_create(int64_t start);
 
 void dat_mark(uint16_t num, int32_t offset);
-void dat_append(uint16_t num, dat_point_t *points, size_t count);
-void dat_read(uint16_t num, dat_point_t *points, size_t count, size_t start);
+void dat_append(uint16_t num, al_sample_t *samples, size_t count);
+void dat_read(uint16_t num, al_sample_t *samples, size_t count, size_t start);
 void dat_delete(uint16_t num);
 
 size_t dat_search(uint16_t num, int32_t *needle);
-size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start, int32_t resolution);
+size_t dat_query(uint16_t num, al_sample_t *samples, size_t count, int32_t start, int32_t resolution);
 
 void dat_reset();
 

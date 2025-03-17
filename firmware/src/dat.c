@@ -293,14 +293,14 @@ void dat_init() {
 
     // prepare file
     dat_file_t file = {.head = head};
-    file.size = (size - sizeof(dat_head_t)) / sizeof(dat_point_t);
+    file.size = (size - sizeof(dat_head_t)) / sizeof(al_sample_t);
 
-    // read last point and set stop if available
+    // read last sample and set stop if available
     if (file.size > 0) {
-      dat_point_t point;
-      dat_read_file(entry->d_name, &point, sizeof(dat_head_t) + (file.size - 1) * sizeof(dat_point_t),
-                    sizeof(dat_point_t));
-      file.stop = point.offset;
+      al_sample_t sample;
+      dat_read_file(entry->d_name, &sample, sizeof(dat_head_t) + (file.size - 1) * sizeof(al_sample_t),
+                    sizeof(al_sample_t));
+      file.stop = sample.off;
     }
 
     // count marks
@@ -410,7 +410,7 @@ void dat_mark(uint16_t num, int32_t offset) {
   dat_write_file(name, &file->head, 0, sizeof(dat_head_t), false);
 }
 
-void dat_append(uint16_t num, dat_point_t *points, size_t count) {
+void dat_append(uint16_t num, al_sample_t *samples, size_t count) {
   // find file
   dat_file_t *file = dat_find_file(num, NULL);
   if (file == NULL) {
@@ -418,17 +418,17 @@ void dat_append(uint16_t num, dat_point_t *points, size_t count) {
   }
 
   // calculate offset
-  size_t offset = sizeof(dat_head_t) + (file->size * sizeof(dat_point_t));
+  size_t offset = sizeof(dat_head_t) + (file->size * sizeof(al_sample_t));
 
   // calculate length
-  size_t length = sizeof(dat_point_t) * count;
+  size_t length = sizeof(al_sample_t) * count;
 
   // encode name
   char name[32];
   snprintf(name, sizeof(name), DAT_NAME_FMT, num);
 
-  // append points
-  dat_write_file(name, points, offset, length, false);
+  // append samples
+  dat_write_file(name, samples, offset, length, false);
 
   // update head
   file->size += count;
@@ -437,10 +437,10 @@ void dat_append(uint16_t num, dat_point_t *points, size_t count) {
   dat_write_file(name, &file->head, 0, sizeof(dat_head_t), false);
 
   // update file
-  file->stop = points[count - 1].offset;
+  file->stop = samples[count - 1].off;
 }
 
-void dat_read(uint16_t num, dat_point_t *points, size_t count, size_t start) {
+void dat_read(uint16_t num, al_sample_t *samples, size_t count, size_t start) {
   // find file
   dat_file_t *file = dat_find_file(num, NULL);
   if (file == NULL) {
@@ -448,17 +448,17 @@ void dat_read(uint16_t num, dat_point_t *points, size_t count, size_t start) {
   }
 
   // calculate offset
-  size_t offset = sizeof(dat_head_t) + (start * sizeof(dat_point_t));
+  size_t offset = sizeof(dat_head_t) + (start * sizeof(al_sample_t));
 
   // calculate length
-  size_t length = sizeof(dat_point_t) * count;
+  size_t length = sizeof(al_sample_t) * count;
 
   // encode name
   char name[32];
   snprintf(name, sizeof(name), DAT_NAME_FMT, num);
 
-  // read points
-  dat_read_file(name, points, offset, length);
+  // read samples
+  dat_read_file(name, samples, offset, length);
 }
 
 void dat_delete(uint16_t num) {
@@ -494,19 +494,19 @@ size_t dat_search(uint16_t num, int32_t *needle) {
   size_t start = 0;
   size_t end = file->size - 1;
 
-  // prepare point
-  dat_point_t point;
+  // prepare sample
+  al_sample_t sample;
 
   // find first offset to be greater or equal to needle using binary search
   while (start <= end) {
     // determine middle
     size_t middle = (start + end) / 2;
 
-    // read point
-    dat_read(num, &point, 1, middle);
+    // read sample
+    dat_read(num, &sample, 1, middle);
 
     // handle result
-    if (point.offset < *needle) {
+    if (sample.off < *needle) {
       start = middle + 1;
       if (start >= file->size) {
         return -1;
@@ -520,14 +520,14 @@ size_t dat_search(uint16_t num, int32_t *needle) {
   }
 
   // update needle
-  *needle = point.offset;
+  *needle = sample.off;
 
   return start;
 }
 
-size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start, int32_t resolution) {
-  // zero points
-  memset(points, 0, count * sizeof(dat_point_t));
+size_t dat_query(uint16_t num, al_sample_t *samples, size_t count, int32_t start, int32_t resolution) {
+  // zero samples
+  memset(samples, 0, count * sizeof(al_sample_t));
 
   // find file
   dat_file_t *file = dat_find_file(num, NULL);
@@ -543,11 +543,11 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
   }
 
   // prepare batch
-  dat_point_t batch[DAT_QUERY_BATCH];
+  al_sample_t batch[DAT_QUERY_BATCH];
   size_t batch_pos = 0;
   size_t batch_size = 0;
 
-  // fill points
+  // fill samples
   int32_t offset = start;
   for (size_t i = 0; i < count; i++) {
     // find next exact or range match
@@ -569,32 +569,32 @@ size_t dat_query(uint16_t num, dat_point_t *points, size_t count, int32_t start,
       }
 
       // handle exact match
-      if (batch[batch_pos].offset == offset) {
+      if (batch[batch_pos].off == offset) {
         // set offset
-        points[i].offset = offset;
+        samples[i].off = offset;
 
         // copy values
-        points[i].sample = batch[batch_pos].sample;
+        samples[i] = batch[batch_pos];
 
         break;
       }
 
       // handle range match
-      if (batch[batch_pos + 1].offset > offset) {
+      if (batch[batch_pos + 1].off > offset) {
         // set offset
-        points[i].offset = offset;
+        samples[i].off = offset;
 
         // calculate factor
-        float factor = 1.f / (float)(batch[batch_pos + 1].offset - batch[batch_pos].offset) *
-                       (float)(offset - batch[batch_pos].offset);
+        float factor =
+            1.f / (float)(batch[batch_pos + 1].off - batch[batch_pos].off) * (float)(offset - batch[batch_pos].off);
 
         // interpolate values
-        points[i].sample.co2 = lerp(batch[batch_pos].sample.co2, batch[batch_pos + 1].sample.co2, factor);
-        points[i].sample.tmp = lerp(batch[batch_pos].sample.tmp, batch[batch_pos + 1].sample.tmp, factor);
-        points[i].sample.hum = lerp(batch[batch_pos].sample.hum, batch[batch_pos + 1].sample.hum, factor);
-        points[i].sample.voc = lerp(batch[batch_pos].sample.voc, batch[batch_pos + 1].sample.voc, factor);
-        points[i].sample.nox = lerp(batch[batch_pos].sample.nox, batch[batch_pos + 1].sample.nox, factor);
-        points[i].sample.prs = lerp(batch[batch_pos].sample.prs, batch[batch_pos + 1].sample.prs, factor);
+        samples[i].co2 = lerp(batch[batch_pos].co2, batch[batch_pos + 1].co2, factor);
+        samples[i].tmp = lerp(batch[batch_pos].tmp, batch[batch_pos + 1].tmp, factor);
+        samples[i].hum = lerp(batch[batch_pos].hum, batch[batch_pos + 1].hum, factor);
+        samples[i].voc = lerp(batch[batch_pos].voc, batch[batch_pos + 1].voc, factor);
+        samples[i].nox = lerp(batch[batch_pos].nox, batch[batch_pos + 1].nox, factor);
+        samples[i].prs = lerp(batch[batch_pos].prs, batch[batch_pos + 1].prs, factor);
 
         break;
       }

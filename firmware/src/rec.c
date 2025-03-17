@@ -45,17 +45,12 @@ static void rec_task() {
     // get file
     dat_file_t* file = dat_get_file(rec_current);
 
-    // calculate offset
+    // set offset
     int64_t offset = sys_get_timestamp() - file->head.start;
+    sample.off = (int32_t)offset;
 
-    // prepare point
-    dat_point_t point = {
-        .offset = (int32_t)offset,
-        .sample = sample,
-    };
-
-    // append point
-    dat_append(file->head.num, &point, 1);
+    // append sample
+    dat_append(file->head.num, &sample, 1);
 
     // dispatch event
     sig_dispatch((sig_event_t){
@@ -81,10 +76,10 @@ uint32_t rec_free(bool new) {
   // adjust free space
   info.free -= new ? REC_MIN_FREE_NEW : REC_MIN_FREE_CONT;
 
-  // calculate free points
-  uint32_t points = info.free / sizeof(dat_point_t);
+  // calculate free samples
+  uint32_t samples = info.free / sizeof(al_sample_t);
 
-  return points;
+  return samples;
 }
 
 size_t rec_file() {

@@ -573,10 +573,10 @@ static void* scr_view() {
   // prepare variables
   static int8_t mode = 0;  // co2, tmp, hum, voc, nox, prs
   static bool advanced = false;
-  static dat_point_t scr_points[LVX_CHART_SIZE];
+  static al_sample_t samples[LVX_CHART_SIZE];
 
-  // zero points
-  memset(scr_points, 0, sizeof(scr_points));
+  // zero samples
+  memset(samples, 0, sizeof(samples));
 
   // get file
   dat_file_t* file = dat_get_file(scr_file);
@@ -659,9 +659,9 @@ static void* scr_view() {
 
     // TODO: Only query needed dimension.
 
-    // query points
+    // query samples
     if (file->size > 0) {
-      size_t num = dat_query(file->head.num, scr_points, LVX_CHART_SIZE, start, resolution);
+      size_t num = dat_query(file->head.num, samples, LVX_CHART_SIZE, start, resolution);
       if (recording) {
         index = num - 1;
       }
@@ -678,13 +678,13 @@ static void* scr_view() {
       }
     }
 
-    // select current point
-    dat_point_t current = scr_points[index];
+    // select current sample
+    al_sample_t current = samples[index];
 
     // parse time
     uint16_t hour;
     uint16_t minute;
-    sys_conv_timestamp(file->head.start + (int64_t)current.offset, &hour, &minute, NULL);
+    sys_conv_timestamp(file->head.start + (int64_t)current.off, &hour, &minute, NULL);
 
     // begin draw
     gfx_begin(false, advanced);
@@ -697,17 +697,17 @@ static void* scr_view() {
       bar.mark = marks[index] > 0 ? lvx_fmt("(M%d)", marks[index]) : "";
     }
     if (mode == 0) {
-      bar.value = lvx_fmt("%.0f ppm CO2", current.sample.co2);
+      bar.value = lvx_fmt("%.0f ppm CO2", current.co2);
     } else if (mode == 1) {
-      bar.value = lvx_fmt("%.1f °C", current.sample.tmp);
+      bar.value = lvx_fmt("%.1f °C", current.tmp);
     } else if (mode == 2) {
-      bar.value = lvx_fmt("%.1f%% RH", current.sample.hum);
+      bar.value = lvx_fmt("%.1f%% RH", current.hum);
     } else if (mode == 3) {
-      bar.value = lvx_fmt("%.0f VOC", current.sample.voc);
+      bar.value = lvx_fmt("%.0f VOC", current.voc);
     } else if (mode == 4) {
-      bar.value = lvx_fmt("%.0f NOx", current.sample.nox);
+      bar.value = lvx_fmt("%.0f NOx", current.nox);
     } else if (mode == 5) {
-      bar.value = lvx_fmt("%.0f hPa", current.sample.prs);
+      bar.value = lvx_fmt("%.0f hPa", current.prs);
     }
     lvx_bar_update(&bar);
 
@@ -726,19 +726,19 @@ static void* scr_view() {
     // collect values
     float values[LVX_CHART_SIZE];
     for (size_t i = 0; i < LVX_CHART_SIZE; i++) {
-      dat_point_t point = scr_points[i];
+      al_sample_t sample = samples[i];
       if (mode == 0) {
-        values[i] = point.sample.co2;
+        values[i] = sample.co2;
       } else if (mode == 1) {
-        values[i] = point.sample.tmp;
+        values[i] = sample.tmp;
       } else if (mode == 2) {
-        values[i] = point.sample.hum;
+        values[i] = sample.hum;
       } else if (mode == 3) {
-        values[i] = point.sample.voc;
+        values[i] = sample.voc;
       } else if (mode == 4) {
-        values[i] = point.sample.nox;
+        values[i] = sample.nox;
       } else if (mode == 5) {
-        values[i] = point.sample.prs;
+        values[i] = sample.prs;
       }
       if (values[i] > range) {
         range = values[i];
@@ -886,18 +886,18 @@ static void* scr_view() {
 }
 
 static void* scr_create() {
-  // get free points
-  uint32_t points = rec_free(true);
+  // get free samples
+  uint32_t samples = rec_free(true);
 
   // handle no space
-  if (!points) {
+  if (!samples) {
     gui_message(scr_trans()->create__full, 2000);
     return scr_menu;
   }
 
   // calculate min and max time
-  uint32_t min_hours = points / 12 / 60;  // 12 points per minute
-  uint32_t max_hours = points / 2 / 60;   // 2 points per minute
+  uint32_t min_hours = samples / 12 / 60;  // 12 samples per minute
+  uint32_t max_hours = samples / 2 / 60;   // 2 samples per minute
 
   // begin draw
   gfx_begin(false, false);
