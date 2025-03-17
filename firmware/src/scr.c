@@ -14,6 +14,7 @@
 #include <al/clock.h>
 #include <al/sensor.h>
 
+#include "gui.h"
 #include "gfx.h"
 #include "sig.h"
 #include "fnt.h"
@@ -44,317 +45,14 @@ static scr_led_flag_t scr_led_flags = 0;
 
 /* Helpers */
 
-static const char* scr_fmt(const char* fmt, ...) {
-  // prepare global storage
-  static char buffers[8][64];
-  static uint8_t num = 0;
-
-  // select string
-  char* str = buffers[num];
-  if (++num >= 8) {
-    num = 0;
-  }
-
-  // format string
-  va_list args;
-  va_start(args, fmt);
-  vsnprintf(str, 64, fmt, args);
-  va_end(args);
-
-  return str;
-}
-
 static const char* scr_ms2str(int32_t ms) {
   if (ms > 1000 * 60 * 60) {  // hours
-    return scr_fmt("%dh", ms / 1000 / 60 / 60);
+    return gui_fmt("%dh", ms / 1000 / 60 / 60);
   } else if (ms > 1000 * 60) {  // minutes
-    return scr_fmt("%dm", ms / 1000 / 60);
+    return gui_fmt("%dm", ms / 1000 / 60);
   } else {  // seconds
-    return scr_fmt("%ds", ms / 1000);
+    return gui_fmt("%ds", ms / 1000);
   }
-}
-
-static void scr_cleanup(bool refresh) {
-  // clear group and screen
-  gfx_begin(refresh, false);
-  lv_disp_set_rotation(NULL, LV_DISP_ROT_NONE);
-  lv_group_remove_all_objs(gfx_get_group());
-  lv_obj_clean(lv_scr_act());
-  gfx_end(false, refresh);
-}
-
-static void scr_write(const char* text) {
-  // show message
-  gfx_begin(false, false);
-  lv_obj_t* lbl = lv_label_create(lv_scr_act());
-  lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
-  lv_label_set_text(lbl, text);
-  lv_obj_set_style_text_line_space(lbl, 6, LV_PART_MAIN);
-  lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-  gfx_end(false, false);
-}
-
-static void scr_message(const char* text, uint32_t timeout) {
-  // show message
-  scr_write(text);
-
-  // wait some time
-  sig_await(SIG_KEYS | SIG_TIMEOUT, timeout);
-
-  // cleanup
-  scr_cleanup(false);
-}
-
-static bool scr_confirm(const char* message, const char* confirm, const char* cancel, bool invert) {
-  // begin draw
-  gfx_begin(false, invert);
-
-  // add text
-  lv_obj_t* text = lv_label_create(lv_scr_act());
-  lv_label_set_text(text, message);
-  lv_obj_align(text, LV_ALIGN_TOP_MID, 0, 25);
-  lv_obj_set_style_text_align(text, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-
-  // add signs
-  lvx_sign_t next = {
-      .title = "A",
-      .text = confirm,
-      .align = LV_ALIGN_BOTTOM_RIGHT,
-  };
-  lvx_sign_t back = {
-      .title = "B",
-      .text = cancel,
-      .align = LV_ALIGN_BOTTOM_LEFT,
-  };
-  lvx_sign_create(&next, lv_scr_act());
-  lvx_sign_create(&back, lv_scr_act());
-
-  // end draw
-  gfx_end(false, false);
-
-  // await event
-  sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
-
-  // cleanup
-  scr_cleanup(false);
-
-  // handle escape and timeout
-  if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
-    return false;
-  }
-
-  return true;
-}
-
-static int scr_choose(const char* first, const char* second, bool invert) {
-  // begin draw
-  gfx_begin(false, invert);
-
-  // add signs
-  lvx_sign_t stop = {
-      .title = "A",
-      .text = first,
-      .align = LV_ALIGN_CENTER,
-      .offset = -15,
-  };
-  lvx_sign_t back = {
-      .title = "B",
-      .text = second,
-      .align = LV_ALIGN_CENTER,
-      .offset = 15,
-  };
-  lvx_sign_create(&stop, lv_scr_act());
-  lvx_sign_create(&back, lv_scr_act());
-
-  // end draw
-  gfx_end(false, false);
-
-  // await event
-  sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
-
-  // cleanup
-  scr_cleanup(false);
-
-  // return zero on timeout
-  if (event.type == SIG_TIMEOUT) {
-    return 0;
-  }
-
-  // return one on enter
-  if (event.type == SIG_ENTER) {
-    return 1;
-  }
-
-  return 2;
-}
-
-typedef struct {
-  const char* title;
-  const char* info;
-} scr_list_item_t;
-
-typedef scr_list_item_t (*scr_list_cb_t)(int num, void* ctx);
-
-static int scr_list(int total, int start, const char* select, const char* cancel, scr_list_cb_t cb, void* ctx) {
-  // prepare variables
-  static int selected = 0;
-  static int offset = 0;
-
-  // handle empty
-  if (total <= 0) {
-    return -1;
-  }
-
-  // set selected
-  selected = start;
-
-  // adjust offset
-  if (selected > offset + 3) {
-    offset = selected - 3;
-  } else if (selected < offset) {
-    offset = selected;
-  }
-
-  // begin draw
-  gfx_begin(false, false);
-
-  // add list
-  lv_obj_t* rects[4];
-  lv_obj_t* names[4];
-  lv_obj_t* infos[4];
-  for (int i = 0; i < 4; i++) {
-    rects[i] = lv_obj_create(lv_scr_act());
-    names[i] = lv_label_create(lv_scr_act());
-    infos[i] = lv_label_create(lv_scr_act());
-    lv_obj_set_size(rects[i], lv_pct(100), 25);
-    lv_obj_align(rects[i], LV_ALIGN_TOP_LEFT, 0, 0 + i * 25);
-    lv_obj_align(names[i], LV_ALIGN_TOP_LEFT, 5, 5 + i * 25);
-    lv_obj_align(infos[i], LV_ALIGN_TOP_RIGHT, -(5 - FNT_OFF), 5 + i * 25);
-    lv_obj_set_style_border_width(rects[i], 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(rects[i], 0, LV_PART_MAIN);
-  }
-
-  // add signs
-  lvx_sign_t back = {
-      .title = "B",
-      .text = cancel,
-      .align = LV_ALIGN_BOTTOM_LEFT,
-  };
-  lvx_sign_create(&back, lv_scr_act());
-  lvx_sign_t open = {
-      .title = "A",
-      .text = select,
-      .align = LV_ALIGN_BOTTOM_RIGHT,
-  };
-  lvx_sign_create(&open, lv_scr_act());
-
-  // add info
-  lv_obj_t* info = lv_label_create(lv_scr_act());
-  lv_obj_align(info, LV_ALIGN_BOTTOM_MID, 0, -5);
-
-  // end draw
-  gfx_end(true, false);
-
-  for (;;) {
-    // begin draw
-    gfx_begin(false, false);
-
-    // fill list
-    for (int i = 0; i < +4; i++) {
-      // get index
-      int index = offset + i;
-
-      // handle empty
-      if (index >= total) {
-        // clear labels and rectangle
-        lv_label_set_text(names[i], "");
-        lv_label_set_text(infos[i], "");
-        lv_obj_set_style_bg_color(rects[i], lv_color_white(), LV_PART_MAIN);
-
-        continue;
-      }
-
-      // get item
-      scr_list_item_t item = cb(index, ctx);
-
-      // update labels
-      lv_label_set_text(names[i], item.title);
-      lv_label_set_text(infos[i], item.info);
-
-      // handle selected
-      if (index == selected) {
-        lv_obj_set_style_text_color(names[i], lv_color_white(), LV_PART_MAIN);
-        lv_obj_set_style_text_color(infos[i], lv_color_white(), LV_PART_MAIN);
-        lv_obj_set_style_bg_color(rects[i], lv_color_black(), LV_PART_MAIN);
-      } else {
-        lv_obj_set_style_text_color(names[i], lv_color_black(), LV_PART_MAIN);
-        lv_obj_set_style_text_color(infos[i], lv_color_black(), LV_PART_MAIN);
-        lv_obj_set_style_bg_color(rects[i], lv_color_white(), LV_PART_MAIN);
-      }
-    }
-
-    // update info
-    lv_label_set_text(info, scr_fmt("%d/%d", selected + 1, total));
-
-    // end draw
-    gfx_end(false, false);
-
-    // await event
-    sig_event_t event = sig_await(SIG_UP | SIG_DOWN | SIG_META | SIG_SCROLL, SCR_ACTION_TIMEOUT);
-
-    // handle arrows
-    if ((event.type & (SIG_UP | SIG_DOWN | SIG_SCROLL)) != 0) {
-      if (event.type == SIG_SCROLL) {
-        selected += (int)(event.touch * 2);
-      } else {
-        selected += event.type == SIG_UP ? -1 : 1;
-      }
-      while (selected < 0) {
-        selected += total;
-      }
-      while (selected > total - 1) {
-        selected -= total;
-      }
-      if (selected > offset + 3) {
-        offset = selected - 3;
-      } else if (selected < offset) {
-        offset = selected;
-      }
-      continue;
-    }
-
-    /* handle meta and timeout */
-
-    // cleanup
-    scr_cleanup(false);
-
-    // handle escape and timeout
-    if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
-      return -1;
-    }
-
-    /* handle enter */
-
-    return selected;
-  }
-}
-
-static scr_list_item_t scr_list_strings_cb(int num, void* ctx) {
-  // return item
-  return (scr_list_item_t){((const char**)ctx)[num], ""};
-}
-
-static int scr_list_strings(int start, const char** strings, const char* select, const char* cancel) {
-  // count strings
-  int total = 0;
-  while (strings[total] != NULL) {
-    total++;
-  }
-
-  // show list
-  int ret = scr_list(total, start, select, cancel, scr_list_strings_cb, strings);
-
-  return ret;
 }
 
 static void scr_power_off() {
@@ -362,7 +60,7 @@ static void scr_power_off() {
   scr_led_flags |= SCR_LED_OFF;
 
   // cleanup screen
-  scr_cleanup(true);
+  gui_cleanup(true);
 
   // clear returns
   scr_return_timeout = NULL;
@@ -520,7 +218,7 @@ static const scr_trans_t* scr_trans() {
 
 static const char* scr_file_name(dat_file_t* file) {
   // return name
-  return scr_fmt(scr_trans()->measurement, file->head.num);
+  return gui_fmt(scr_trans()->measurement, file->head.num);
 }
 
 static const char* scr_file_date(dat_file_t* file) {
@@ -599,7 +297,7 @@ static void* scr_bubbles() {
     /* handle escape */
 
     // cleanup screen
-    scr_cleanup(false);
+    gui_cleanup(false);
 
     return scr_develop;
   }
@@ -632,7 +330,7 @@ static void* scr_info() {
     naos_cpu_get(&cpu0, &cpu1);
 
     // prepare text
-    const char* text = scr_fmt("%llds - %.0f%% - P%d - F%d\n%04d-%02d-%02d %02d:%02d:%02d\n%lu kB - %.1f%% - %.1f%%",
+    const char* text = gui_fmt("%llds - %.0f%% - P%d - F%d\n%04d-%02d-%02d %02d:%02d:%02d\n%lu kB - %.1f%% - %.1f%%",
                                naos_millis() / 1000, bat.battery * 100, bat.usb, bat.fast, year, month, day, hour,
                                minute, seconds, esp_get_free_heap_size() / 1024, cpu0 * 100, cpu1 * 100);
 
@@ -650,7 +348,7 @@ static void* scr_info() {
     }
 
     // cleanup
-    scr_cleanup(false);
+    gui_cleanup(false);
 
     return scr_develop;
   }
@@ -675,7 +373,7 @@ static void* scr_sensor() {
     size_t num_30s = al_sensor_count(AL_SENSOR_30S);
 
     // prepare text
-    const char* text = scr_fmt("5s: %d / %d\n30s: %d / %d", num_5s, AL_SENSOR_NUM_5S, num_30s, AL_SENSOR_NUM_30S);
+    const char* text = gui_fmt("5s: %d / %d\n30s: %d / %d", num_5s, AL_SENSOR_NUM_5S, num_30s, AL_SENSOR_NUM_30S);
 
     // update label
     gfx_begin(false, false);
@@ -691,7 +389,7 @@ static void* scr_sensor() {
     }
 
     // cleanup
-    scr_cleanup(false);
+    gui_cleanup(false);
 
     return scr_develop;
   }
@@ -784,18 +482,18 @@ static void* scr_saver() {
     // TODO: Show VOC and NOx values.
 
     // update values
-    lv_label_set_text(time, scr_fmt("%02d:%02d", hour, minute));
+    lv_label_set_text(time, gui_fmt("%02d:%02d", hour, minute));
     if (vertical) {
       lv_label_set_text(co2, "ppm CO2");
       lv_label_set_text(tmp, "° Celsius");
       lv_label_set_text(hum, "% RH");
-      lv_label_set_text(co2_big, scr_fmt("%.0f", sample.co2));
-      lv_label_set_text(tmp_big, scr_fmt("%.1f", sample.tmp));
-      lv_label_set_text(hum_big, scr_fmt("%.1f", sample.hum));
+      lv_label_set_text(co2_big, gui_fmt("%.0f", sample.co2));
+      lv_label_set_text(tmp_big, gui_fmt("%.1f", sample.tmp));
+      lv_label_set_text(hum_big, gui_fmt("%.1f", sample.hum));
     } else {
-      lv_label_set_text(co2, scr_fmt("%.0f ppm", sample.co2));
-      lv_label_set_text(tmp, scr_fmt("%.1f °C", sample.tmp));
-      lv_label_set_text(hum, scr_fmt("%.1f%% RH", sample.hum));
+      lv_label_set_text(co2, gui_fmt("%.0f ppm", sample.co2));
+      lv_label_set_text(tmp, gui_fmt("%.1f °C", sample.tmp));
+      lv_label_set_text(hum, gui_fmt("%.1f%% RH", sample.hum));
     }
 
     // align objects
@@ -867,7 +565,7 @@ static void* scr_saver() {
   }
 
   // cleanup
-  scr_cleanup(false);
+  gui_cleanup(false);
 
   return scr_return_unlock;
 }
@@ -991,22 +689,22 @@ static void* scr_view() {
     gfx_begin(false, advanced);
 
     // update bar
-    bar.time = scr_fmt("%02d:%02d", hour, minute);
+    bar.time = gui_fmt("%02d:%02d", hour, minute);
     if (recording) {
-      bar.mark = file->marks > 0 ? scr_fmt("(M%d)", file->marks) : "";
+      bar.mark = file->marks > 0 ? gui_fmt("(M%d)", file->marks) : "";
     } else {
-      bar.mark = marks[index] > 0 ? scr_fmt("(M%d)", marks[index]) : "";
+      bar.mark = marks[index] > 0 ? gui_fmt("(M%d)", marks[index]) : "";
     }
     if (mode == 0) {
-      bar.value = scr_fmt("%.0f ppm CO2", current.co2);
+      bar.value = gui_fmt("%.0f ppm CO2", current.co2);
     } else if (mode == 1) {
-      bar.value = scr_fmt("%.1f °C", current.tmp);
+      bar.value = gui_fmt("%.1f °C", current.tmp);
     } else if (mode == 2) {
-      bar.value = scr_fmt("%.1f%% RH", current.hum);
+      bar.value = gui_fmt("%.1f%% RH", current.hum);
     } else if (mode == 3) {
-      bar.value = scr_fmt("%.0f VOC", current.voc);
+      bar.value = gui_fmt("%.0f VOC", current.voc);
     } else if (mode == 4) {
-      bar.value = scr_fmt("%.0f NOx", current.nox);
+      bar.value = gui_fmt("%.0f NOx", current.nox);
     }
     lvx_bar_update(&bar);
 
@@ -1062,7 +760,7 @@ static void* scr_view() {
 
       // format label
       sys_conv_timestamp(file->head.start + (int64_t)(pos), &hour, &minute, NULL);
-      const char* str = scr_fmt("%02d:%02d", hour, minute);
+      const char* str = gui_fmt("%02d:%02d", hour, minute);
 
       // calculate coordinate
       lv_coord_t x = (lv_coord_t)a32_map_f(pos, (float)start, (float)end, 0, 288);
@@ -1103,7 +801,7 @@ static void* scr_view() {
     // handle idle timeout
     if (event.type == SIG_TIMEOUT) {
       // cleanup
-      scr_cleanup(false);
+      gui_cleanup(false);
 
       // set return
       scr_return_unlock = scr_view;
@@ -1123,12 +821,12 @@ static void* scr_view() {
       }
 
       // cleanup
-      scr_cleanup(false);
+      gui_cleanup(false);
 
       // handle recording
       if (recording) {
         // choose option
-        int ret = scr_choose(scr_trans()->exit__stop, scr_trans()->exit__back, true);
+        int ret = gui_choose(scr_trans()->exit__stop, scr_trans()->exit__back, true, SCR_ACTION_TIMEOUT);
         if (ret == 0) {
           return scr_view;
         }
@@ -1144,7 +842,7 @@ static void* scr_view() {
           rec_stop();
 
           // show message
-          scr_message(scr_fmt(scr_trans()->exit__stopped, scr_file_name(file)), 2000);
+          gui_message(gui_fmt(scr_trans()->exit__stopped, scr_file_name(file)), 2000);
 
           // set action
           scr_action = STM_COMP_MEASUREMENT;
@@ -1209,7 +907,7 @@ static void* scr_create() {
 
   // handle no space
   if (!points) {
-    scr_message(scr_trans()->create__full, 2000);
+    gui_message(scr_trans()->create__full, 2000);
     return scr_menu;
   }
 
@@ -1227,7 +925,7 @@ static void* scr_create() {
 
   // add name
   lv_obj_t* name = lv_label_create(lv_scr_act());
-  lv_label_set_text(name, scr_fmt(scr_trans()->create__name, dat_next()));
+  lv_label_set_text(name, gui_fmt(scr_trans()->create__name, dat_next()));
   lv_obj_align(name, LV_ALIGN_TOP_LEFT, 5, 26);
 
   // add mode
@@ -1237,7 +935,7 @@ static void* scr_create() {
 
   // add length
   lv_obj_t* length = lv_label_create(lv_scr_act());
-  lv_label_set_text(length, scr_fmt(scr_trans()->create__length, min_hours, max_hours));
+  lv_label_set_text(length, gui_fmt(scr_trans()->create__length, min_hours, max_hours));
   lv_obj_align(length, LV_ALIGN_TOP_LEFT, 5, 68);
 
   // add signs
@@ -1262,7 +960,7 @@ static void* scr_create() {
     sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
 
     // cleanup
-    scr_cleanup(false);
+    gui_cleanup(false);
 
     // handle escape and timeout
     if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
@@ -1342,20 +1040,20 @@ static void* scr_edit() {
     sig_event_t event = sig_await(SIG_META | SIG_LEFT, SCR_ACTION_TIMEOUT);
 
     // cleanup
-    scr_cleanup(false);
+    gui_cleanup(false);
 
     // handle delete
     if (event.type == SIG_LEFT) {
       // confirm deletion
-      const char* msg = scr_fmt(scr_trans()->delete__confirm, scr_file_name(file));
-      if (!scr_confirm(msg, scr_trans()->delete__delete, scr_trans()->back, false)) {
+      const char* msg = gui_fmt(scr_trans()->delete__confirm, scr_file_name(file));
+      if (!gui_confirm(msg, scr_trans()->delete__delete, scr_trans()->back, false, SCR_ACTION_TIMEOUT)) {
         return scr_edit;
       }
 
       // delete file
       uint16_t num = file->head.num;
       dat_delete(file->head.num);
-      scr_message(scr_fmt(scr_trans()->delete__deleted, num), 2000);
+      gui_message(gui_fmt(scr_trans()->delete__deleted, num), 2000);
 
       return scr_explore;
     }
@@ -1373,11 +1071,11 @@ static void* scr_edit() {
   }
 }
 
-static scr_list_item_t scr_explore_cb(int num, void* ctx) {
+static gui_list_item_t scr_explore_cb(int num, void* ctx) {
   // get file
   dat_file_t* file = dat_get_file(num);
 
-  return (scr_list_item_t){
+  return (gui_list_item_t){
       .title = scr_file_name(file),
       .info = scr_file_date(file),
   };
@@ -1395,13 +1093,14 @@ static void* scr_explore() {
   // handle empty
   if (total == 0) {
     // show message
-    scr_message(scr_trans()->explore__empty, 2000);
+    gui_message(scr_trans()->explore__empty, 2000);
 
     return scr_menu;
   }
 
   // show list
-  int ret = scr_list(total, scr_file, scr_trans()->explore__open, scr_trans()->back, scr_explore_cb, NULL);
+  int ret = gui_list(total, scr_file, scr_trans()->explore__open, scr_trans()->back, scr_explore_cb, NULL,
+                     SCR_ACTION_TIMEOUT);
   if (ret < 0) {
     return scr_menu;
   }
@@ -1416,7 +1115,7 @@ static void* scr_usb() {
   // check recording
   if (rec_running()) {
     // show message
-    scr_message(scr_trans()->usb__running, 2000);
+    gui_message(scr_trans()->usb__running, 2000);
 
     return scr_menu;
   }
@@ -1424,7 +1123,7 @@ static void* scr_usb() {
   // check connection
   if (!al_power_get().usb) {
     // show message
-    scr_message(scr_trans()->usb__disconnected, 2000);
+    gui_message(scr_trans()->usb__disconnected, 2000);
 
     return scr_menu;
   }
@@ -1461,14 +1160,14 @@ static void* scr_usb() {
   dat_disable_usb();
 
   // cleanup
-  scr_cleanup(false);
+  gui_cleanup(false);
 
   // clear USB flag
   scr_led_flags &= ~SCR_LED_USB;
 
   // show message on eject
   if (event.type == SIG_EJECT) {
-    scr_message(scr_trans()->usb__eject, 2000);
+    gui_message(scr_trans()->usb__eject, 2000);
   }
 
   return scr_menu;
@@ -1493,7 +1192,7 @@ static void* scr_settings() {
 
   // add storage
   lv_obj_t* storage = lv_label_create(lv_scr_act());
-  lv_label_set_text(storage, scr_fmt(scr_trans()->settings__storage, info.usage * 100.f));
+  lv_label_set_text(storage, gui_fmt(scr_trans()->settings__storage, info.usage * 100.f));
   lv_obj_align(storage, LV_ALIGN_TOP_LEFT, 5, 26);
 
   // add signs
@@ -1540,12 +1239,13 @@ static void* scr_settings() {
     sig_event_t event = sig_await(filter, SCR_ACTION_TIMEOUT);
 
     // cleanup
-    scr_cleanup(false);
+    gui_cleanup(false);
 
     // handle reset
     if (event.type == SIG_LEFT) {
       // confirm reset
-      if (!scr_confirm(scr_trans()->reset__confirm, scr_trans()->reset__yes, scr_trans()->reset__no, true)) {
+      if (!gui_confirm(scr_trans()->reset__confirm, scr_trans()->reset__yes, scr_trans()->reset__no, true,
+                       SCR_ACTION_TIMEOUT)) {
         return scr_settings;
       }
 
@@ -1553,7 +1253,7 @@ static void* scr_settings() {
       dat_reset();
 
       // show message
-      scr_message(scr_trans()->reset__reset, 2000);
+      gui_message(scr_trans()->reset__reset, 2000);
 
       // restart device
       esp_restart();
@@ -1590,7 +1290,7 @@ static void* scr_develop() {
   // handle list
   int ret = 0;
   for (;;) {
-    ret = scr_list_strings(ret, labels, "Select", "Cancel");
+    ret = gui_list_strings(ret, labels, "Select", "Cancel", SCR_ACTION_TIMEOUT);
     if (ret < 0) {
       return scr_menu;
     }
@@ -1628,14 +1328,14 @@ static void* scr_develop() {
     // handle ship mode
     if (ret == 4) {
       // show message
-      scr_write("Ship Mode\n\nConnect USB and\npress A to exit.");
+      gui_write("Ship Mode\n\nConnect USB and\npress A to exit.");
       naos_delay(1000);
 
       // enable ship mode
       al_power_ship();
 
       // clean up in case ship mode did not work
-      scr_cleanup(false);
+      gui_cleanup(false);
     }
 
     // handle screen saver
@@ -1651,7 +1351,7 @@ static void* scr_develop() {
 
     // handle clear display
     if (ret == 6) {
-      scr_cleanup(true);
+      gui_cleanup(true);
     }
 
     // handle bubbles test
@@ -1764,21 +1464,21 @@ static void* scr_menu() {
     gfx_begin(false, false);
 
     // update bar
-    bar.time = scr_fmt("%02d:%02d", hour, minute);
+    bar.time = gui_fmt("%02d:%02d", hour, minute);
     if (!sample.ok) {
       bar.value = scr_trans()->menu__no_data;
     } else if (mode == 0) {
-      bar.value = scr_fmt("%.0f ppm CO2", sample.co2);
+      bar.value = gui_fmt("%.0f ppm CO2", sample.co2);
     } else if (mode == 1) {
-      bar.value = scr_fmt("%.1f °C", sample.tmp);
+      bar.value = gui_fmt("%.1f °C", sample.tmp);
     } else if (mode == 2) {
-      bar.value = scr_fmt("%.1f%% RH", sample.hum);
+      bar.value = gui_fmt("%.1f%% RH", sample.hum);
     } else if (mode == 3) {
-      bar.value = scr_fmt("%.0f VOC", sample.voc);
+      bar.value = gui_fmt("%.0f VOC", sample.voc);
     } else if (mode == 4) {
-      bar.value = scr_fmt("%.0f NOx", sample.nox);
+      bar.value = gui_fmt("%.0f NOx", sample.nox);
     } else if (mode == 5) {
-      bar.value = scr_fmt("%.0f hPa", sample.prs);
+      bar.value = gui_fmt("%.0f hPa", sample.prs);
     }
     lvx_bar_update(&bar);
 
@@ -1937,7 +1637,7 @@ static void* scr_menu() {
     }
 
     // cleanup
-    scr_cleanup(false);
+    gui_cleanup(false);
 
     // clear action
     scr_action = 0;
@@ -1980,7 +1680,7 @@ static void* scr_menu() {
 
 static void* scr_time() {
   // show message
-  scr_message(scr_trans()->time__message, 3000);
+  gui_message(scr_trans()->time__message, 3000);
 
   // begin draw
   gfx_begin(false, false);
@@ -2034,7 +1734,7 @@ static void* scr_time() {
     }
 
     // cleanup
-    scr_cleanup(false);
+    gui_cleanup(false);
 
     // handle escape/timeout event
     if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
@@ -2050,7 +1750,7 @@ static void* scr_time() {
     al_clock_update();
 
     // show message
-    scr_message(scr_trans()->time__continue, 5000);
+    gui_message(scr_trans()->time__continue, 5000);
 
     // section action
     scr_action = STM_FROM_INTRO;
@@ -2061,7 +1761,7 @@ static void* scr_time() {
 
 static void* scr_date() {
   // show message
-  scr_message(scr_trans()->date__message, 5000);
+  gui_message(scr_trans()->date__message, 5000);
 
   // begin draw
   gfx_begin(false, false);
@@ -2116,7 +1816,7 @@ static void* scr_date() {
     }
 
     // cleanup
-    scr_cleanup(false);
+    gui_cleanup(false);
 
     // return on escape/timeout
     if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
@@ -2137,13 +1837,13 @@ static void* scr_date() {
 
 static void* scr_language() {
   // show message
-  scr_message(scr_trans()->language__message, 5000);
+  gui_message(scr_trans()->language__message, 5000);
 
   // prepare labels
   const char* labels[] = {"Deutsch", "English", NULL};
 
   // add row
-  int ret = scr_list_strings(scr_lang, labels, "Select", "Cancel");
+  int ret = gui_list_strings(scr_lang, labels, "Select", "Cancel", SCR_ACTION_TIMEOUT);
   if (ret < 0) {
     return scr_settings;
   }
@@ -2182,7 +1882,7 @@ static void* scr_intro() {
   naos_delay(3000);
 
   // cleanup
-  scr_cleanup(false);
+  gui_cleanup(false);
 
   return scr_date;
 }

@@ -43,6 +43,8 @@ set(SOURCE_FILES
         src/fnt.c
         src/gfx.c
         src/gfx.h
+        src/gui.c
+        src/gui.h
         src/hmi.c
         src/hmi.h
         src/img.c
