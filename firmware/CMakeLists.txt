@@ -30,6 +30,7 @@ set(SOURCE_FILES
         lib/epd.c
         lib/led.c
         lib/power.c
+        lib/sample.c
         lib/sensor.c
         lib/sensor_gas.c
         lib/sensor_gas.h
