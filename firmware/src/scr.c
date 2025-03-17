@@ -598,11 +598,11 @@ static void* scr_view() {
   lvx_bar_create(&bar, lv_scr_act());
 
   // add chart
-  lv_obj_t* chart = lv_canvas_create(lv_scr_act());
+  lv_obj_t* canvas = lv_canvas_create(lv_scr_act());
   static lv_color_t chart_buffer[LV_CANVAS_BUF_SIZE_TRUE_COLOR(288, 96)] = {0};
-  lv_canvas_set_buffer(chart, chart_buffer, 288, 96, LV_IMG_CF_TRUE_COLOR);
-  lv_obj_align(chart, LV_ALIGN_BOTTOM_LEFT, 5, -5);
-  lv_canvas_fill_bg(chart, lv_color_white(), LV_OPA_COVER);
+  lv_canvas_set_buffer(canvas, chart_buffer, 288, 96, LV_IMG_CF_TRUE_COLOR);
+  lv_obj_align(canvas, LV_ALIGN_BOTTOM_LEFT, 5, -5);
+  lv_canvas_fill_bg(canvas, lv_color_white(), LV_OPA_COVER);
 
   // end draw
   gfx_end(true, false);
@@ -733,7 +733,8 @@ static void* scr_view() {
     }
 
     // draw chart
-    lvx_chart_data_t chart_data = {
+    lvx_chart_draw((lvx_chart_t){
+        .canvas = canvas,
         .range = range,
         .values = values,
         .marks = marks,
@@ -744,8 +745,7 @@ static void* scr_view() {
         .stop = file->stop,
         .cursor = !recording,
         .index = index,
-    };
-    lvx_chart_draw(chart, chart_data);
+    });
 
     // end draw
     gfx_end(false, false);

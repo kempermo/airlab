@@ -77,6 +77,7 @@ void lvx_bubble_update(lvx_bubble_t *bubble);
 #define LVX_CHART_SIZE 72
 
 typedef struct {
+  lv_obj_t *canvas;
   float range;
   float *values;
   uint8_t *marks;
@@ -87,9 +88,9 @@ typedef struct {
   int32_t stop;    // relative to offset
   bool cursor;
   int index;
-} lvx_chart_data_t;
+} lvx_chart_t;
 
-void lvx_chart_draw(lv_obj_t *canvas, lvx_chart_data_t data);
+void lvx_chart_draw(lvx_chart_t chart);
 
 /* Helpers */
 
