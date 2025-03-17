@@ -74,4 +74,17 @@ size_t al_sample_search(al_sample_source_t *source, int32_t *offset);
 size_t al_sample_query(al_sample_source_t *source, al_sample_t *samples, size_t count, int32_t start,
                        int32_t resolution);
 
+/**
+ * Pick values from a sample source.
+ *
+ * @param source The source.
+ * @param sensor The sensor.
+ * @param num The sample index if positive or the offset from the last sample if negative.
+ * @param values The sensor values.
+ * @param min The minimum sensor value.
+ * @param max The maximum sensor value.
+ * @return The sensor history.
+ */
+size_t al_sample_pick(al_sample_source_t *source, al_sensor_t sensor, int num, float *values, float *min, float *max);
+
 #endif  // AL_SAMPLE_H

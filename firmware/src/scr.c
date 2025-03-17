@@ -1433,6 +1433,9 @@ static void* scr_menu() {
   // prepare statement
   stm_entry_t* statement = NULL;
 
+  // prepare sample source
+  al_sample_source_t source = al_sensor_source(AL_SENSOR_5S);
+
   for (;;) {
     // get time
     uint16_t hour, minute, seconds;
@@ -1444,7 +1447,7 @@ static void* scr_menu() {
     // query sensor
     float values[SCR_HIST_POINTS] = {0};
     float min = 0, max = 0;
-    al_sensor_query(AL_SENSOR_5S, (al_sensor_t)mode, SCR_HIST_POINTS, values, &min, &max);
+    al_sample_pick(&source, (al_sensor_t)mode, SCR_HIST_POINTS, values, &min, &max);
 
     // query statement
     if (statement == NULL && (exclaim || fun)) {

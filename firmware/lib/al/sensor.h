@@ -61,16 +61,11 @@ size_t al_sensor_count(al_sample_store_t store);
 al_sample_t al_sensor_get(al_sample_store_t store, int num);
 
 /**
- * Queries the sensor history.
+ * Returns a sample source for a store.
  *
  * @param store The store.
- * @param sensor The sensor.
- * @param num The sample index if positive or the offset from the last sample if negative.
- * @param values The sensor values.
- * @param min The minimum sensor value.
- * @param max The maximum sensor value.
- * @return The sensor history.
+ * @return The sample source.
  */
-size_t al_sensor_query(al_sample_store_t store, al_sensor_t sensor, int num, float *values, float *min, float *max);
+al_sample_source_t al_sensor_source(al_sample_store_t store);
 
 #endif  // AL_SENSOR_H

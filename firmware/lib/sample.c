@@ -124,3 +124,63 @@ size_t al_sample_query(al_sample_source_t *source, al_sample_t *samples, size_t 
 
   return count;
 }
+
+size_t al_sample_pick(al_sample_source_t *source, al_sensor_t sensor, int num, float *values, float *min, float *max) {
+  // limit number to count
+  int count = (int)source->count(source->ctx);
+  if (num > count) {
+    num = count;
+  }
+
+  // prepare from/to indexes
+  int from = 0;
+  int to = num;
+  if (num < 0) {
+    from = num;
+    to = 0;
+  }
+
+  // fill values
+  for (int i = from; i < to; i++) {
+    // read sample
+    al_sample_t sample;
+    source->read(source->ctx, &sample, 1, i);
+
+    // copy value
+    switch (sensor) {
+      case AL_SENSOR_CO2:
+        values[i] = sample.co2;
+        break;
+      case AL_SENSOR_TMP:
+        values[i] = sample.tmp;
+        break;
+      case AL_SENSOR_HUM:
+        values[i] = sample.hum;
+        break;
+      case AL_SENSOR_VOC:
+        values[i] = sample.voc;
+        break;
+      case AL_SENSOR_NOX:
+        values[i] = sample.nox;
+        break;
+      case AL_SENSOR_PRS:
+        values[i] = sample.prs;
+        break;
+    }
+  }
+
+  // calculate min/max
+  if (min != NULL) {
+    *min = 9999.f;
+  }
+  for (size_t i = 0; i < num; i++) {
+    if (max != NULL && values[i] > *max) {
+      *max = values[i];
+    }
+    if (min != NULL && values[i] < *min) {
+      *min = values[i];
+    }
+  }
+
+  return num;
+}

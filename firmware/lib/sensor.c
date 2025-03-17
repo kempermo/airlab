@@ -244,58 +244,22 @@ al_sample_t al_sensor_get(al_sample_store_t store, int num) {
   return samples[n];
 }
 
-size_t al_sensor_query(al_sample_store_t store, al_sensor_t sensor, int num, float *values, float *min, float *max) {
-  // limit number to count
-  int count = (int)al_sensor_count(store);
-  if (num > count) {
-    num = count;
-  }
+static size_t al_sensor_source_count(void *ctx) {
+  // get count
+  return al_sensor_count((al_sample_store_t)(int)ctx);
+}
 
-  // prepare from/to indexes
-  int from = 0;
-  int to = num;
-  if (num < 0) {
-    from = num;
-    to = 0;
-  }
-
-  // copy values
-  for (int i = from; i < to; i++) {
-    al_sample_t sample = al_sensor_get(store, i);
-    switch (sensor) {
-      case AL_SENSOR_CO2:
-        values[i] = sample.co2;
-        break;
-      case AL_SENSOR_TMP:
-        values[i] = sample.tmp;
-        break;
-      case AL_SENSOR_HUM:
-        values[i] = sample.hum;
-        break;
-      case AL_SENSOR_VOC:
-        values[i] = sample.voc;
-        break;
-      case AL_SENSOR_NOX:
-        values[i] = sample.nox;
-        break;
-      case AL_SENSOR_PRS:
-        values[i] = sample.prs;
-        break;
-    }
-  }
-
-  // calculate min/max
-  if (min != NULL) {
-    *min = 9999.f;
-  }
+static void al_sensor_source_read(void *ctx, al_sample_t *samples, size_t num, size_t offset) {
+  // read samples
   for (size_t i = 0; i < num; i++) {
-    if (max != NULL && values[i] > *max) {
-      *max = values[i];
-    }
-    if (min != NULL && values[i] < *min) {
-      *min = values[i];
-    }
+    samples[i] = al_sensor_get((al_sample_store_t)(int)ctx, (int)(offset + i));
   }
+}
 
-  return num;
+al_sample_source_t al_sensor_source(al_sample_store_t store) {
+  return (al_sample_source_t){
+      .ctx = (void *)(int)store,
+      .count = al_sensor_source_count,
+      .read = al_sensor_source_read,
+  };
 }
