@@ -219,7 +219,7 @@ size_t al_sensor_count(al_sample_store_t store) {
   }
 }
 
-al_sensor_sample_t al_sensor_read(al_sample_store_t store, int num) {
+al_sensor_sample_t al_sensor_get(al_sample_store_t store, int num) {
   // get store info
   al_sensor_sample_t *samples = al_sensor_store_5s;
   int count = al_sensor_store_count_5s;
@@ -261,7 +261,7 @@ size_t al_sensor_query(al_sample_store_t store, al_sensor_t sensor, int num, flo
 
   // copy values
   for (int i = from; i < to; i++) {
-    al_sensor_sample_t sample = al_sensor_read(store, i);
+    al_sensor_sample_t sample = al_sensor_get(store, i);
     switch (sensor) {
       case AL_SENSOR_CO2:
         values[i] = sample.co2;

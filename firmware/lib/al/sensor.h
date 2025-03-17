@@ -76,12 +76,12 @@ al_sensor_sample_t al_sensor_next();
 size_t al_sensor_count(al_sample_store_t store);
 
 /**
- * Reads a sensor sample from a store.
+ * Gets a sensor sample from a store.
  *
  * @param store The store.
  * @param num The sample index if positive or the offset from the last sample if negative.
  */
-al_sensor_sample_t al_sensor_read(al_sample_store_t store, int num);
+al_sensor_sample_t al_sensor_get(al_sample_store_t store, int num);
 
 /**
  * Queries the sensor history.
