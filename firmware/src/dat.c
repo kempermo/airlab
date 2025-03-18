@@ -473,6 +473,16 @@ static size_t dat_source_count(void *ctx) {
   return ((dat_file_t *)ctx)->size;
 }
 
+static int64_t dat_source_start(void *ctx) {
+  // return start
+  return ((dat_file_t *)ctx)->head.start;
+}
+
+static int32_t dat_source_stop(void *ctx) {
+  // return stop
+  return ((dat_file_t *)ctx)->stop;
+}
+
 static void dat_source_read(void *ctx, al_sample_t *samples, size_t count, size_t offset) {
   // read samples
   dat_read(((dat_file_t *)ctx)->head.num, samples, count, offset);
@@ -488,6 +498,8 @@ al_sample_source_t dat_source(uint16_t num) {
   return (al_sample_source_t){
       .ctx = file,
       .count = dat_source_count,
+      .start = dat_source_start,
+      .stop = dat_source_stop,
       .read = dat_source_read,
   };
 }

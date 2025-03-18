@@ -577,20 +577,17 @@ static void* scr_view() {
   // zero samples
   memset(samples, 0, sizeof(samples));
 
-  // find file
-  dat_file_t* file = dat_find(scr_file, NULL);
-  if (file == NULL) {
-    ESP_ERROR_CHECK(ESP_FAIL);
+  // find file, if not live
+  dat_file_t* file = NULL;
+  if (scr_file != 0) {
+    file = dat_find(scr_file, NULL);
+    if (file == NULL) {
+      ESP_ERROR_CHECK(ESP_FAIL);
+    }
   }
 
   // check recording
   bool recording = rec_running() && rec_file() == scr_file;
-
-  // prepare position
-  int32_t position = 0;
-  if (!recording) {
-    position = file->stop / 2;
-  }
 
   // begin draw
   gfx_begin(false, false);
@@ -613,23 +610,39 @@ static void* scr_view() {
   int64_t deadline = naos_millis() + SCR_IDLE_TIMEOUT;
 
   // prepare source
-  al_sample_source_t source = dat_source(scr_file);
+  al_sample_source_t source = {0};
+  if (file == NULL) {
+    source = al_sensor_source(AL_SENSOR_30S);
+  } else {
+    source = dat_source(scr_file);
+  }
+
+  // prepare position
+  int32_t position = 0;
+  if (!recording) {
+    position = source.stop(source.ctx) / 2;
+  }
 
   for (;;) {
+    // get source info
+    size_t source_count = source.count(source.ctx);
+    int64_t source_start = source.start(source.ctx);
+    int32_t source_stop = source.stop(source.ctx);
+
     // update recording
     recording = rec_running() && rec_file() == scr_file;
 
     // adjust position if recording
     if (recording) {
-      position = file->stop;
+      position = source_stop;
     }
 
     // calculate resolution
-    int32_t resolution = file->stop / LVX_CHART_SIZE;
+    int32_t resolution = source_stop / LVX_CHART_SIZE;
     if (recording) {
       resolution = SCR_MIN_RESOLUTION;
     } else if (advanced) {
-      resolution = file->stop / 10 / LVX_CHART_SIZE;
+      resolution = source_stop / 10 / LVX_CHART_SIZE;
     }
     if (resolution < SCR_MIN_RESOLUTION) {
       resolution = SCR_MIN_RESOLUTION;
@@ -652,8 +665,8 @@ static void* scr_view() {
         end += start * -1;
         start = 0;
       }
-      if (end > file->stop) {
-        int32_t shift = fminf(start, end - file->stop);
+      if (end > source_stop) {
+        int32_t shift = fminf(start, end - source_stop);
         end -= shift;
         start -= shift;
       }
@@ -665,7 +678,7 @@ static void* scr_view() {
     // TODO: Only query needed dimension.
 
     // query samples
-    if (file->size > 0) {
+    if (source_count > 0) {
       size_t num = al_sample_query(&source, samples, LVX_CHART_SIZE, start, resolution);
       if (recording) {
         index = num - 1;
@@ -674,11 +687,13 @@ static void* scr_view() {
 
     // find marks
     uint8_t marks[LVX_CHART_SIZE] = {0};
-    for (uint8_t i = 0; i < DAT_MARKS; i++) {
-      if (file->head.marks[i] > 0) {
-        int32_t mark = roundf(a32_map_f(file->head.marks[i], start, end, 0, LVX_CHART_SIZE - 1));
-        if (mark >= 0 && mark <= LVX_CHART_SIZE - 1) {
-          marks[(size_t)mark] = i + 1;
+    if (file != NULL) {
+      for (uint8_t i = 0; i < DAT_MARKS; i++) {
+        if (file->head.marks[i] > 0) {
+          int32_t mark = roundf(a32_map_f(file->head.marks[i], start, end, 0, LVX_CHART_SIZE - 1));
+          if (mark >= 0 && mark <= LVX_CHART_SIZE - 1) {
+            marks[(size_t)mark] = i + 1;
+          }
         }
       }
     }
@@ -689,17 +704,19 @@ static void* scr_view() {
     // parse time
     uint16_t hour;
     uint16_t minute;
-    al_clock_conv_epoch(file->head.start + (int64_t)current.off, &hour, &minute, NULL);
+    al_clock_conv_epoch(source_start + (int64_t)current.off, &hour, &minute, NULL);
 
     // begin draw
     gfx_begin(false, advanced);
 
     // update bar
     bar.time = lvx_fmt("%02d:%02d", hour, minute);
-    if (recording) {
-      bar.mark = file->marks > 0 ? lvx_fmt("(M%d)", file->marks) : "";
-    } else {
-      bar.mark = marks[index] > 0 ? lvx_fmt("(M%d)", marks[index]) : "";
+    if (file != NULL) {
+      if (recording) {
+        bar.mark = file->marks > 0 ? lvx_fmt("(M%d)", file->marks) : "";
+      } else {
+        bar.mark = marks[index] > 0 ? lvx_fmt("(M%d)", marks[index]) : "";
+      }
     }
     if (mode == 0) {
       bar.value = lvx_fmt("%.0f ppm CO2", current.co2);
@@ -757,10 +774,10 @@ static void* scr_view() {
         .values = values,
         .marks = marks,
         .arrows = advanced,
-        .offset = file->head.start,
+        .offset = source_start,
         .start = start,
         .end = end,
-        .stop = file->stop,
+        .stop = source_stop,
         .cursor = !recording,
         .index = index,
     });
@@ -843,6 +860,11 @@ static void* scr_view() {
       // set action
       scr_action = STM_FROM_ANALYSIS;
 
+      // handle live
+      if (scr_file == 0) {
+        return scr_menu;
+      }
+
       return scr_edit;
     }
 
@@ -880,8 +902,8 @@ static void* scr_view() {
       } else if (event.type == SIG_SCROLL) {
         position += resolution * (int32_t)(event.touch * 2);
       }
-      if (position > file->stop) {
-        position = file->stop;
+      if (position > source_stop) {
+        position = source_stop;
       }
       if (position < 0) {
         position = 0;
@@ -897,7 +919,7 @@ static void* scr_create() {
   // handle no space
   if (!samples) {
     gui_message(scr_trans()->create__full, 2000);
-    return scr_menu;
+    return scr_explore;
   }
 
   // calculate min and max time
@@ -953,7 +975,7 @@ static void* scr_create() {
 
     // handle escape and timeout
     if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
-      return scr_menu;
+      return scr_explore;
     }
 
     /* handle enter */
@@ -1061,8 +1083,16 @@ static void* scr_edit() {
 }
 
 static gui_list_item_t scr_explore_cb(int num, void* ctx) {
+  // handle create
+  if (num == 0) {
+    return (gui_list_item_t){
+        .title = "Create Measurement",
+        .info = "",
+    };
+  }
+
   // get file
-  dat_file_t* file = dat_get(num);
+  dat_file_t* file = dat_get(num - 1);
 
   return (gui_list_item_t){
       .title = scr_file_name(file),
@@ -1071,7 +1101,7 @@ static gui_list_item_t scr_explore_cb(int num, void* ctx) {
 }
 
 static void* scr_explore() {
-  // get total length
+  // get total
   size_t total = dat_count();
 
   // ignore last if recording
@@ -1079,27 +1109,27 @@ static void* scr_explore() {
     total--;
   }
 
-  // handle empty
-  if (total == 0) {
-    gui_message(scr_trans()->explore__empty, 2000);
-    return scr_menu;
-  }
-
-  // get index
-  int index;
-  if (!dat_find(scr_file, &index)) {
-    index = 0;
+  // get start
+  int start = 0;
+  if (dat_find(scr_file, &start)) {
+    start++;
   }
 
   // show list
-  int ret = gui_list((int)total, index, scr_trans()->explore__open, scr_trans()->back, scr_explore_cb, NULL,
+  int ret = gui_list((int)total + 1, start, scr_trans()->explore__open, scr_trans()->back, scr_explore_cb, NULL,
                      SCR_ACTION_TIMEOUT);
   if (ret < 0) {
     return scr_menu;
   }
 
+  // handle create
+  if (ret == 0) {
+    scr_file = 0;
+    return scr_create;
+  }
+
   // set file
-  scr_file = dat_get(ret)->head.num;
+  scr_file = dat_get(ret - 1)->head.num;
 
   return scr_edit;
 }
@@ -1652,13 +1682,9 @@ static void* scr_menu() {
     // handle enter
     if (event.type == SIG_ENTER) {
       switch (opt) {
-        case 0:  // create or view
-          if (rec_running()) {
-            scr_file = rec_file();
-            return scr_view;
-          } else {
-            return scr_create;
-          }
+        case 0:  // view recording or live
+          scr_file = rec_running() ? rec_file() : 0;
+          return scr_view;
         case 1:  // explore
           return scr_explore;
         case 2:  // settings

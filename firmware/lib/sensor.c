@@ -273,10 +273,30 @@ static size_t al_sensor_source_count(void *ctx) {
   return al_sensor_count((al_sensor_store_t)(int)ctx);
 }
 
+static int64_t al_sensor_source_start(void *ctx) {
+  // get first sample
+  al_sample_t sample = al_sensor_get((al_sensor_store_t)(int)ctx, 0);
+
+  // get start
+  return al_sensor_store_epoch + sample.off;
+}
+
+static int32_t al_sensor_source_stop(void *ctx) {
+  // get first sample
+  al_sample_t sample = al_sensor_get((al_sensor_store_t)(int)ctx, 0);
+
+  // get stop
+  return al_sensor_last().off - sample.off;
+}
+
 static void al_sensor_source_read(void *ctx, al_sample_t *samples, size_t num, size_t offset) {
+  // get first sample
+  al_sample_t sample = al_sensor_get((al_sensor_store_t)(int)ctx, 0);
+
   // read samples
   for (size_t i = 0; i < num; i++) {
     samples[i] = al_sensor_get((al_sensor_store_t)(int)ctx, (int)(offset + i));
+    samples[i].off -= sample.off;
   }
 }
 
@@ -284,6 +304,8 @@ al_sample_source_t al_sensor_source(al_sensor_store_t store) {
   return (al_sample_source_t){
       .ctx = (void *)(int)store,
       .count = al_sensor_source_count,
+      .start = al_sensor_source_start,
+      .stop = al_sensor_source_stop,
       .read = al_sensor_source_read,
   };
 }

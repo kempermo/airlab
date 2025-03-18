@@ -49,6 +49,8 @@ al_sample_t al_sample_lerp(al_sample_t a, al_sample_t b, int32_t offset);
 typedef struct {
   void *ctx;
   size_t (*count)(void *ctx);
+  int64_t (*start)(void *ctx);  // epoch
+  int32_t (*stop)(void *ctx);   // ms since start
   void (*read)(void *ctx, al_sample_t *samples, size_t num, size_t offset);
 } al_sample_source_t;
 
