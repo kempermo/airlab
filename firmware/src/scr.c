@@ -436,8 +436,8 @@ static void* scr_saver() {
     // get last sample
     al_sample_t sample = al_sensor_last();
 
-    // await sample, if missing (after reset)
-    if (!sample.co2) {
+    // await sample, if invalid (after reset)
+    if (!al_sample_valid(sample)) {
       sig_await(SIG_SENSOR, 0);
       sample = al_sensor_last();
     }
@@ -721,15 +721,15 @@ static void* scr_view() {
     if (mode == 0) {
       bar.value = lvx_fmt("%.0f ppm CO2", al_sample_read(current, AL_SENSOR_CO2));
     } else if (mode == 1) {
-      bar.value = lvx_fmt("%.1f °C",  al_sample_read(current, AL_SENSOR_TMP));
+      bar.value = lvx_fmt("%.1f °C", al_sample_read(current, AL_SENSOR_TMP));
     } else if (mode == 2) {
       bar.value = lvx_fmt("%.1f%% RH", al_sample_read(current, AL_SENSOR_HUM));
     } else if (mode == 3) {
-      bar.value = lvx_fmt("%.0f VOC",  al_sample_read(current, AL_SENSOR_VOC));
+      bar.value = lvx_fmt("%.0f VOC", al_sample_read(current, AL_SENSOR_VOC));
     } else if (mode == 4) {
-      bar.value = lvx_fmt("%.0f NOx",  al_sample_read(current, AL_SENSOR_NOX));
+      bar.value = lvx_fmt("%.0f NOx", al_sample_read(current, AL_SENSOR_NOX));
     } else if (mode == 5) {
-      bar.value = lvx_fmt("%.0f hPa",  al_sample_read(current, AL_SENSOR_PRS));
+      bar.value = lvx_fmt("%.0f hPa", al_sample_read(current, AL_SENSOR_PRS));
     }
     lvx_bar_update(&bar);
 
@@ -1481,20 +1481,20 @@ static void* scr_menu() {
 
     // update bar
     bar.time = lvx_fmt("%02d:%02d", hour, minute);
-    if (!sample.co2) {
+    if (!al_sample_valid(sample)) {
       bar.value = scr_trans()->menu__no_data;
     } else if (mode == 0) {
       bar.value = lvx_fmt("%.0f ppm CO2", al_sample_read(sample, AL_SENSOR_CO2));
     } else if (mode == 1) {
-      bar.value = lvx_fmt("%.1f °C",  al_sample_read(sample, AL_SENSOR_TMP));
+      bar.value = lvx_fmt("%.1f °C", al_sample_read(sample, AL_SENSOR_TMP));
     } else if (mode == 2) {
-      bar.value = lvx_fmt("%.1f%% RH",  al_sample_read(sample, AL_SENSOR_HUM));
+      bar.value = lvx_fmt("%.1f%% RH", al_sample_read(sample, AL_SENSOR_HUM));
     } else if (mode == 3) {
-      bar.value = lvx_fmt("%.0f VOC",  al_sample_read(sample, AL_SENSOR_VOC));
+      bar.value = lvx_fmt("%.0f VOC", al_sample_read(sample, AL_SENSOR_VOC));
     } else if (mode == 4) {
-      bar.value = lvx_fmt("%.0f NOx",  al_sample_read(sample, AL_SENSOR_NOX));
+      bar.value = lvx_fmt("%.0f NOx", al_sample_read(sample, AL_SENSOR_NOX));
     } else if (mode == 5) {
-      bar.value = lvx_fmt("%.0f hPa",  al_sample_read(sample, AL_SENSOR_PRS));
+      bar.value = lvx_fmt("%.0f hPa", al_sample_read(sample, AL_SENSOR_PRS));
     }
     lvx_bar_update(&bar);
 

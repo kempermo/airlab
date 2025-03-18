@@ -6,6 +6,11 @@
 
 #define AL_SAMPLE_LERP(a, b, f) (a * (1.f - f) + (b * f))
 
+bool al_sample_valid(al_sample_t sample) {
+  // a sample is valid if CO2 is not zero
+  return sample.co2 != 0;
+}
+
 float al_sample_read(al_sample_t sample, al_sensor_t sensor) {
   // return value
   switch (sensor) {

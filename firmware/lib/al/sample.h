@@ -1,6 +1,7 @@
 #ifndef AL_SAMPLE_H
 #define AL_SAMPLE_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -28,6 +29,13 @@ typedef struct __attribute__((packed)) {
   float nox;    // indexed
   float prs;    // hPa
 } al_sample_t;
+
+/**
+ * Checks if a sample is valid.
+ *
+ * @return True if the sample is valid.
+ */
+bool al_sample_valid(al_sample_t);
 
 /**
  * Reads a sensor value from a sample.

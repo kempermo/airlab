@@ -199,7 +199,7 @@ stm_entry_t* stm_query(bool exclaim, stm_action_t action) {
   al_sample_t sample = al_sensor_last();
 
   // check if ok
-  bool ok = sample.co2 != 0;
+  bool ok = al_sample_valid(sample);
 
   // de/select and count entries
   int selected = 0;
@@ -208,9 +208,9 @@ stm_entry_t* stm_query(bool exclaim, stm_action_t action) {
     stm_entry_t* entry = &stm_entries[i];
 
     // calculate values
-    float co2 =  al_sample_read(sample, AL_SENSOR_CO2);
-    float tmp =  al_sample_read(sample, AL_SENSOR_TMP);
-    float hum =  al_sample_read(sample, AL_SENSOR_HUM);
+    float co2 = al_sample_read(sample, AL_SENSOR_CO2);
+    float tmp = al_sample_read(sample, AL_SENSOR_TMP);
+    float hum = al_sample_read(sample, AL_SENSOR_HUM);
 
     // set selection
     entry->selected = true;
