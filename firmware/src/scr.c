@@ -734,15 +734,13 @@ static void* scr_view() {
     lvx_bar_update(&bar);
 
     // prepare range
-    float range = 100;
+    float range = 100;  // tmp, hum, nox
     if (mode == 0) {
       range = 3000;  // co2
     } else if (mode == 3) {
       range = 500;  // voc
     } else if (mode == 5) {
       range = 1500;  // prs
-    } else {
-      range = 100;  // tmp, hum, nox
     }
 
     // collect values
@@ -783,14 +781,14 @@ static void* scr_view() {
     sig_event_t event = sig_await(filter, SCR_IDLE_TIMEOUT);
 
     // handle deadline
-    if (event.type == SIG_APPEND && naos_millis() > deadline) {
+    if (event.type & (SIG_SENSOR | SIG_APPEND) && naos_millis() > deadline) {
       event.type = SIG_TIMEOUT;
-    } else if ((event.type & (SIG_KEYS | SIG_SCROLL)) != 0) {
+    } else if (event.type & (SIG_KEYS | SIG_SCROLL)) {
       deadline = naos_millis() + SCR_IDLE_TIMEOUT;
     }
 
     // update on append or stop
-    if (event.type == SIG_APPEND || event.type == SIG_STOP) {
+    if (event.type & (SIG_SENSOR | SIG_APPEND | SIG_STOP)) {
       continue;
     }
 
