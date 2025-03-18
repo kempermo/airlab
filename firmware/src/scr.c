@@ -1087,7 +1087,7 @@ static void* scr_explore() {
 
   // get index
   int index;
-  if (!dat_find(scr_file, &index) || index >= total) {
+  if (!dat_find(scr_file, &index)) {
     index = 0;
   }
 

@@ -310,11 +310,6 @@ dat_file_t *dat_find(uint16_t num, int *index) {
     }
   }
 
-  // clear index
-  if (index != NULL) {
-    *index = -1;
-  }
-
   return NULL;
 }
 
@@ -455,8 +450,7 @@ void dat_read(uint16_t num, al_sample_t *samples, size_t count, size_t start) {
 void dat_delete(uint16_t num) {
   // find file
   int index;
-  dat_find(num, &index);
-  if (index == -1) {
+  if (!dat_find(num, &index)) {
     ESP_ERROR_CHECK(ESP_FAIL);
   }
 
