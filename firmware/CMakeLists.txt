@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.7)
 project(airlab)
 
 # this should not be changed
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 17)
 
 # add your source files
 set(SOURCE_FILES
@@ -62,7 +62,6 @@ set(SOURCE_FILES
         src/sig.h
         src/stm.c
         src/stm.h
-        test/dat.c
 )
 
 # create a fake library target

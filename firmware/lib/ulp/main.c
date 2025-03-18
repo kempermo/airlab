@@ -7,7 +7,11 @@
 #include "../sensor_hal.h"
 
 #define READINGS 16  // 80s
-#define DEBUG false
+#define DEBUG true
+
+// use our own constant to avoid software floating point calculations
+#define MS_CYCLES 17500
+static_assert(MS_CYCLES == ULP_RISCV_CYCLES_PER_MS, "cycles mismatch");
 
 static al_sensor_hal_data_t data = {0};
 volatile int64_t start = 0;
@@ -39,7 +43,7 @@ static bool transfer(uint8_t addr, uint8_t* wd, size_t wl, uint8_t* rd, size_t r
 
 static void delay(uint32_t ms) {
   // perform delay
-  ulp_riscv_delay_cycles(ms * ULP_RISCV_CYCLES_PER_MS);
+  ulp_riscv_delay_cycles(ms * MS_CYCLES);
 }
 
 static void debug(const char* msg) {
@@ -52,8 +56,7 @@ static void debug(const char* msg) {
 
 static int64_t epoch() {
   // calculate milliseconds from cycles
-  int cycles = ULP_RISCV_GET_CCOUNT();
-  int millis = (int)(cycles / (ULP_RISCV_CYCLES_PER_MS));
+  int millis = ULP_RISCV_GET_CCOUNT() / MS_CYCLES;
 
   return start + (int64_t)millis;
 }
@@ -64,7 +67,7 @@ int main(void) {
   ulp_riscv_uart_cfg_t cfg = {.tx_pin = 3};
   ulp_riscv_uart_t uart;
   ulp_riscv_uart_init(&uart, &cfg);
-  ulp_riscv_print_install(ulp_riscv_uart_putc, &uart);
+  ulp_riscv_print_install((putc_fn_t)ulp_riscv_uart_putc, &uart);
   ulp_riscv_print_str("\nstart\n");
 #endif
 

@@ -100,7 +100,7 @@ static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
 
   // log store count
   if (AL_SENSOR_DEBUG) {
-    naos_log("sns: store 5s=%d 30s=%d", al_sensor_store_count_5s, al_sensor_store_count_30s);
+    naos_log("al-sns: store 5s=%d 30s=%d", al_sensor_store_count_5s, al_sensor_store_count_30s);
   }
 
   return sample;
