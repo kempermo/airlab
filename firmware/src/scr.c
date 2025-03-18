@@ -787,7 +787,9 @@ static void* scr_view() {
 
     // await event
     sig_type_t filter = SIG_KEYS | SIG_SCROLL;
-    if (recording) {
+    if (file == NULL) {
+      filter |= SIG_SENSOR;
+    } else if (recording) {
       filter |= SIG_APPEND | SIG_STOP;
     }
     sig_event_t event = sig_await(filter, SCR_IDLE_TIMEOUT);
