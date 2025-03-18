@@ -7,7 +7,7 @@
 #include "../sensor_hal.h"
 
 #define READINGS 16  // 80s
-#define DEBUG true
+#define DEBUG false
 
 // use our own constant to avoid software floating point calculations
 #define MS_CYCLES 17500

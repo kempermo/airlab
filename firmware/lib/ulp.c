@@ -15,7 +15,6 @@ extern const uint8_t al_ulp_bin_end[] asm("_binary_ulp_al_bin_end");
 
 void al_ulp_start() {
   // load ULP program
-  naos_log("al-ulp: length: %d", al_ulp_bin_end - al_ulp_bin_start);
   ESP_ERROR_CHECK(ulp_riscv_load_binary(al_ulp_bin_start, al_ulp_bin_end - al_ulp_bin_start));
 
   // configure ULP wake period
@@ -37,6 +36,9 @@ void al_ulp_start() {
   // store epoch
   int64_t *start = (int64_t *)&ulp_start;
   *start = al_clock_get_epoch();
+
+  // log
+  naos_log("al-ulp: started: length=%d", al_ulp_bin_end - al_ulp_bin_start);
 }
 
 void al_ulp_stop() {
