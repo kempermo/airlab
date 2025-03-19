@@ -234,6 +234,11 @@ static const char* scr_file_date(dat_file_t* file) {
   return buf;
 }
 
+static const char* scr_file_info(dat_file_t* file) {
+  // return info
+  return lvx_fmt("%s / %s", scr_file_date(file), scr_ms2str(file->stop));
+}
+
 /* Screens */
 
 static void* scr_view();
@@ -993,15 +998,10 @@ static void* scr_edit() {
   lv_label_set_text(title, scr_file_name(file));
   lv_obj_align(title, LV_ALIGN_TOP_LEFT, 5, 5);
 
-  // add date
-  lv_obj_t* date = lv_label_create(lv_scr_act());
-  lv_label_set_text(date, scr_file_date(file));
-  lv_obj_align(date, LV_ALIGN_TOP_LEFT, 5, 26);
-
-  // add length
-  lv_obj_t* length = lv_label_create(lv_scr_act());
-  lv_label_set_text(length, scr_ms2str(file->stop));
-  lv_obj_align(length, LV_ALIGN_TOP_MID, 0, 26);
+  // add info
+  lv_obj_t* info = lv_label_create(lv_scr_act());
+  lv_label_set_text(info, scr_file_info(file));
+  lv_obj_align(info, LV_ALIGN_TOP_LEFT, 5, 26);
 
   // add signs
   lvx_sign_t analyze = {
@@ -1077,7 +1077,7 @@ static gui_list_item_t scr_explore_cb(int num, void* ctx) {
 
   return (gui_list_item_t){
       .title = scr_file_name(file),
-      .info = scr_file_date(file),
+      .info = scr_file_info(file),
   };
 }
 
