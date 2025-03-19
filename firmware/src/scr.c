@@ -101,6 +101,9 @@ typedef struct {
   const char* delete__deleted;
   const char* edit__analyse;
   const char* edit__delete;
+  const char* edit__export;
+  const char* edit__export_fail;
+  const char* edit__export_done;
   const char* explore__empty;
   const char* explore__open;
   const char* usb__running;
@@ -145,6 +148,9 @@ static const scr_trans_t scr_trans_map[] = {
             .delete__deleted = "Messung %d\nerfolgreich gelöscht!",
             .edit__analyse = "Analysieren",
             .edit__delete = "Löschen",
+            .edit__export = "CSV Exportieren",
+            .edit__export_fail = "Export fehlgeschlagen!",
+            .edit__export_done = "Export erfolgreich!",
             .explore__empty = "Keine gespeicherte\nMessungen...",
             .explore__open = "Öffnen",
             .usb__running = "Messung läuft!",
@@ -187,6 +193,9 @@ static const scr_trans_t scr_trans_map[] = {
             .delete__deleted = "Measurement %d\nsuccessfully deleted!",
             .edit__analyse = "Analyse",
             .edit__delete = "Delete",
+            .edit__export = "Export CSV",
+            .edit__export_fail = "Export failed!",
+            .edit__export_done = "Export done!",
             .explore__empty = "No saved\nmeasurements...",
             .explore__open = "Open",
             .usb__running = "Measurement running!",
@@ -1020,16 +1029,23 @@ static void* scr_edit() {
       .align = LV_ALIGN_BOTTOM_LEFT,
       .offset = -25,
   };
+  lvx_sign_t export = {
+      .title = ">",
+      .text = scr_trans()->edit__export,
+      .align = LV_ALIGN_BOTTOM_RIGHT,
+      .offset = -25,
+  };
   lvx_sign_create(&analyze, lv_scr_act());
   lvx_sign_create(&back, lv_scr_act());
   lvx_sign_create(&delete, lv_scr_act());
+  lvx_sign_create(&export, lv_scr_act());
 
   // end draw
   gfx_end(false, false);
 
   for (;;) {
     // await event
-    sig_event_t event = sig_await(SIG_META | SIG_LEFT, SCR_ACTION_TIMEOUT);
+    sig_event_t event = sig_await(SIG_META | SIG_LEFT | SIG_RIGHT, SCR_ACTION_TIMEOUT);
 
     // cleanup
     gui_cleanup(false);
@@ -1048,6 +1064,18 @@ static void* scr_edit() {
       gui_message(lvx_fmt(scr_trans()->delete__deleted, num), 2000);
 
       return scr_explore;
+    }
+
+    // handle export
+    if (event.type == SIG_RIGHT) {
+      // export file
+      if (!dat_export(scr_file)) {
+        gui_message(scr_trans()->edit__export_fail, 2000);
+      } else {
+        gui_message(scr_trans()->edit__export_done, 2000);
+      }
+
+      return scr_edit;
     }
 
     // handle event

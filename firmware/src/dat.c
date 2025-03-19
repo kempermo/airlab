@@ -16,9 +16,11 @@
 
 #define DAT_ROOT "/fs"
 #define DAT_DATA_DIR "data"
+#define DAT_EXPORT_DIR "export"
 #define DAT_DUMP_DIR "dump"
 #define DAT_COUNTER "counter.bin"
 #define DAT_NAME_FMT "file-%04u.bin"
+#define DAT_EXPORT_FMT "file-%04u.csv"
 #define DAT_FILES 128
 #define DAT_DEBUG false
 
@@ -523,6 +525,66 @@ al_sample_source_t dat_source(uint16_t num) {
       .stop = dat_source_stop,
       .read = dat_source_read,
   };
+}
+
+bool dat_export(uint16_t num) {
+  // ensure directory
+  mkdir(DAT_ROOT "/" DAT_EXPORT_DIR, 0777);
+
+  // find file
+  dat_file_t *file = dat_find(num, NULL);
+  if (file == NULL) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
+
+  // calculate size
+  size_t size = sizeof(dat_head_t) + (file->size * sizeof(al_sample_t)) + 1024;
+
+  // get space
+  dat_info_t info = dat_info();
+  if (size > info.free) {
+    return false;
+  }
+
+  // encode name
+  char name[32];
+  snprintf(name, sizeof(name), DAT_EXPORT_FMT, num);
+
+  // write header
+  const char *header = "time,co2,tmp,hum,voc,nox,prs\n";
+  dat_write_file(DAT_EXPORT_DIR, name, (void *)header, 0, strlen(header), true);
+
+  // prepare pos
+  size_t pos = strlen(header);
+
+  // write samples
+  for (size_t i = 0; i < file->size; i += 32) {
+    // read samples
+    size_t count = file->size - i;
+    if (count > 32) {
+      count = 32;
+    }
+    al_sample_t samples[32];
+    dat_read(num, samples, count, i);
+
+    // TODO: Improve writing speed or report progress.
+
+    // write samples
+    for (size_t j = 0; j < count; j++) {
+      // prepare line
+      char line[64];
+      snprintf(line, sizeof(line), "%lld,%.0f,%.2f,%.2f,%.0f,%.0f,%.0f\n", file->head.start + (int64_t)samples[j].off,
+               al_sample_read(samples[j], AL_SAMPLE_CO2), al_sample_read(samples[j], AL_SAMPLE_TMP),
+               al_sample_read(samples[j], AL_SAMPLE_HUM), al_sample_read(samples[j], AL_SAMPLE_VOC),
+               al_sample_read(samples[j], AL_SAMPLE_NOX), al_sample_read(samples[j], AL_SAMPLE_PRS));
+
+      // write line
+      dat_write_file(DAT_EXPORT_DIR, name, (void *)line, pos, strlen(line), false);
+      pos += strlen(line);
+    }
+  }
+
+  return true;
 }
 
 void dat_reset() {

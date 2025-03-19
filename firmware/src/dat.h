@@ -46,6 +46,8 @@ void dat_delete(uint16_t num);
 
 al_sample_source_t dat_source(uint16_t num);
 
+bool dat_export(uint16_t num);
+
 void dat_reset();
 
 void dat_enable_usb();
