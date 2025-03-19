@@ -460,11 +460,11 @@ static void* scr_saver() {
     gfx_begin(false, false);
 
     // determine vertical
-    bool vertical = !acc.lock && (acc.rot == 90 || acc.rot == 270);
+    bool vertical = !acc.locked && (acc.rotation == 90 || acc.rotation == 270);
 
     // set display rotation
-    if (!acc.lock) {
-      lv_disp_set_rotation(NULL, acc.rot / 90);
+    if (!acc.locked) {
+      lv_disp_set_rotation(NULL, acc.rotation / 90);
     } else {
       lv_disp_set_rotation(NULL, LV_DISP_ROT_NONE);
     }

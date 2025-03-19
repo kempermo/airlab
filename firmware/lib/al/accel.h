@@ -8,13 +8,13 @@
  * The accelerometer state.
  *
  * @param front Whether the device is front facing.
- * @param rot The rotation of the device.
- * @param lock Whether the device is gimbal locked.
+ * @param rotation The rotation of the device.
+ * @param locked Whether the device is gimbal locked.
  */
 typedef struct {
   bool front;
-  uint16_t rot;
-  bool lock;
+  uint16_t rotation;
+  bool locked;
 } al_accel_state_t;
 
 /**

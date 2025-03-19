@@ -17,21 +17,17 @@ static void al_led_write(uint8_t reg, uint8_t val, bool may_fail) {
   }
 }
 
-static void al_led_reset() {
-  // reset chip
-  al_led_write(0x00, 0b00000111, true);
-
-  // disable auto blink
-  al_led_write(0x09, 0b00000110, false);
-
-  // turn LEDs off
-  al_led_set(0, 0, 0);
-}
-
 void al_led_init(bool reset) {
   // perform reset
   if (reset) {
-    al_led_reset();
+    // reset chip
+    al_led_write(0x00, 0b00000111, true);
+
+    // disable auto blink
+    al_led_write(0x09, 0b00000110, false);
+
+    // turn LEDs off
+    al_led_set(0, 0, 0);
   }
 }
 

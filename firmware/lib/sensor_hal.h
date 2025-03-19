@@ -30,8 +30,4 @@ bool al_sensor_hal_ready();
 
 bool al_sensor_hal_read(al_sensor_hal_data_t* data);
 
-bool al_sensor_hal_sleep();
-
-bool al_sensor_hal_wake();
-
 #endif  // AL_SENSOR_HAL_H

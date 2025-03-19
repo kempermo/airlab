@@ -88,6 +88,14 @@ void al_epd_transfer(spi_device_handle_t device, uint8_t *buf, size_t sizeBits) 
 
 /* bitmap manipulation */
 
+static bool al_epd_bmp_get(const uint8_t *buf, size_t pos) {
+  // get bit
+  size_t byte = pos / 8;
+  size_t bit = 7 - pos % 8;  // from left
+
+  return buf[byte] & (1 << bit);
+}
+
 static void al_epd_bmp_set(uint8_t *buf, size_t pos, bool val) {
   // determine byte and bit
   size_t byte = pos / 8;
@@ -101,32 +109,12 @@ static void al_epd_bmp_set(uint8_t *buf, size_t pos, bool val) {
   }
 }
 
-static bool al_epd_bmp_get(const uint8_t *buf, size_t pos) {
-  // get bit
-  size_t byte = pos / 8;
-  size_t bit = 7 - pos % 8;  // from left
-
-  return buf[byte] & (1 << bit);
-}
-
 static void al_epd_bmp_write(uint8_t *buf, size_t pos, uint8_t byte) {
   // write byte bit by bit
   for (size_t i = 0; i < 8; i++) {
     bool bit = al_epd_bmp_get(&byte, i);
     al_epd_bmp_set(buf, pos + i, bit);
   }
-}
-
-static void al_epd_bmp_print(const uint8_t *data, size_t length) {
-  // print buffer bits MSB first
-  printf("[ ");
-  for (size_t i = 0; i < length; i++) {
-    for (int j = 7; 0 <= j; j--) {
-      printf("%c", (data[i] & (1 << j)) ? '1' : '0');
-    }
-    printf(" ");
-  }
-  printf("] MSB-FIRST\n");
 }
 
 /* low-level helpers */

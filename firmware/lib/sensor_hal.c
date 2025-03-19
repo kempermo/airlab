@@ -10,6 +10,8 @@
     return false;      \
   }
 
+// TODO: Perform SGP41 conditioning after reset (10s)?
+
 static al_sensor_hal_ops_t al_sensor_hal_ops;
 static uint16_t al_sensor_hal_bw[4];
 static uint16_t al_sensor_hal_br[4];
@@ -153,32 +155,6 @@ bool al_sensor_hal_read(al_sensor_hal_data_t* data) {
 
   // set epoch
   data->epoch = al_sensor_hal_ops.epoch();
-
-  return true;
-}
-
-bool al_sensor_hal_sleep() {
-  // stop periodic measurement
-  AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD, 0x3f86, 0, 0, false));
-  al_sensor_hal_ops.delay(500);
-
-  // power down SCD
-  AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD, 0x36e0, 0, 0, false));
-
-  // TODO: Is turn off the SGP sensor ok?
-
-  // turn off SGP
-  AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SGP, 0x3615, 0, 0, false));
-
-  return true;
-}
-
-bool al_sensor_hal_wake() {
-  // wake up SCD
-  AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD, 0x36f6, 0, 0, false));
-
-  // start SCD periodic measurement
-  AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD, 0x21b1, 0, 0, false));
 
   return true;
 }

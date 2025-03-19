@@ -10,10 +10,6 @@
 
 #define AL_SENSOR_DEBUG false
 
-// TODO: Support low power measurement mode (30s).
-// TODO: Perform SGP41 conditioning (10s).
-// TODO: Update gas index sampling interval dynamically?
-
 static naos_mutex_t al_sensor_mutex;
 static naos_signal_t al_sensor_signal;
 static al_sensor_hook_t al_sensor_hook;
@@ -80,10 +76,6 @@ static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
   float co2 = (float)data.co2;
   float tmp = -45.f + 175.f * ((float)data.tmp / (float)(UINT16_MAX));
   float hum = 100.f * ((float)data.hum / (float)(UINT16_MAX));
-
-  // update sampling interval
-  // gas_voc_params.mSamplingInterval = input.delta;
-  // gas_nox_params.mSamplingInterval = input.delta;
 
   // perform gas index calculation
   int32_t voc_index = 0;
@@ -285,16 +277,8 @@ al_sample_t al_sensor_first() {
 }
 
 al_sample_t al_sensor_last() {
-  // get sample
-  naos_lock(al_sensor_mutex);
-  int pos = al_sensor_store_pos_5s - 1;
-  if (pos < 0) {
-    pos = AL_SENSOR_NUM_5S - 1;
-  }
-  al_sample_t sample = al_sensor_store_5s[pos];
-  naos_unlock(al_sensor_mutex);
-
-  return sample;
+  // get newest sample
+  return al_sensor_get(AL_SENSOR_5S, -1);
 }
 
 al_sample_t al_sensor_next() {

@@ -24,24 +24,6 @@ static uint8_t al_accel_read(uint8_t reg) {
   return val;
 }
 
-static void al_accel_reset() {
-  // reset device
-  al_accel_write(0x15, 0b10000000);
-
-  // configure interrupt polarity and wake from sleep
-  al_accel_write(0x18, 0b00010000);
-
-  // enable orientation interrupt
-  al_accel_write(0x20, 0b00001000);
-
-  // enable orientation detection with debounce
-  al_accel_write(0x29, 0b01000000);
-  al_accel_write(0x2A, 50);
-
-  // activate device
-  al_accel_write(0x15, 0b00000001);
-}
-
 static void al_accel_check() {
   // read orientation
   uint8_t orientation = al_accel_read(0x28);
@@ -54,8 +36,8 @@ static void al_accel_check() {
 
   // update state
   al_accel_state.front = front;
-  al_accel_state.rot = rot;
-  al_accel_state.lock = lock;
+  al_accel_state.rotation = rot;
+  al_accel_state.locked = lock;
 }
 
 static void al_accel_signal() {
@@ -66,7 +48,21 @@ static void al_accel_signal() {
 void al_accel_init(bool reset) {
   // perform reset
   if (reset) {
-    al_accel_reset();
+    // reset device
+    al_accel_write(0x15, 0b10000000);
+
+    // configure interrupt polarity and wake from sleep
+    al_accel_write(0x18, 0b00010000);
+
+    // enable orientation interrupt
+    al_accel_write(0x20, 0b00001000);
+
+    // enable orientation detection with debounce
+    al_accel_write(0x29, 0b01000000);
+    al_accel_write(0x2A, 50);
+
+    // activate device
+    al_accel_write(0x15, 0b00000001);
   }
 
   // setup interrupt
