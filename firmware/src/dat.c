@@ -161,7 +161,7 @@ static void dat_write_file(const char *dir, const char *name, void *buf, size_t 
 
   // write data
   size_t ret = fwrite(buf, 1, length, file);
-  if (ret != 0) {
+  if (ret != length) {
     ESP_ERROR_CHECK(errno);
   }
 
