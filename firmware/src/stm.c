@@ -208,7 +208,7 @@ stm_entry_t* stm_query(bool exclaim, stm_action_t action) {
     stm_entry_t* entry = &stm_entries[i];
 
     // calculate values
-    float co2 = al_sample_read(sample, AL_SENSOR_CO2);
+    float co2 = al_sample_read(sample, AL_SAMPLE_CO2);
     float tmp = al_sample_read(sample, AL_SAMPLE_TMP);
     float hum = al_sample_read(sample, AL_SAMPLE_HUM);
 

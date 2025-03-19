@@ -5,8 +5,9 @@
 
 #include <al/sample.h>
 
-#define AL_SENSOR_NUM_5S 120   // 10min
-#define AL_SENSOR_NUM_30S 360  // 3h
+#define AL_SENSOR_NUM_5S 60    // 5m
+#define AL_SENSOR_NUM_30S 120  // 1h
+#define AL_SENSOR_NUM_1M 300   // 5h
 
 /**
  * The available stores.
@@ -14,6 +15,7 @@
 typedef enum {
   AL_SENSOR_5S,
   AL_SENSOR_30S,
+  AL_SENSOR_1M,
 } al_sensor_store_t;
 
 /**
