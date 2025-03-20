@@ -11,7 +11,6 @@
 
 #define GFX_WIDTH AL_EPD_HEIGHT
 #define GFX_HEIGHT AL_EPD_WIDTH
-#define GFX_BUFFER (GFX_WIDTH * GFX_HEIGHT)
 #define GFX_DEBUG false
 #define GFX_TRACE false
 
@@ -20,11 +19,11 @@
 static naos_mutex_t gfx_mutex;
 static naos_signal_t gfx_signal;
 static lv_disp_draw_buf_t gfx_draw_buffer;
-static lv_color_t gfx_frame_buffer[GFX_BUFFER];
+static lv_color_t* gfx_frame_buffer = NULL;
 static lv_disp_drv_t gfx_driver;
 static lv_disp_t* gfx_display;
 static lv_group_t* gfx_group = NULL;
-static uint8_t gfx_frame[AL_EPD_FRAME];
+static uint8_t* gfx_frame = NULL;
 static lv_theme_t* gfx_theme;
 static bool gfx_refresh = false;
 static bool gfx_invert = false;
@@ -110,9 +109,15 @@ void gfx_init(bool reset) {
   gfx_mutex = naos_mutex();
   gfx_signal = naos_signal();
 
-  // clear buffers
-  memset(gfx_frame_buffer, 0, sizeof(gfx_frame_buffer));
-  memset(gfx_frame, 0, sizeof(gfx_frame));
+  // allocate buffers
+  gfx_frame_buffer = heap_caps_calloc(GFX_WIDTH * GFX_HEIGHT, sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+  gfx_frame = heap_caps_calloc(AL_EPD_FRAME, sizeof(uint8_t), MALLOC_CAP_SPIRAM);
+
+  if (gfx_frame_buffer == NULL) {
+    ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
+  } else if (gfx_frame == NULL) {
+    ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
+  }
 
   // initialize
   lv_init();
