@@ -84,6 +84,8 @@ typedef enum {
 static scr_lang_t scr_lang = SCR_EN;
 
 typedef struct {
+  const char* yes;
+  const char* no;
   const char* back;
   const char* next;
   const char* cancel;
@@ -111,8 +113,6 @@ typedef struct {
   const char* usb__active;
   const char* usb__eject;
   const char* reset__confirm;
-  const char* reset__yes;
-  const char* reset__no;
   const char* reset__reset;
   const char* settings__title;
   const char* settings__storage;
@@ -131,6 +131,8 @@ typedef struct {
 static const scr_trans_t scr_trans_map[] = {
     [SCR_DE] =
         {
+            .yes = "Ja",
+            .no = "Nein",
             .back = "Zurück",
             .next = "Weiter",
             .cancel = "Abbrechen",
@@ -158,8 +160,6 @@ static const scr_trans_t scr_trans_map[] = {
             .usb__active = "USB-Modus Aktiv",
             .usb__eject = "USB-Verbindung getrennt",
             .reset__confirm = "Air Lab\nwirklich zurücksetzen?",
-            .reset__yes = "Ja",
-            .reset__no = "Nein",
             .reset__reset = "Air Lab\nerfolgreich zurückgesetzt!",
             .settings__title = "Einstellungen",
             .settings__storage = "Speicher: %.1f%% belegt",
@@ -176,6 +176,8 @@ static const scr_trans_t scr_trans_map[] = {
         },
     [SCR_EN] =
         {
+            .yes = "Yes",
+            .no = "No",
             .back = "Back",
             .next = "Next",
             .cancel = "Cancel",
@@ -203,8 +205,6 @@ static const scr_trans_t scr_trans_map[] = {
             .usb__active = "USB Mode Active",
             .usb__eject = "USB-Connection disconnected",
             .reset__confirm = "Fully Reset Air Lab?",
-            .reset__yes = "Yes",
-            .reset__no = "No",
             .reset__reset = "Air Lab\nsuccessfully reset!",
             .settings__title = "Settings",
             .settings__storage = "Storage: %.1f%% used",
@@ -1276,8 +1276,7 @@ static void* scr_settings() {
     // handle reset
     if (event.type == SIG_LEFT) {
       // confirm reset
-      if (!gui_confirm(scr_trans()->reset__confirm, scr_trans()->reset__yes, scr_trans()->reset__no, true,
-                       SCR_ACTION_TIMEOUT)) {
+      if (!gui_confirm(scr_trans()->reset__confirm, scr_trans()->yes, scr_trans()->no, true, SCR_ACTION_TIMEOUT)) {
         return scr_settings;
       }
 
