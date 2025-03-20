@@ -1,6 +1,7 @@
 #include <naos.h>
 #include <naos/sys.h>
 
+#include <al/accel.h>
 #include <al/buttons.h>
 #include <al/touch.h>
 #include <al/buzzer.h>
@@ -19,6 +20,13 @@ static int8_t hmi_button_counts[8] = {0};
 static sig_type_t hmi_map[] = {
     SIG_ENTER, SIG_ESCAPE, SIG_UP, SIG_RIGHT, SIG_DOWN, SIG_LEFT,
 };
+
+static void hmi_accel_hook(al_accel_state_t) {
+  // dispatch event
+  sig_dispatch((sig_event_t){
+      .type = SIG_MOTION,
+  });
+}
 
 static void hmi_touch_hook(al_touch_event_t event) {
   // play click
@@ -128,6 +136,9 @@ static void hmi_button_check() {
 void hmi_init() {
   // create mutex
   hmi_mutex = naos_mutex();
+
+  // register accelerometer hook
+  al_accel_config(hmi_accel_hook);
 
   // get button state
   hmi_button_state = al_buttons_get();

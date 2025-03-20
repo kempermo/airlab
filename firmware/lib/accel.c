@@ -1,4 +1,5 @@
 #include <naos.h>
+#include <string.h>
 #include <naos/sys.h>
 #include <driver/gpio.h>
 
@@ -9,8 +10,10 @@
 #define AL_ACCEL_ADDR 0x18
 #define AL_ACCEL_DEBUG false
 
+static naos_mutex_t al_accel_mutex;
 static al_accel_state_t al_accel_state = {0};
 static uint16_t al_accel_rot_map[] = {180, 0, 90, 270};
+static al_accel_hook_t al_accel_hook = NULL;
 
 static void al_accel_write(uint8_t reg, uint8_t val) {
   // write data
@@ -34,10 +37,23 @@ static void al_accel_check() {
     naos_log("al-acc: front=%d rot=%d lock=%d", front, rot, lock);
   }
 
+  // prepare state
+  al_accel_state_t state = {
+      .front = front,
+      .rotation = rot,
+      .locked = lock,
+  };
+
   // update state
-  al_accel_state.front = front;
-  al_accel_state.rotation = rot;
-  al_accel_state.locked = lock;
+  naos_lock(al_accel_mutex);
+  bool changed = memcmp(&al_accel_state, &state, sizeof(al_accel_state_t)) != 0;
+  al_accel_state = state;
+  naos_unlock(al_accel_mutex);
+
+  // dispatch state if changed
+  if (changed && al_accel_hook != NULL) {
+    al_accel_hook(state);
+  }
 }
 
 static void al_accel_signal() {
@@ -65,6 +81,9 @@ void al_accel_init(bool reset) {
     al_accel_write(0x15, 0b00000001);
   }
 
+  // create mutex
+  al_accel_mutex = naos_mutex();
+
   // setup interrupt
   gpio_config_t cfg = {
       .pin_bit_mask = BIT64(AL_ACCEL_INT),
@@ -80,7 +99,18 @@ void al_accel_init(bool reset) {
   al_accel_check();
 }
 
+void al_accel_config(al_accel_hook_t hook) {
+  // store hook
+  naos_lock(al_accel_mutex);
+  al_accel_hook = hook;
+  naos_unlock(al_accel_mutex);
+}
+
 al_accel_state_t al_accel_get() {
-  // return state
-  return al_accel_state;
+  // capture state
+  naos_lock(al_accel_mutex);
+  al_accel_state_t state = al_accel_state;
+  naos_unlock(al_accel_mutex);
+
+  return state;
 }

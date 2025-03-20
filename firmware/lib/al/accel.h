@@ -18,6 +18,18 @@ typedef struct {
 } al_accel_state_t;
 
 /**
+ * The accelerometer hook.
+ */
+typedef void (*al_accel_hook_t)(al_accel_state_t);
+
+/**
+ * Configure the acceleration sensor.
+ *
+ * @param hook The accel hook.
+ */
+void al_accel_config(al_accel_hook_t hook);
+
+/**
  * Returns the cached accelerometer state.
  */
 al_accel_state_t al_accel_get();
