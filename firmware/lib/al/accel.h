@@ -9,12 +9,10 @@
  *
  * @param front Whether the device is front facing.
  * @param rotation The rotation of the device.
- * @param locked Whether the device is gimbal locked.
  */
 typedef struct {
   bool front;
   uint16_t rotation;
-  bool locked;
 } al_accel_state_t;
 
 /**

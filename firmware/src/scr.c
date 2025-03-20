@@ -483,14 +483,10 @@ static void* scr_saver() {
     gfx_begin(false, false);
 
     // determine vertical
-    bool vertical = !acc.locked && (acc.rotation == 90 || acc.rotation == 270);
+    bool vertical = acc.rotation == 90 || acc.rotation == 270;
 
     // set display rotation
-    if (!acc.locked) {
-      lv_disp_set_rotation(NULL, acc.rotation / 90);
-    } else {
-      lv_disp_set_rotation(NULL, LV_DISP_ROT_NONE);
-    }
+    lv_disp_set_rotation(NULL, acc.rotation / 90);
 
     // update battery
     if (power.usb && power.charging) {

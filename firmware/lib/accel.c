@@ -1,5 +1,4 @@
 #include <naos.h>
-#include <string.h>
 #include <naos/sys.h>
 #include <driver/gpio.h>
 
@@ -41,12 +40,11 @@ static void al_accel_check() {
   al_accel_state_t state = {
       .front = front,
       .rotation = rot,
-      .locked = lock,
   };
 
   // update state
   naos_lock(al_accel_mutex);
-  bool changed = memcmp(&al_accel_state, &state, sizeof(al_accel_state_t)) != 0;
+  bool changed = state.front != al_accel_state.front || state.rotation != al_accel_state.rotation;
   al_accel_state = state;
   naos_unlock(al_accel_mutex);
 
