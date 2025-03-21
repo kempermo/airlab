@@ -63,7 +63,9 @@ static void al_accel_check() {
 
 static void al_accel_signal() {
   // defer check
-  naos_defer_isr(al_accel_check);
+  if (gpio_get_level(AL_ACCEL_INT) == 0) {
+    naos_defer_isr(al_accel_check);
+  }
 }
 
 void al_accel_init(bool reset) {

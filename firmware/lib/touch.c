@@ -230,8 +230,10 @@ static void al_touch_check() {
 }
 
 static void al_touch_signal() {
-  // defer check
-  naos_defer_isr(al_touch_check);
+  // defer check if low
+  if (gpio_get_level(AL_TOUCH_INT) == 0) {
+    naos_defer_isr(al_touch_check);
+  }
 }
 
 static void al_touch_reset() {
