@@ -81,9 +81,12 @@ static struct {
   } regA;
 } al_power_bq25601;
 
-static void al_power_read(uint8_t reg, uint8_t *buf, size_t len) {
+static bool al_power_read(uint8_t reg, uint8_t *buf, size_t len) {
   // read data
-  ESP_ERROR_CHECK(al_i2c_transfer(AL_POWER_ADDR, &reg, 1, buf, len, 1000));
+  esp_err_t err = al_i2c_transfer(AL_POWER_ADDR, &reg, 1, buf, len, 1000);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(err);
+
+  return err == ESP_OK;
 }
 
 static void al_power_write(uint8_t reg, uint8_t val) {
@@ -106,7 +109,10 @@ void al_power_check() {
   }
 
   // read config
-  al_power_read(0x00, &al_power_bq25601.reg0.raw, 3);
+  if (!al_power_read(0x00, &al_power_bq25601.reg0.raw, 3)) {
+    naos_unlock(al_power_mutex);
+    return;
+  }
   bool fast_charge = al_power_bq25601.reg0.iindpm > 0x4;  // 500mA
   if (AL_POWER_DEBUG) {
     naos_log("al-pwr: config fast_charge=%d iindpm=%d ichg=%d", fast_charge, al_power_bq25601.reg0.iindpm,
@@ -114,7 +120,10 @@ void al_power_check() {
   }
 
   // read status
-  al_power_read(0x08, &al_power_bq25601.reg8.raw, 3);
+  if (!al_power_read(0x08, &al_power_bq25601.reg8.raw, 3)) {
+    naos_unlock(al_power_mutex);
+    return;
+  }
   bool charging = al_power_bq25601.reg8.chrg_stat != 0;
   bool power_good = al_power_bq25601.reg8.pg_stat == 1;
   bool any_fault = al_power_bq25601.reg9.raw != 0;
@@ -218,7 +227,9 @@ void al_power_off() {
 void al_power_ship() {
   // read settings
   uint8_t settings;
-  al_power_read(0x07, &settings, 1);
+  if (!al_power_read(0x07, &settings, 1)) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
 
   // set ship mode without delay
   settings |= 0x20;

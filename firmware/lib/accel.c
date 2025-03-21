@@ -20,15 +20,22 @@ static void al_accel_write(uint8_t reg, uint8_t val) {
   ESP_ERROR_CHECK(al_i2c_transfer(AL_ACCEL_ADDR, data, 2, NULL, 0, 1000));
 }
 
-static uint8_t al_accel_read(uint8_t reg) {
-  uint8_t val;
-  ESP_ERROR_CHECK(al_i2c_transfer(AL_ACCEL_ADDR, &reg, 1, &val, 1, 1000));
-  return val;
+static bool al_accel_read(uint8_t reg, uint8_t *val) {
+  // read data
+  esp_err_t err = al_i2c_transfer(AL_ACCEL_ADDR, &reg, 1, val, 1, 1000);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(err);
+
+  return err == ESP_OK;
 }
 
 static void al_accel_check() {
   // read orientation
-  uint8_t orientation = al_accel_read(0x28);
+  uint8_t orientation = 0;
+  if (!al_accel_read(0x28, &orientation)) {
+    return;
+  }
+
+  // check orientation
   bool front = orientation & 0b1;
   uint16_t rot = al_accel_rot_map[(orientation >> 1) & 0b11];
   bool lock = orientation & 0b1000000;
