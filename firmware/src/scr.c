@@ -436,13 +436,9 @@ static void* scr_saver() {
   // begin draw
   gfx_begin(false, false);
 
-  // add icons
-  lv_obj_t* battery = lv_img_create(lv_scr_act());
-  lv_obj_t* record = NULL;
-  if (rec_running()) {
-    record = lv_img_create(lv_scr_act());
-    lv_img_set_src(record, &img_record);
-  }
+  // add status
+  lvx_status_t status = {0};
+  lvx_status_create(&status, lv_scr_act());
 
   // add values
   lv_obj_t* time = lv_label_create(lv_scr_act());
@@ -493,19 +489,6 @@ static void* scr_saver() {
     // set display rotation
     lv_disp_set_rotation(NULL, acc.rotation / 90);
 
-    // update battery
-    if (power.usb && power.charging) {
-      lv_img_set_src(battery, &img_power);
-    } else if (power.battery > 0.75) {
-      lv_img_set_src(battery, &img_bat3);
-    } else if (power.battery > 0.5) {
-      lv_img_set_src(battery, &img_bat2);
-    } else if (power.battery > 0.25) {
-      lv_img_set_src(battery, &img_bat1);
-    } else {
-      lv_img_set_src(battery, &img_bat0);
-    }
-
     // TODO: Show VOC, NOx and pressure.
 
     // update values
@@ -532,16 +515,10 @@ static void* scr_saver() {
       lv_obj_align(hum_big, LV_ALIGN_TOP_MID, 0, 175);
       lv_obj_align(hum, LV_ALIGN_TOP_MID, 0, 175 + 27);
       lv_obj_align(time, LV_ALIGN_BOTTOM_RIGHT, -25, -25);
-      lv_obj_align(battery, LV_ALIGN_BOTTOM_LEFT, 25, -25);
-      if (record != NULL) {
-        lv_obj_align(record, LV_ALIGN_BOTTOM_LEFT, 45, -25);
-      }
+      lv_obj_align(status.row, LV_ALIGN_BOTTOM_LEFT, 25, -25);
     } else {
       lv_align_t align = right ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT;
-      lv_obj_align(battery, align, right ? -20 : 20, 19);
-      if (record != NULL) {
-        lv_obj_align(record, align, right ? -36 : 36, 20);
-      }
+      lv_obj_align(status.row, align, right ? -20 : 20, 19);
       lv_obj_align(time, align, right ? -19 : 19, 41);
       lv_obj_align(co2, align, right ? -19 : 19, 59);
       lv_obj_align(tmp, align, right ? -19 : 19, 77);

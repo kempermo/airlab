@@ -245,6 +245,59 @@ void lvx_sign_create(lvx_sign_t* sign, lv_obj_t* parent) {
   }
 }
 
+/* Status */
+
+void lvx_status_create(lvx_status_t* status, lv_obj_t* parent) {
+  // create row
+  status->row = lv_obj_create(parent);
+  lv_obj_set_size(status->row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_set_flex_flow(status->row, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(status->row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_border_width(status->row, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(status->row, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_row(status->row, 7, LV_PART_MAIN);
+
+  // create icons
+  status->pwr = lv_img_create(status->row);
+  status->rec = lv_img_create(status->row);
+  status->net = lv_img_create(status->row);
+
+  // set images
+  lv_img_set_src(status->pwr, &img_power);
+  lv_img_set_src(status->rec, &img_record);
+  lv_img_set_src(status->net, &img_connected);
+}
+
+void lvx_status_update(lvx_status_t* status) {
+  // update power
+  al_power_state_t power = al_power_get();
+  if (power.usb && power.charging) {
+    lv_img_set_src(status->pwr, &img_power);
+  } else if (power.battery > 0.75) {
+    lv_img_set_src(status->pwr, &img_bat3);
+  } else if (power.battery > 0.5) {
+    lv_img_set_src(status->pwr, &img_bat2);
+  } else if (power.battery > 0.25) {
+    lv_img_set_src(status->pwr, &img_bat1);
+  } else {
+    lv_img_set_src(status->pwr, &img_bat0);
+  }
+
+  // update recording
+  if (rec_running()) {
+    lv_obj_clear_flag(status->rec, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(status->rec, LV_OBJ_FLAG_HIDDEN);
+  }
+
+  // update network
+  if (naos_status() == NAOS_NETWORKED) {
+    lv_obj_clear_flag(status->net, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(status->net, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
 /* Bar */
 
 void lvx_bar_create(lvx_bar_t* bar, lv_obj_t* parent) {
@@ -252,24 +305,9 @@ void lvx_bar_create(lvx_bar_t* bar, lv_obj_t* parent) {
   bar->_time = lv_label_create(parent);
   lv_obj_align(bar->_time, LV_ALIGN_TOP_LEFT, 5, 5);
 
-  // add power icon
-  bar->_pwr = lv_img_create(parent);
-  lv_obj_align(bar->_pwr, LV_ALIGN_TOP_LEFT, 60, 3);
-
-  // add record icon if recording
-  if (rec_running()) {
-    bar->_rec = lv_img_create(parent);
-    lv_img_set_src(bar->_rec, &img_record);
-    lv_obj_align(bar->_rec, LV_ALIGN_TOP_LEFT, 80, 5);
-  }
-
-  // add connected icon
-  bar->_con = lv_img_create(parent);
-  lv_img_set_src(bar->_con, &img_connected);
-  lv_obj_align(bar->_con, LV_ALIGN_TOP_LEFT, 100, 5);
-  if (naos_status() != NAOS_NETWORKED) {
-    lv_obj_add_flag(bar->_con, LV_OBJ_FLAG_HIDDEN);
-  }
+  // create status
+  lvx_status_create(&bar->_status, parent);
+  lv_obj_align(bar->_status.row, LV_ALIGN_TOP_LEFT, 60, 3);
 
   // add mark label
   bar->_mrk = lv_label_create(parent);
@@ -292,28 +330,8 @@ void lvx_bar_update(lvx_bar_t* bar) {
   // set time
   lv_label_set_text(bar->_time, bar->time);
 
-  // read power
-  al_power_state_t power = al_power_get();
-
-  // update power
-  if (power.usb && power.charging) {
-    lv_img_set_src(bar->_pwr, &img_power);
-  } else if (power.battery > 0.75) {
-    lv_img_set_src(bar->_pwr, &img_bat3);
-  } else if (power.battery > 0.5) {
-    lv_img_set_src(bar->_pwr, &img_bat2);
-  } else if (power.battery > 0.25) {
-    lv_img_set_src(bar->_pwr, &img_bat1);
-  } else {
-    lv_img_set_src(bar->_pwr, &img_bat0);
-  }
-
-  // update connected icon
-  if (naos_status() == NAOS_NETWORKED) {
-    lv_obj_clear_flag(bar->_con, LV_OBJ_FLAG_HIDDEN);
-  } else {
-    lv_obj_add_flag(bar->_con, LV_OBJ_FLAG_HIDDEN);
-  }
+  // update status
+  lvx_status_update(&bar->_status);
 
   // update mark
   lv_label_set_text(bar->_mrk, bar->mark != NULL ? bar->mark : "");

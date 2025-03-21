@@ -41,6 +41,18 @@ typedef struct {
 
 void lvx_sign_create(lvx_sign_t *sign, lv_obj_t *parent);
 
+/* Status */
+
+typedef struct {
+  lv_obj_t *row;
+  lv_obj_t *pwr;
+  lv_obj_t *rec;
+  lv_obj_t *net;
+} lvx_status_t;
+
+void lvx_status_create(lvx_status_t *status, lv_obj_t *parent);
+void lvx_status_update(lvx_status_t *status);
+
 /* Bar */
 
 typedef struct {
@@ -49,9 +61,7 @@ typedef struct {
   const char *value;
   // ---
   lv_obj_t *_time;
-  lv_obj_t *_pwr;
-  lv_obj_t *_rec;
-  lv_obj_t *_con;
+  lvx_status_t _status;
   lv_obj_t *_mrk;
   lv_obj_t *_val;
   lv_obj_t *_ar1;
