@@ -1,4 +1,6 @@
+#include <string.h>
 #include <naos.h>
+#include <naos/msg.h>
 #include <naos/fs.h>
 #include <naos/ble.h>
 #include <naos/wifi.h>
@@ -9,11 +11,120 @@
 
 #include "dat.h"
 
+#define ENDPOINT 0xA1
+
+typedef enum {
+  COM_CMD_SENSOR_READ = 0x01,
+} com_cmd_t;
+
 static bool com_mqtt_ha = false;
+
+static naos_msg_reply_t com_cmd_sensor_read(naos_msg_t msg) {
+  // command structure:
+  // SINCE (8)
+
+  // check length
+  if (msg.len != 8) {
+    return NAOS_MSG_INVALID;
+  }
+
+  // get since
+  int64_t since;
+  memcpy(&since, msg.data, sizeof(since));
+
+  // prepare source
+  al_sample_source_t source = al_sensor_source();
+
+  // get source info
+  size_t count = source.count(source.ctx);
+  int64_t start = source.start(source.ctx);
+
+  // prepare index
+  size_t index = 0;
+  if (since > 0) {
+    int32_t offset = (int32_t)(since - start);
+    index = al_sample_search(&source, &offset);
+  }
+
+  // check index
+  if (index == -1) {
+    return NAOS_MSG_ACK;
+  }
+
+  // send start
+  if (!naos_msg_send((naos_msg_t){
+          .session = msg.session,
+          .endpoint = ENDPOINT,
+          .data = (uint8_t*)&start,
+          .len = sizeof(start),
+      })) {
+    return NAOS_MSG_ERROR;
+  }
+
+  // send samples
+  for (size_t i = index; i < count; i++) {
+    // get sample
+    al_sample_t sample = {0};
+    source.read(source.ctx, &sample, 1, i);
+
+    // send reply
+    if (!naos_msg_send((naos_msg_t){
+            .session = msg.session,
+            .endpoint = ENDPOINT,
+            .data = (uint8_t*)&sample,
+            .len = sizeof(sample),
+        })) {
+      return NAOS_MSG_ERROR;
+    }
+  }
+
+  return NAOS_MSG_ACK;
+}
+
+static naos_msg_reply_t com_handle(naos_msg_t msg) {
+  // message structure:
+  // CMD (1) | *
+
+  // check length
+  if (msg.len == 0) {
+    return NAOS_MSG_INVALID;
+  }
+
+  // check lock status
+  if (naos_msg_is_locked(msg.session)) {
+    return NAOS_MSG_LOCKED;
+  }
+
+  // get command
+  com_cmd_t cmd = msg.data[0];
+
+  // resize message
+  msg.data = &msg.data[1];
+  msg.len -= 1;
+
+  // handle command
+  naos_msg_reply_t reply;
+  switch (cmd) {
+    case COM_CMD_SENSOR_READ:
+      reply = com_cmd_sensor_read(msg);
+      break;
+    default:
+      reply = NAOS_MSG_UNKNOWN;
+  }
+
+  return reply;
+}
 
 static void com_task() {
   // wait some time
   naos_delay(5000);
+
+  // install endpoint
+  naos_msg_install((naos_msg_endpoint_t){
+      .ref = ENDPOINT,
+      .name = "com",
+      .handle = com_handle,
+  });
 
   // run network
   naos_fs_install((naos_fs_config_t){.root = DAT_ROOT});
