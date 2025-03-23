@@ -54,6 +54,8 @@ set(SOURCE_FILES
         src/lvx.c
         src/lvx.h
         src/main.c
+        src/com.c
+        src/com.h
         src/rec.c
         src/rec.h
         src/scr.c
