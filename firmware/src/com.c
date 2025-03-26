@@ -182,29 +182,29 @@ void com_online() {
 
   // prepare discovery messages
   const char* co2 =
-      "{ \"name\": \"Air Lab CO2\", \"state_topic\": \"airlab/co2\", \"unit_of_measurement\": \"ppm\", "
+      "{ \"name\": \"CO2\", \"state_topic\": \"airlab/co2\", \"unit_of_measurement\": \"ppm\", "
       "\"device_class\": \"carbon_dioxide\", \"state_class\": \"measurement\", \"unique_id\": \"al_co2\", \"device\": "
       "{ \"identifiers\": [\"al_01\"], \"name\": \"Air Lab\", \"manufacturer\": \"Networked Artifacts\", \"model\": "
       "\"R3-2025\" } }";
   const char* tmp =
-      "{ \"name\": \"Air Lab TMP\", \"state_topic\": \"airlab/tmp\", \"unit_of_measurement\": \"°C\", "
+      "{ \"name\": \"Temperature\", \"state_topic\": \"airlab/tmp\", \"unit_of_measurement\": \"°C\", "
       "\"device_class\": \"temperature\", \"state_class\": \"measurement\", \"unique_id\": \"al_tmp\", \"device\": { "
       "\"identifiers\": [\"al_01\"], \"name\": \"Air Lab\", \"manufacturer\": \"Networked Artifacts\", \"model\": "
       "\"R3-2025\" } }";
   const char* hum =
-      "{ \"name\": \"Air Lab HUM\", \"state_topic\": \"airlab/hum\", \"unit_of_measurement\": \"%\", \"device_class\": "
+      "{ \"name\": \"Humidity\", \"state_topic\": \"airlab/hum\", \"unit_of_measurement\": \"%\", \"device_class\": "
       "\"humidity\", \"state_class\": \"measurement\", \"unique_id\": \"al_hum\", \"device\": { \"identifiers\": "
       "[\"al_01\"], \"name\": \"Air Lab\", \"manufacturer\": \"Networked Artifacts\", \"model\": \"R3-2025\" } }";
   const char* voc =
-      "{ \"name\": \"Air Lab VOC\", \"state_topic\": \"airlab/voc\", \"unit_of_measurement\": \"\", \"device_class\": "
+      "{ \"name\": \"VOC\", \"state_topic\": \"airlab/voc\", \"unit_of_measurement\": \"\", \"device_class\": "
       "\"aqi\", \"state_class\": \"measurement\", \"unique_id\": \"al_voc\", \"device\": { \"identifiers\": "
       "[\"al_01\"], \"name\": \"Air Lab\", \"manufacturer\": \"Networked Artifacts\", \"model\": \"R3-2025\" } }";
   const char* nox =
-      "{ \"name\": \"Air Lab NOX\", \"state_topic\": \"airlab/nox\", \"unit_of_measurement\": \"\", \"device_class\": "
+      "{ \"name\": \"NOx\", \"state_topic\": \"airlab/nox\", \"unit_of_measurement\": \"\", \"device_class\": "
       "\"aqi\", \"state_class\": \"measurement\", \"unique_id\": \"al_nox\", \"device\": { \"identifiers\": "
       "[\"al_01\"], \"name\": \"Air Lab\", \"manufacturer\": \"Networked Artifacts\", \"model\": \"R3-2025\" } }";
   const char* prs =
-      "{ \"name\": \"Air Lab PRS\", \"state_topic\": \"airlab/prs\", \"unit_of_measurement\": \"hPa\", "
+      "{ \"name\": \"Pressure\", \"state_topic\": \"airlab/prs\", \"unit_of_measurement\": \"hPa\", "
       "\"device_class\": \"atmospheric_pressure\", \"state_class\": \"measurement\", \"unique_id\": \"al_prs\", "
       "\"device\": { \"identifiers\": [\"al_01\"], \"name\": \"Air Lab\", \"manufacturer\": \"Networked Artifacts\", "
       "\"model\": \"R3-2025\" } }";
