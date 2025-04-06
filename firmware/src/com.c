@@ -40,14 +40,14 @@ static naos_msg_reply_t com_cmd_sensor_read(naos_msg_t msg) {
   int64_t start = source.start(source.ctx);
 
   // prepare index
-  size_t index = 0;
+  int index = 0;
   if (since > 0) {
     int32_t offset = (int32_t)(since - start);
     index = al_sample_search(&source, &offset);
   }
 
   // check index
-  if (index == -1) {
+  if (index < 0) {
     return NAOS_MSG_ACK;
   }
 

@@ -46,13 +46,13 @@ al_sample_t al_sample_lerp(al_sample_t a, al_sample_t b, int32_t offset) {
   };
 }
 
-size_t al_sample_search(al_sample_source_t *source, int32_t *offset) {
+int al_sample_search(al_sample_source_t *source, int32_t *offset) {
   // get count
-  size_t count = source->count(source->ctx);
+  int count = (int)source->count(source->ctx);
 
   // calculate range
-  size_t start = 0;
-  size_t end = count - 1;
+  int start = 0;
+  int end = count - 1;
 
   // prepare sample
   al_sample_t sample;
@@ -60,7 +60,7 @@ size_t al_sample_search(al_sample_source_t *source, int32_t *offset) {
   // find first offset that is greater or equal using binary search
   while (start <= end) {
     // determine middle
-    size_t middle = (start + end) / 2;
+    int middle = (start + end) / 2;
 
     // read sample
     source->read(source->ctx, &sample, 1, middle);
@@ -95,7 +95,10 @@ size_t al_sample_query(al_sample_source_t *source, al_sample_t *samples, size_t 
 
   // find beginning of range
   int32_t needle = start;
-  size_t index = al_sample_search(source, &needle);
+  int index = al_sample_search(source, &needle);
+  if (index == -1) {
+    return 0;
+  }
   if (needle > start) {
     index--;
   }

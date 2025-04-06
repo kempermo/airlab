@@ -78,9 +78,9 @@ typedef struct {
  *
  * @param source The source to search.
  * @param offset The offset to search for.
- * @return The index of the sample.
+ * @return The index of the sample or -1 if not found.
  */
-size_t al_sample_search(al_sample_source_t *source, int32_t *offset);
+int al_sample_search(al_sample_source_t *source, int32_t *offset);
 
 /**
  * Queries samples from a source and interpolates to match the given resolution.
