@@ -304,6 +304,9 @@ void al_touch_init(bool reset) {
   };
   ESP_ERROR_CHECK(gpio_config(&io_cfg));
   ESP_ERROR_CHECK(gpio_isr_handler_add(AL_TOUCH_INT, al_touch_signal, NULL));
+
+  // exit lower power device
+  al_touch_read8(0x86);
 }
 
 void al_touch_config(al_touch_hook_t hook) {
