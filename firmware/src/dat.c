@@ -693,6 +693,9 @@ void dat_disable_usb() {
 }
 
 void dat_dump(const char *name, const void *data, size_t size) {
+  // ensure directory
+  mkdir(DAT_ROOT "/" DAT_DUMP_DIR, 0777);
+
   // truncate and write file
   dat_write_file(DAT_DUMP_DIR, name, (void *)data, 0, size, true);
 }

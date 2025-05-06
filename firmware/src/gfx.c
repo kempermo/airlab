@@ -28,6 +28,7 @@ static lv_theme_t* gfx_theme;
 static bool gfx_refresh = false;
 static bool gfx_invert = false;
 static bool gfx_skip = false;
+static bool gfx_record = false;
 
 static void gfx_task() {
   for (;;) {
@@ -84,7 +85,7 @@ static void gfx_flush(lv_disp_drv_t* driver, const lv_area_t* area, lv_color_t* 
     }
 
     // record screen, if enabled
-    if (DEV_RECORD_SCREEN) {
+    if (gfx_record) {
       char name[32];
       snprintf(name, sizeof(name), "screen-%llu.bin", naos_millis());
       dat_dump(name, gfx_frame, AL_EPD_FRAME);
@@ -104,7 +105,16 @@ static void gfx_log(const char* buf) { printf("%s", buf); }
 static void gfx_log(const char* _) {}
 #endif
 
+static naos_param_t gfx_params[] = {
+  {.name = "gfx-record", .type = NAOS_BOOL, .sync_b =  &gfx_record},
+};
+
 void gfx_init(bool reset) {
+  // register params
+  for (size_t i = 0; i < sizeof(gfx_params) / sizeof(naos_param_t); i++) {
+    naos_register(gfx_params);
+  }
+
   // create mutex and signal
   gfx_mutex = naos_mutex();
   gfx_signal = naos_signal();
