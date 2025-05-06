@@ -143,32 +143,26 @@ func animate(glob string) {
 		},
 	}
 
-	// prepare delay
-	var lastMillis int
-
 	// handle files
 	for i, file := range files {
-		// log file
-		fmt.Println(file.name)
-
-		// convert image
-		img := convertImage(file.data, palette, *scale)
-
 		// calculate delay
-		delay := 0
-		if i > 0 {
-			delay = (file.millis - lastMillis) / 10
+		delay := 100
+		if i < len(files)-1 {
+			delay = (files[i+1].millis - file.millis) / 10
 			if *fast {
 				delay = 5
 			}
 		}
 
+		// log file
+		fmt.Printf("%s (%.2f)\n", file.name, float64(delay)/100)
+
+		// convert image
+		img := convertImage(file.data, palette, *scale)
+
 		// add image
 		gifImage.Image = append(gifImage.Image, img)
 		gifImage.Delay = append(gifImage.Delay, delay)
-
-		// update last millis
-		lastMillis = file.millis
 	}
 
 	// encode GIF
