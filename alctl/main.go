@@ -138,8 +138,8 @@ func animate(glob string) {
 	gifImage := &gif.GIF{
 		Config: image.Config{
 			ColorModel: palette,
-			Width:      screenWidth,
-			Height:     screenHeight,
+			Width:      screenWidth * *scale,
+			Height:     screenHeight * *scale,
 		},
 	}
 
