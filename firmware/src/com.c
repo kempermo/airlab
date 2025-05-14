@@ -164,16 +164,6 @@ static naos_param_t com_params[] = {
     {.name = "mqtt-ha", .type = NAOS_BOOL, .sync_b = &com_mqtt_ha},
 };
 
-void com_init() {
-  // register params
-  for (size_t i = 0; i < sizeof(com_params) / sizeof(naos_param_t); i++) {
-    naos_register(&com_params[i]);
-  }
-
-  // run task
-  naos_run("com", 4096, 1, com_task);
-}
-
 void com_online() {
   // check if home assistant is enabled
   if (!com_mqtt_ha) {
@@ -216,4 +206,15 @@ void com_online() {
   naos_publish_s("homeassistant/sensor/al_voc/config", voc, 0, true, NAOS_GLOBAL);
   naos_publish_s("homeassistant/sensor/al_nox/config", nox, 0, true, NAOS_GLOBAL);
   naos_publish_s("homeassistant/sensor/al_prs/config", prs, 0, true, NAOS_GLOBAL);
+}
+
+void com_init() {
+  // register params
+  for (size_t i = 0; i < sizeof(com_params) / sizeof(naos_param_t); i++) {
+    naos_register(&com_params[i]);
+  }
+
+  // run tasks
+  naos_run("com", 4096, 1, com_task);
+  naos_repeat("com-discovery", 10000, com_online);
 }
