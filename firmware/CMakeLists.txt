@@ -19,6 +19,7 @@ set(SOURCE_FILES
         lib/al/power.h
         lib/al/sample.h
         lib/al/sensor.h
+        lib/al/storage.h
         lib/al/touch.h
         lib/ulp/main.c
         lib/accel.c
@@ -36,6 +37,7 @@ set(SOURCE_FILES
         lib/sensor_gas.h
         lib/sensor_hal.c
         lib/sensor_hal.h
+        lib/storage.c
         lib/touch.c
         lib/ulp.c
         src/dat.c

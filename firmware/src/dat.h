@@ -6,7 +6,6 @@
 
 #include <al/sample.h>
 
-#define DAT_ROOT "/fs"
 #define DAT_MARKS 99
 
 typedef struct __attribute__((packed)) {
@@ -24,18 +23,11 @@ typedef struct {
   int8_t marks;  // num marks
 } dat_file_t;
 
-typedef struct {
-  uint32_t total;
-  uint32_t free;
-  float usage;
-} dat_info_t;
-
 void dat_init();
 
 size_t dat_count();
 dat_file_t *dat_get(size_t num);
 dat_file_t *dat_find(uint16_t num, int *index);
-dat_info_t dat_info();
 
 uint16_t dat_next();
 uint16_t dat_create(int64_t start);

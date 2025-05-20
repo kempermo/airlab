@@ -8,8 +8,7 @@
 #include <naos/sys.h>
 
 #include <al/sensor.h>
-
-#include "dat.h"
+#include <al/storage.h>
 
 #define ENDPOINT 0xA1
 
@@ -127,7 +126,7 @@ static void com_task() {
   });
 
   // run network
-  naos_fs_install((naos_fs_config_t){.root = DAT_ROOT});
+  naos_fs_install((naos_fs_config_t){.root = AL_STORAGE_ROOT});
   naos_ble_init((naos_ble_config_t){});
   naos_wifi_init();
   naos_mqtt_init(1);

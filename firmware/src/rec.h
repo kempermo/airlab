@@ -3,8 +3,6 @@
 
 #include <stdbool.h>
 
-#include "dat.h"
-
 void rec_init();
 uint32_t rec_free(bool new);
 uint16_t rec_file();

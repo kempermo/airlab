@@ -3,12 +3,14 @@
 
 #include <al/sensor.h>
 #include <al/clock.h>
+#include <al/storage.h>
 
 #include "rec.h"
 #include "sig.h"
+#include "dat.h"
 
-#define REC_MIN_FREE_NEW (3 * CONFIG_WL_SECTOR_SIZE)
-#define REC_MIN_FREE_CONT (2 * CONFIG_WL_SECTOR_SIZE)
+#define REC_MIN_FREE_NEW (3 * 4096)
+#define REC_MIN_FREE_CONT (2 * 4096)
 
 static naos_mutex_t rec_mutex = NULL;
 static naos_task_t rec_handle = NULL;
@@ -68,7 +70,7 @@ void rec_init() {
 
 uint32_t rec_free(bool new) {
   // get info
-  dat_info_t info = dat_info();
+  al_storage_info_t info = al_storage_info();
 
   // check free space
   if (info.free < (new ? REC_MIN_FREE_NEW : REC_MIN_FREE_CONT)) {

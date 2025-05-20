@@ -1,17 +1,14 @@
 #include <naos.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <esp_vfs_fat.h>
-#include <esp_partition.h>
-#include <tinyusb.h>
-#include <tusb_msc_storage.h>
-
 #include <al/sensor.h>
+#include <al/storage.h>
+#include <esp_err.h>
+#include <esp_heap_caps.h>
 
 #include "dat.h"
 #include "sig.h"
@@ -25,83 +22,18 @@
 #define DAT_FILES 128
 #define DAT_DEBUG false
 
-static wl_handle_t dat_wl_handle;
+#define DAT_MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 static uint16_t dat_counter;
 static dat_file_t *dat_files;
 static size_t dat_files_length = 0;
 
 // TODO: Handle file overflow.
-// TODO: Explore need for high speed USB support.
-
-static tusb_desc_device_t dat_usb_dev_desc = {
-    .bLength = sizeof(dat_usb_dev_desc),
-    .bDescriptorType = TUSB_DESC_DEVICE,
-    .bcdUSB = 0x0200,
-    .bDeviceClass = TUSB_CLASS_MISC,
-    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
-    .bDeviceProtocol = MISC_PROTOCOL_IAD,
-    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
-    .idVendor = USB_ESPRESSIF_VID,
-    .idProduct = 0x4002,
-    .bcdDevice = 0x100,
-    .iManufacturer = 0x01,
-    .iProduct = 0x02,
-    .iSerialNumber = 0x03,
-    .bNumConfigurations = 0x01,
-};
-
-static uint8_t const dat_usb_cfg_desc[] = {
-    // config number, interface count, string index, total length, attribute, power in mA
-    TUD_CONFIG_DESCRIPTOR(1, 1, 0, TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    // interface number, string index, EP Out & EP In address, EP size
-    TUD_MSC_DESCRIPTOR(0, 0, 0x01, 0x81, 64),
-};
-
-static char const *dat_usb_str_desc[] = {
-    (const char[]){0x09, 0x04},  // supported language is English (0x0409)
-    "TinyUSB",                   // manufacturer
-    "TinyUSB Device",            // product
-    "123456",                    // serials
-    "Example MSC",               // MSC
-};
-
-static void dat_usb_msc_cb(tinyusb_msc_event_t *event) {
-  // log event
-  if (DAT_DEBUG) {
-    naos_log("dat: MSC event=%d mounted=%d", event->type, event->mount_changed_data.is_mounted);
-  }
-
-  // dispatch eject event on device-side re-mount
-  if (event->type == TINYUSB_MSC_EVENT_MOUNT_CHANGED && event->mount_changed_data.is_mounted) {
-    sig_dispatch((sig_event_t){
-        .type = SIG_EJECT,
-    });
-  }
-}
-
-static bool dat_access() {
-  // open file
-  FILE *file = fopen(DAT_ROOT "/TEST", "w");
-  if (file == NULL) {
-    return false;
-  }
-
-  // close file
-  fclose(file);
-
-  // remove file
-  int ret = remove(DAT_ROOT "/TEST");
-  if (ret != 0) {
-    return false;
-  }
-
-  return true;
-}
 
 static void dat_read_file(const char *dir, const char *name, void *buf, size_t offset, size_t length) {
   // prepare path
   char path[32] = {0};
-  strcat(path, DAT_ROOT "/");
+  strcat(path, AL_STORAGE_ROOT "/");
   strcat(path, dir);
   strcat(path, "/");
   strcat(path, name);
@@ -138,7 +70,7 @@ static void dat_read_file(const char *dir, const char *name, void *buf, size_t o
 static void dat_write_file(const char *dir, const char *name, void *buf, size_t offset, size_t length, bool truncate) {
   // prepare path
   char path[32] = {0};
-  strcat(path, DAT_ROOT "/");
+  strcat(path, AL_STORAGE_ROOT "/");
   strcat(path, dir);
   strcat(path, "/");
   strcat(path, name);
@@ -175,7 +107,7 @@ static void dat_write_file(const char *dir, const char *name, void *buf, size_t 
 static void dat_delete_file(const char *dir, const char *name) {
   // prepare path
   char path[32] = {0};
-  strcat(path, DAT_ROOT "/");
+  strcat(path, AL_STORAGE_ROOT "/");
   strcat(path, dir);
   strcat(path, "/");
   strcat(path, name);
@@ -192,6 +124,13 @@ static void dat_delete_file(const char *dir, const char *name) {
   }
 }
 
+static void dat_eject() {
+  // dispatch eject signal
+  sig_dispatch((sig_event_t){
+      .type = SIG_EJECT,
+  });
+}
+
 void dat_init() {
   // allocate files
   dat_files = heap_caps_calloc(DAT_FILES, sizeof(dat_file_t), MALLOC_CAP_SPIRAM);
@@ -199,29 +138,14 @@ void dat_init() {
     ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
   }
 
-  // mount FAT file system
-  const esp_vfs_fat_mount_config_t mount_config = {
-      .max_files = 2,
-      .format_if_mount_failed = true,
-      .allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
-  };
-  ESP_ERROR_CHECK(esp_vfs_fat_spiflash_mount_rw_wl(DAT_ROOT, "storage", &mount_config, &dat_wl_handle));
-
-  // check access
-  if (!dat_access()) {
-    naos_log("dat: no access, formatting storage...");
-    ESP_ERROR_CHECK(esp_vfs_fat_spiflash_format_rw_wl(DAT_ROOT, "storage"));
-    naos_log("dat: storage formatted!");
-  }
-
   // ensure directory
-  mkdir(DAT_ROOT "/" DAT_DATA_DIR, 0777);
+  mkdir(AL_STORAGE_ROOT "/" DAT_DATA_DIR, 0777);
 
   // clear list
   dat_files_length = 0;
 
   // open directory
-  DIR *dir = opendir(DAT_ROOT "/" DAT_DATA_DIR);
+  DIR *dir = opendir(AL_STORAGE_ROOT "/" DAT_DATA_DIR);
   if (dir == NULL) {
     ESP_ERROR_CHECK(errno);
   }
@@ -256,7 +180,7 @@ void dat_init() {
 
     // prepare path
     char path[32] = {0};
-    strcat(path, DAT_ROOT "/");
+    strcat(path, AL_STORAGE_ROOT "/");
     strcat(path, DAT_DATA_DIR "/");
     strcat(path, entry->d_name);
 
@@ -338,30 +262,6 @@ dat_file_t *dat_find(uint16_t num, int *index) {
   }
 
   return NULL;
-}
-
-dat_info_t dat_info() {
-  // get free FATFS clusters
-  FATFS *fs;
-  uint32_t free_clusters;
-  FRESULT res = f_getfree(DAT_ROOT, &free_clusters, &fs);
-  if (res != FR_OK) {
-    ESP_ERROR_CHECK(res);
-  }
-
-  // calculate total and free sectors
-  uint32_t total_sectors = (fs->n_fatent - 2) * fs->csize;
-  uint32_t free_sectors = free_clusters * fs->csize;
-
-  // calculate total and free bytes
-  uint32_t total_bytes = total_sectors * CONFIG_WL_SECTOR_SIZE;
-  uint32_t free_bytes = free_sectors * CONFIG_WL_SECTOR_SIZE;
-
-  return (dat_info_t){
-      .total = total_bytes,
-      .free = free_bytes,
-      .usage = (float)(total_bytes - free_bytes) / (float)total_bytes,
-  };
 }
 
 uint16_t dat_next() {
@@ -548,14 +448,14 @@ bool dat_import(uint16_t num) {
   size_t size = sizeof(dat_head_t) + (count * sizeof(al_sample_t)) + 1024;
 
   // check space
-  if (size > dat_info().free) {
+  if (size > al_storage_info().free) {
     return false;
   }
 
   // append samples
   for (size_t i = 0; i < count; i += 32) {
     // read samples
-    size_t n = MIN(file->size - i, 32);
+    size_t n = DAT_MIN(file->size - i, 32);
     al_sample_t samples[32];
     source.read(source.ctx, samples, n, i);
 
@@ -570,7 +470,7 @@ bool dat_import(uint16_t num) {
 
 bool dat_export(uint16_t num) {
   // ensure directory
-  mkdir(DAT_ROOT "/" DAT_EXPORT_DIR, 0777);
+  mkdir(AL_STORAGE_ROOT "/" DAT_EXPORT_DIR, 0777);
 
   // find file
   dat_file_t *file = dat_find(num, NULL);
@@ -582,7 +482,7 @@ bool dat_export(uint16_t num) {
   size_t size = sizeof(dat_head_t) + (file->size * sizeof(al_sample_t)) + 1024;
 
   // check space
-  if (size > dat_info().free) {
+  if (size > al_storage_info().free) {
     return false;
   }
 
@@ -600,7 +500,7 @@ bool dat_export(uint16_t num) {
   // write samples
   for (size_t i = 0; i < file->size; i += 32) {
     // read samples
-    size_t count = MIN(file->size - i, 32);
+    size_t count = DAT_MIN(file->size - i, 32);
     al_sample_t samples[32];
     dat_read(num, samples, count, i);
 
@@ -625,8 +525,8 @@ bool dat_export(uint16_t num) {
 }
 
 void dat_reset() {
-  // format storage
-  ESP_ERROR_CHECK(esp_vfs_fat_spiflash_format_rw_wl(DAT_ROOT, "storage"));
+  // reset storage
+  al_storage_reset();
 
   // reset counter and length
   dat_counter = 0;
@@ -634,67 +534,18 @@ void dat_reset() {
 }
 
 void dat_enable_usb() {
-  // unmount storage
-  ESP_ERROR_CHECK(esp_vfs_fat_spiflash_unmount_rw_wl(DAT_ROOT, dat_wl_handle));
-
-  // find partition
-  const esp_partition_t *data_partition =
-      esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "storage");
-  if (data_partition == NULL) {
-    ESP_ERROR_CHECK(ESP_ERR_NOT_FOUND);
-  }
-
-  // initialize wear levelling
-  ESP_ERROR_CHECK(wl_mount(data_partition, &dat_wl_handle));
-
-  // initialize USB mass storage
-  const tinyusb_msc_spiflash_config_t config_spi = {
-      .wl_handle = dat_wl_handle,
-      .callback_mount_changed = dat_usb_msc_cb,
-      .callback_premount_changed = dat_usb_msc_cb,
-      .mount_config =
-          {
-              .max_files = 2,
-              .format_if_mount_failed = true,
-              .allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
-          },
-  };
-  ESP_ERROR_CHECK(tinyusb_msc_storage_init_spiflash(&config_spi));
-
-  // initialize USB driver
-  const tinyusb_config_t usb_cfg = {
-      .device_descriptor = &dat_usb_dev_desc,
-      .string_descriptor = dat_usb_str_desc,
-      .string_descriptor_count = sizeof(dat_usb_str_desc) / sizeof(dat_usb_str_desc[0]),
-      .configuration_descriptor = dat_usb_cfg_desc,
-      .self_powered = true,
-      .vbus_monitor_io = GPIO_NUM_18,
-  };
-  ESP_ERROR_CHECK(tinyusb_driver_install(&usb_cfg));
+  // enable USB
+  al_storage_enable_usb(dat_eject);
 }
 
 void dat_disable_usb() {
-  // uninstall driver
-  ESP_ERROR_CHECK(tinyusb_driver_uninstall());
-
-  // de-initialize USB mass storage
-  tinyusb_msc_storage_deinit();
-
-  // unmount wear levelling
-  ESP_ERROR_CHECK(wl_unmount(dat_wl_handle));
-
-  // remount storage
-  const esp_vfs_fat_mount_config_t mount_config = {
-      .max_files = 2,
-      .format_if_mount_failed = true,
-      .allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
-  };
-  ESP_ERROR_CHECK(esp_vfs_fat_spiflash_mount_rw_wl(DAT_ROOT, "storage", &mount_config, &dat_wl_handle));
+  // disable USB
+  al_storage_disable_usb();
 }
 
 void dat_dump(const char *name, const void *data, size_t size) {
   // ensure directory
-  mkdir(DAT_ROOT "/" DAT_DUMP_DIR, 0777);
+  mkdir(AL_STORAGE_ROOT "/" DAT_DUMP_DIR, 0777);
 
   // truncate and write file
   dat_write_file(DAT_DUMP_DIR, name, (void *)data, 0, size, true);

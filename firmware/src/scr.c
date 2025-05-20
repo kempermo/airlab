@@ -14,6 +14,7 @@
 #include <al/power.h>
 #include <al/clock.h>
 #include <al/sensor.h>
+#include <al/storage.h>
 
 #include "gui.h"
 #include "gfx.h"
@@ -25,6 +26,7 @@
 #include "dev.h"
 #include "stm.h"
 #include "hmi.h"
+#include "dat.h"
 
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
@@ -1253,7 +1255,7 @@ static void* scr_usb() {
 
 static void* scr_settings() {
   // get storage info
-  dat_info_t info = dat_info();
+  al_storage_info_t info = al_storage_info();
 
   // begin draw
   gfx_begin(false, false);
