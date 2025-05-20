@@ -1,5 +1,7 @@
 #include <naos.h>
 #include <naos/sys.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 #include <al/sensor.h>
 

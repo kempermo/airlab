@@ -3,6 +3,7 @@
 #include <lvgl/src/misc/lv_log.h>
 
 #include <al/epd.h>
+#include <esp_heap_caps.h>
 
 #include "gfx.h"
 #include "dat.h"

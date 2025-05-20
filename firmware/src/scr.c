@@ -1,6 +1,8 @@
 #include <naos.h>
 #include <naos/sys.h>
 #include <naos/cpu.h>
+#include <esp_err.h>
+#include <esp_system.h>
 #include <art32/numbers.h>
 #include <lvgl.h>
 #include <math.h>

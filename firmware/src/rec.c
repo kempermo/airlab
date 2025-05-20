@@ -1,4 +1,5 @@
 #include <naos/sys.h>
+#include <esp_err.h>
 
 #include <al/sensor.h>
 #include <al/clock.h>
