@@ -4,7 +4,7 @@
 
 #include <al/core.h>
 #include <al/power.h>
-#include <al/sensor.h>
+#include <al/store.h>
 #include <al/storage.h>
 
 #include "dev.h"
@@ -26,8 +26,8 @@ static void sync() {
   naos_set_d("storage", al_storage_info().usage);
 
   // configure interval
-  if (naos_get_l("long-interval") != al_sensor_get_interval()) {
-    al_sensor_set_interval(naos_get_l("long-interval"));
+  if (naos_get_l("long-interval") != al_store_get_interval()) {
+    al_store_set_interval(naos_get_l("long-interval"));
   }
 }
 

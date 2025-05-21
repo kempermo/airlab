@@ -38,6 +38,7 @@ set(SOURCE_FILES
         lib/sensor_hal.c
         lib/sensor_hal.h
         lib/storage.c
+        lib/store.c
         lib/touch.c
         lib/ulp.c
         src/dat.c

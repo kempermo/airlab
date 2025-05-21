@@ -8,6 +8,7 @@
 #include <naos/sys.h>
 
 #include <al/sensor.h>
+#include <al/store.h>
 #include <al/storage.h>
 
 #define ENDPOINT 0xA1
@@ -32,7 +33,7 @@ static naos_msg_reply_t com_cmd_sensor_read(naos_msg_t msg) {
   memcpy(&since, msg.data, sizeof(since));
 
   // prepare source
-  al_sample_source_t source = al_sensor_source();
+  al_sample_source_t source = al_store_source();
 
   // get source info
   size_t count = source.count(source.ctx);

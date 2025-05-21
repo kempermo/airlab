@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <al/sensor.h>
+#include <al/store.h>
 #include <al/storage.h>
 #include <esp_err.h>
 #include <esp_heap_caps.h>
@@ -439,7 +440,7 @@ bool dat_import(uint16_t num) {
   }
 
   // prepare source
-  al_sample_source_t source = al_sensor_source();
+  al_sample_source_t source = al_store_source();
 
   // get source info
   size_t count = source.count(source.ctx);

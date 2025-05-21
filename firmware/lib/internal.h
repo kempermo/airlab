@@ -29,6 +29,7 @@ void al_led_init(bool reset);
 void al_power_init();
 void al_sensor_init(bool reset);
 void al_storage_init();
+void al_store_init();
 void al_touch_init(bool reset);
 
 void al_sensor_low_power(bool on);

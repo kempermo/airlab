@@ -15,6 +15,7 @@
 #include <al/clock.h>
 #include <al/sensor.h>
 #include <al/storage.h>
+#include <al/store.h>
 
 #include "gui.h"
 #include "gfx.h"
@@ -393,12 +394,12 @@ static void* scr_sensor() {
 
   for (;;) {
     // get power
-    size_t num_short = al_sensor_count(AL_SENSOR_SHORT);
-    size_t num_long = al_sensor_count(AL_SENSOR_LONG);
+    size_t num_short = al_store_count(AL_STORE_SHORT);
+    size_t num_long = al_store_count(AL_STORE_LONG);
 
     // prepare text
     const char* text =
-        lvx_fmt("short: %d / %d\nlong: %d / %d", num_short, AL_SENSOR_NUM_SHORT, num_long, AL_SENSOR_NUM_LONG);
+        lvx_fmt("short: %d / %d\nlong: %d / %d", num_short, AL_STORE_NUM_SHORT, num_long, AL_STORE_NUM_LONG);
 
     // update label
     gfx_begin(false, false);
@@ -457,12 +458,12 @@ static void* scr_saver() {
     al_clock_get_time(&hour, &minute, &seconds);
 
     // get last sample
-    al_sample_t sample = al_sensor_last();
+    al_sample_t sample = al_store_last();
 
     // await sample, if invalid (after reset)
     if (!al_sample_valid(sample)) {
       sig_await(SIG_SENSOR, 0);
-      sample = al_sensor_last();
+      sample = al_store_last();
     }
 
     // read power state
@@ -640,7 +641,7 @@ static void* scr_view() {
   // prepare source
   al_sample_source_t source = {0};
   if (file == NULL) {
-    source = al_sensor_source();
+    source = al_store_source();
   } else {
     source = dat_source(scr_file);
   }
@@ -991,7 +992,7 @@ static void* scr_create() {
     // determine epoch
     int64_t epoch = al_clock_get_epoch();
     if (import) {
-      al_sample_source_t source = al_sensor_source();
+      al_sample_source_t source = al_store_source();
       epoch = source.start(source.ctx);
     }
 
@@ -1522,7 +1523,7 @@ static void* scr_menu() {
   stm_entry_t* statement = NULL;
 
   // prepare sample source
-  al_sample_source_t source = al_sensor_source();
+  al_sample_source_t source = al_store_source();
 
   for (;;) {
     // get time
@@ -1530,7 +1531,7 @@ static void* scr_menu() {
     al_clock_get_time(&hour, &minute, &seconds);
 
     // get last sample
-    al_sample_t sample = al_sensor_last();
+    al_sample_t sample = al_store_last();
 
     // query sensor
     float values[SCR_HIST_POINTS] = {0};

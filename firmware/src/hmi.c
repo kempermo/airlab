@@ -7,10 +7,9 @@
 #include <al/buzzer.h>
 #include <al/led.h>
 #include <al/power.h>
-#include <al/sensor.h>
+#include <al/store.h>
 
 #include "hmi.h"
-#include "rec.h"
 #include "sig.h"
 
 #define HMI_REPEAT 750
@@ -176,7 +175,7 @@ static void hmi_led_check() {
   /* handle alerts */
 
   // get sensor data
-  al_sample_t sample = al_sensor_last();
+  al_sample_t sample = al_store_last();
 
   // handle high alert
   if (sample.co2 > 1500) {

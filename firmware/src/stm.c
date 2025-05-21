@@ -1,6 +1,6 @@
 #include <esp_random.h>
 
-#include <al/sensor.h>
+#include <al/store.h>
 
 #include "stm.h"
 
@@ -196,7 +196,7 @@ stm_entry_t* stm_get(size_t i) { return i < stm_num ? &stm_entries[i] : NULL; }
 
 stm_entry_t* stm_query(bool exclaim, stm_action_t action) {
   // get last sample
-  al_sample_t sample = al_sensor_last();
+  al_sample_t sample = al_store_last();
 
   // check if ok
   bool ok = al_sample_valid(sample);

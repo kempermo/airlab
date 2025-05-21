@@ -3,6 +3,7 @@
 
 #include <al/sensor.h>
 #include <al/clock.h>
+#include <al/store.h>
 
 #include "internal.h"
 #include "sensor_hal.h"
@@ -17,15 +18,7 @@ static al_sensor_hook_t al_sensor_hook;
 AL_KEEP static bool al_sensor_low_power_on = false;
 AL_KEEP static GasIndexAlgorithmParams al_sensor_voc_params = {0};
 AL_KEEP static GasIndexAlgorithmParams al_sensor_nox_params = {0};
-
-RTC_FAST_ATTR static int64_t al_sensor_store_epoch = 0;
-RTC_FAST_ATTR static int32_t al_sensor_store_interval = 60;  // 1min
-RTC_FAST_ATTR static uint16_t al_sensor_store_pos_short = 0;
-RTC_FAST_ATTR static uint16_t al_sensor_store_pos_long = 0;
-RTC_FAST_ATTR static uint16_t al_sensor_store_count_short = 0;
-RTC_FAST_ATTR static uint16_t al_sensor_store_count_long = 0;
-RTC_FAST_ATTR static al_sample_t al_sensor_store_short[AL_SENSOR_NUM_SHORT] = {0};
-RTC_FAST_ATTR static al_sample_t al_sensor_store_long[AL_SENSOR_NUM_LONG] = {0};
+AL_KEEP static int64_t al_sensor_store_epoch = 0;
 
 static bool al_sensor_transfer(uint8_t target, uint8_t *wd, size_t wl, uint8_t *rd, size_t rl) {
   return al_i2c_transfer(target, wd, wl, rd, rl, 1000) == ESP_OK;
@@ -34,34 +27,6 @@ static bool al_sensor_transfer(uint8_t target, uint8_t *wd, size_t wl, uint8_t *
 static void al_sensor_debug(const char *msg) {
   // print message
   naos_log("al-sns: HAL %s", msg);
-}
-
-static size_t al_sensor_index(al_sensor_store_t store, int num) {
-  // get store info
-  int count = al_sensor_store_count_short;
-  int pos = al_sensor_store_pos_short;
-  int length = AL_SENSOR_NUM_SHORT;
-  if (store == AL_SENSOR_LONG) {
-    count = al_sensor_store_count_long;
-    pos = al_sensor_store_pos_long;
-    length = AL_SENSOR_NUM_LONG;
-  }
-
-  // calculate absolute position
-  if (num < 0) {
-    num = count + num;
-  }
-  if (num >= count) {
-    num = count - 1;
-  }
-
-  // calculate index
-  size_t index = num;
-  if (count == length) {
-    index = (pos + num) % length;
-  }
-
-  return index;
 }
 
 static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
@@ -94,57 +59,8 @@ static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
              sample.tmp, sample.hum, sample.voc, sample.nox, sample.prs, sample.off, data.epoch);
   }
 
-  // check if short store is at capacity
-  if (al_sensor_store_count_short == AL_SENSOR_NUM_SHORT) {
-    // determine if we need to move a sample
-    bool move = false;
-
-    // always move a sample if long store is empty
-    if (al_sensor_store_count_long == 0) {
-      move = true;
-    }
-
-    // move sample if first short sample is older than last long sample
-    if (al_sensor_store_count_long > 0) {
-      al_sample_t last_long = al_sensor_store_long[al_sensor_index(AL_SENSOR_LONG, -1)];
-      al_sample_t first_short = al_sensor_store_short[al_sensor_store_pos_short];
-      naos_log("al-sns: diff=%d", first_short.off - last_long.off);
-      if (first_short.off - last_long.off > al_sensor_store_interval * 1000) {
-        move = true;
-      }
-    }
-
-    // move sample if required
-    if (move) {
-      if (AL_SENSOR_DEBUG) {
-        naos_log("al-sns: moved short to long");
-      }
-      al_sample_t first_short = al_sensor_store_short[al_sensor_store_pos_short];
-      al_sensor_store_long[al_sensor_store_pos_long] = first_short;
-      al_sensor_store_pos_long++;
-      if (al_sensor_store_pos_long >= AL_SENSOR_NUM_LONG) {
-        al_sensor_store_pos_long = 0;
-      }
-      if (al_sensor_store_count_long < AL_SENSOR_NUM_LONG) {
-        al_sensor_store_count_long++;
-      }
-    }
-  }
-
-  // add sample to short store
-  al_sensor_store_short[al_sensor_store_pos_short] = sample;
-  al_sensor_store_pos_short++;
-  if (al_sensor_store_pos_short >= AL_SENSOR_NUM_SHORT) {
-    al_sensor_store_pos_short = 0;
-  }
-  if (al_sensor_store_count_short < AL_SENSOR_NUM_SHORT) {
-    al_sensor_store_count_short++;
-  }
-
-  // log store count
-  if (AL_SENSOR_DEBUG) {
-    naos_log("al-sns: store short=%d long=%d", al_sensor_store_count_short, al_sensor_store_count_long);
-  }
+  // ingest sample
+  al_store_ingest(sample);
 
   return sample;
 }
@@ -239,13 +155,8 @@ void al_sensor_init(bool reset) {
     // update epoch
     al_sensor_store_epoch += shift;
 
-    // update stores
-    for (int i = 0; i < al_sensor_store_count_short; i++) {
-      al_sensor_store_short[i].off -= (int32_t)shift;
-    }
-    for (int i = 0; i < al_sensor_store_count_long; i++) {
-      al_sensor_store_long[i].off -= (int32_t)shift;
-    }
+    // update store epoch
+    al_store_set_epoch(al_sensor_store_epoch);
   }
 
   // ingest ULP readings
@@ -265,36 +176,6 @@ void al_sensor_config(al_sensor_hook_t hook) {
   naos_unlock(al_sensor_mutex);
 }
 
-int al_sensor_get_interval() {
-  // get interval
-  naos_lock(al_sensor_mutex);
-  int interval = al_sensor_store_interval;
-  naos_unlock(al_sensor_mutex);
-
-  return interval;
-}
-
-void al_sensor_set_interval(int interval) {
-  // set interval
-  naos_lock(al_sensor_mutex);
-  al_sensor_store_interval = interval;
-  naos_unlock(al_sensor_mutex);
-}
-
-al_sample_t al_sensor_first() {
-  // get sample
-  if (al_sensor_count(AL_SENSOR_LONG) > 0) {
-    return al_sensor_get(AL_SENSOR_LONG, 0);
-  } else {
-    return al_sensor_get(AL_SENSOR_SHORT, 0);
-  }
-}
-
-al_sample_t al_sensor_last() {
-  // get newest sample
-  return al_sensor_get(AL_SENSOR_SHORT, -1);
-}
-
 al_sample_t al_sensor_next() {
   // TODO: Does not work with multiple tasks.
 
@@ -302,91 +183,9 @@ al_sample_t al_sensor_next() {
   naos_await(al_sensor_signal, 1, true);
 
   // get last sample
-  al_sample_t sample = al_sensor_last();
+  al_sample_t sample = al_store_last();
 
   return sample;
-}
-
-size_t al_sensor_count(al_sensor_store_t store) {
-  // lock mutex
-  naos_lock(al_sensor_mutex);
-
-  // return store count
-  size_t count = 0;
-  if (store == AL_SENSOR_SHORT) {
-    count = al_sensor_store_count_short;
-  } else {
-    count = al_sensor_store_count_long;
-  }
-
-  // unlock mutex
-  naos_unlock(al_sensor_mutex);
-
-  return count;
-}
-
-al_sample_t al_sensor_get(al_sensor_store_t store, int num) {
-  // lock mutex
-  naos_lock(al_sensor_mutex);
-
-  // calculate index
-  size_t index = al_sensor_index(store, num);
-
-  // get sample
-  al_sample_t sample;
-  if (store == AL_SENSOR_SHORT) {
-    sample = al_sensor_store_short[index];
-  } else {
-    sample = al_sensor_store_long[index];
-  }
-
-  // unlock mutex
-  naos_unlock(al_sensor_mutex);
-
-  return sample;
-}
-
-static size_t al_sensor_source_count(void *ctx) {
-  // return cumulative count
-  return al_sensor_count(AL_SENSOR_LONG) + al_sensor_count(AL_SENSOR_SHORT);
-}
-
-static int64_t al_sensor_source_start(void *ctx) {
-  // return epoch based on oldest sample
-  return al_sensor_store_epoch + al_sensor_first().off;
-}
-
-static int32_t al_sensor_source_stop(void *ctx) {
-  // return stop based on newest and oldest sample
-  return al_sensor_last().off - al_sensor_first().off;
-}
-
-static void al_sensor_source_read(void *ctx, al_sample_t *samples, size_t num, size_t offset) {
-  // get first sample
-  al_sample_t first = al_sensor_first();
-
-  // get long count
-  int count_long = (int)al_sensor_count(AL_SENSOR_LONG);
-
-  // read samples
-  for (size_t i = 0; i < num; i++) {
-    int index = (int)(offset + i);
-    if (index < count_long) {
-      samples[i] = al_sensor_get(AL_SENSOR_LONG, index);
-    } else {
-      samples[i] = al_sensor_get(AL_SENSOR_SHORT, index - count_long);
-    }
-    samples[i].off -= first.off;
-  }
-}
-
-al_sample_source_t al_sensor_source() {
-  return (al_sample_source_t){
-      .count = al_sensor_source_count,
-      .start = al_sensor_source_start,
-      .stop = al_sensor_source_stop,
-      .read = al_sensor_source_read,
-  };
 }
 
 void al_sensor_low_power(bool on) {
