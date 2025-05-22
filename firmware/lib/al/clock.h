@@ -24,7 +24,7 @@ void al_clock_set_time(uint16_t hour, uint16_t minute, uint16_t seconds);
 /**
  * Get the current epoch time.
  *
- * @return The current epoch time.
+ * @return The current epoch time in milliseconds.
  */
 int64_t al_clock_get_epoch();
 
