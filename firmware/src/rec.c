@@ -13,7 +13,6 @@
 #define REC_MIN_FREE_CONT (2 * 4096)
 
 static naos_mutex_t rec_mutex = NULL;
-static naos_task_t rec_handle = NULL;
 static uint16_t rec_current = 0;
 
 static void rec_task() {
@@ -26,10 +25,14 @@ static void rec_task() {
     al_sample_t sample = al_sensor_next();
     naos_lock(rec_mutex);
 
+    // skip if not running
+    if (rec_current == 0) {
+      continue;
+    }
+
     // check free space
     if (!rec_free(false)) {
-      // clear state
-      rec_handle = 0;
+      // clear file
       rec_current = 0;
 
       // dispatch event
@@ -37,10 +40,7 @@ static void rec_task() {
           .type = SIG_STOP,
       });
 
-      // release mutex
-      naos_unlock(rec_mutex);
-
-      return;
+      continue;
     }
 
     // find file
@@ -66,6 +66,9 @@ static void rec_task() {
 void rec_init() {
   // create mutex
   rec_mutex = naos_mutex();
+
+  // run task
+  naos_run("rec", 4096, 1, rec_task);
 }
 
 uint32_t rec_free(bool new) {
@@ -98,7 +101,7 @@ uint16_t rec_file() {
 bool rec_running() {
   // check handle
   naos_lock(rec_mutex);
-  bool running = rec_handle != NULL;
+  bool running = rec_current != 0;
   naos_unlock(rec_mutex);
 
   return running;
@@ -115,16 +118,9 @@ void rec_start(uint16_t file) {
     ESP_ERROR_CHECK(ESP_FAIL);
   }
 
-  // acquire mutex
-  naos_lock(rec_mutex);
-
   // set file
+  naos_lock(rec_mutex);
   rec_current = file;
-
-  // run task
-  rec_handle = naos_run("rec", 4096, 1, rec_task);
-
-  // release mutex
   naos_unlock(rec_mutex);
 }
 
@@ -159,16 +155,8 @@ void rec_stop() {
     ESP_ERROR_CHECK(ESP_FAIL);
   }
 
-  // acquire mutex
-  naos_lock(rec_mutex);
-
   // clear file
+  naos_lock(rec_mutex);
   rec_current = 0;
-
-  // kill task
-  naos_kill(rec_handle);
-  rec_handle = NULL;
-
-  // release mutex
   naos_unlock(rec_mutex);
 }
