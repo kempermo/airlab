@@ -1371,52 +1371,77 @@ static void* scr_settings() {
 }
 
 static void* scr_develop() {
+  // prepare variables
+  static int ret = 0;
+
   // prepare labels
   const char* labels[] = {
-      "Light Sleep",   "Deep Sleep",   "Power Reset", "Power Off",   "Ship Mode", "Screen Saver",
-      "Clear Display", "Test Bubbles", "System Info", "Sensor Data", NULL,
+      "System Info", "Sensor Data",  "Light Sleep",   "Deep Sleep",   "Power Reset", "Power Off",
+      "Ship Mode",   "Screen Saver", "Clear Display", "Test Bubbles", NULL,
   };
 
   // handle list
-  int ret = 0;
   for (;;) {
     ret = gui_list_strings(ret, labels, "Select", "Cancel", SCR_ACTION_TIMEOUT);
     if (ret < 0) {
       return scr_menu;
     }
 
+    // handle system info
+    if (ret == 0) {
+      return scr_info;
+    }
+
+    // handle sensor data
+    if (ret == 1) {
+      return scr_sensor;
+    }
+
     // handle light/deep sleep
-    if (ret == 0 || ret == 1) {
+    if (ret == 2 || ret == 3) {
+      // determine deep
+      bool deep = ret == 3;
+
       // log sleep
-      naos_log("sleeping... (deep=%d)", ret == 1);
+      naos_log("sleeping... (deep=%d)", deep);
 
       // set return
       scr_return_unlock = scr_develop;
 
+      // write message
+      if (deep) {
+        gui_write("Deep Sleeping...\nPress A to wake up.");
+      } else {
+        gui_write("Light Sleeping...\nPress A to wake up.");
+      }
+
       // perform sleep
-      al_trigger_t trigger = al_sleep(ret == 1, 0);
+      al_trigger_t trigger = al_sleep(deep, 0);
 
       // capture enter when unlocked
       if (trigger == AL_BUTTON) {
         sig_await(SIG_ENTER, 1000);
       }
 
+      // clean up
+      gui_cleanup(false);
+
       // log wakeup
       naos_log("woke up!");
     }
 
-    // handle power set
-    if (ret == 2) {
+    // handle power reset
+    if (ret == 4) {
       esp_restart();
     }
 
     // handle power off
-    if (ret == 3) {
+    if (ret == 5) {
       scr_power_off();
     }
 
     // handle ship mode
-    if (ret == 4) {
+    if (ret == 6) {
       // show message
       gui_write("Ship Mode\n\nConnect USB and\npress A to exit.");
       naos_delay(1000);
@@ -1429,7 +1454,7 @@ static void* scr_develop() {
     }
 
     // handle screen saver
-    if (ret == 5) {
+    if (ret == 7) {
       // set return
       scr_return_unlock = scr_develop;
 
@@ -1440,23 +1465,13 @@ static void* scr_develop() {
     }
 
     // handle clear display
-    if (ret == 6) {
+    if (ret == 8) {
       gui_cleanup(true);
     }
 
     // handle bubbles test
-    if (ret == 7) {
-      return scr_bubbles;
-    }
-
-    // handle system info
-    if (ret == 8) {
-      return scr_info;
-    }
-
-    // handle sensor data
     if (ret == 9) {
-      return scr_sensor;
+      return scr_bubbles;
     }
   }
 }
