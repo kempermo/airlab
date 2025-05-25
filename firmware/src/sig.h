@@ -33,6 +33,7 @@ typedef struct {
     float position;  // touch
     float scroll;    // scroll
   };
+  float scroll_fast;  // scroll
 } sig_event_t;
 
 void sig_init();

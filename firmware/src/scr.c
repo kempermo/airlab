@@ -913,7 +913,7 @@ static void* scr_view() {
       } else if (event.type == SIG_RIGHT) {
         position += resolution * (event.repeat ? 5 : 1);
       } else if (event.type == SIG_SCROLL) {
-        position += resolution * (int32_t)event.scroll;
+        position += resolution * (int32_t)event.scroll_fast;
       }
       if (position > source_stop) {
         position = source_stop;
@@ -1479,10 +1479,11 @@ static void* scr_develop() {
       // prepare data
       float position = NAN;
       float scroll = 0;
+      float scroll_fast = 0;
 
       for (;;) {
         // update screen
-        gui_write(lvx_fmt("Position: %.2f\nScroll: %.2f", position, scroll));
+        gui_write(lvx_fmt("Position: %.1f\nScroll: %.1f, %.1f", position, scroll, scroll_fast));
 
         // await event
         sig_event_t event = sig_await(SIG_ESCAPE | SIG_TOUCH | SIG_SCROLL, 0);
@@ -1497,6 +1498,7 @@ static void* scr_develop() {
           position = event.position;
         } else if (event.type & SIG_SCROLL) {
           scroll = event.scroll;
+          scroll_fast = event.scroll_fast;
         }
       }
     }

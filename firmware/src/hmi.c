@@ -1,6 +1,7 @@
 #include <naos.h>
 #include <naos/sys.h>
 #include <math.h>
+#include <art32/numbers.h>
 
 #include <al/accel.h>
 #include <al/buttons.h>
@@ -25,6 +26,7 @@
 
 static naos_mutex_t hmi_mutex;
 static float hmi_touch_scroll = 0;
+static float hmi_touch_scroll_fast = 0;
 static uint8_t hmi_button_state = 0;
 static int64_t hmi_button_times[8] = {0};
 static int8_t hmi_button_counts[8] = {0};
@@ -41,41 +43,49 @@ static void hmi_accel_hook(al_accel_state_t state) {
   });
 }
 
-static void hmi_touch_hook(float position) {
+static void hmi_touch_hook(float pos) {
   // prepare state
-  static float previous = 0;
+  static float prev_pos = 0;
+  static int64_t prev_time = 0;
 
   // ignore same position
-  if (position == previous) {
+  if (pos == prev_pos) {
     return;
   }
 
   // play click
   al_buzzer_click();
 
+  // get time
+  int64_t now = naos_millis();
+
   // calculate delta, if valid
   float delta = 0;
-  if (!isnan(previous) && !isnan(position)) {
-    delta = position - previous;
+  float delta_fast = 0;
+  if (!isnan(prev_pos) && !isnan(pos)) {
+    delta = pos - prev_pos;
+    delta_fast = delta * a32_safe_map_f((float)(now - prev_time), 0, 500, 4, 1);
   }
 
   // log
   if (HMI_DEBUG) {
-    naos_log("hmi: position=%.2f delta: %.2f", position, delta);
+    naos_log("hmi: position=%.1f delta=%.1f delta_fast=%.1f", pos, delta, delta_fast);
   }
 
   // set state
-  previous = position;
+  prev_pos = pos;
+  prev_time = now;
 
   // update scroll
   naos_lock(hmi_mutex);
   hmi_touch_scroll += delta;
+  hmi_touch_scroll_fast += delta_fast;
   naos_unlock(hmi_mutex);
 
   // dispatch event
   sig_dispatch((sig_event_t){
       .type = SIG_TOUCH,
-      .position = position,
+      .position = pos,
   });
 }
 
@@ -83,7 +93,9 @@ static void hmi_touch_check() {
   // capture scroll
   naos_lock(hmi_mutex);
   float scroll = hmi_touch_scroll;
+  float scroll_fast = hmi_touch_scroll_fast;
   hmi_touch_scroll = 0;
+  hmi_touch_scroll_fast = 0;
   naos_unlock(hmi_mutex);
 
   // dispatch event, if non-zero
@@ -91,6 +103,7 @@ static void hmi_touch_check() {
     sig_dispatch((sig_event_t){
         .type = SIG_SCROLL,
         .scroll = scroll,
+        .scroll_fast = scroll_fast,
     });
   }
 }
