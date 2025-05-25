@@ -132,6 +132,13 @@ int gui_list(int total, int start, const char* select, const char* cancel, gui_l
     return -1;
   }
 
+  // limit start
+  if (start < 0) {
+    start = 0;
+  } else if (start >= total) {
+    start = total - 1;
+  }
+
   // set selected
   selected = start;
 
@@ -232,7 +239,7 @@ int gui_list(int total, int start, const char* select, const char* cancel, gui_l
     // handle arrows
     if ((event.type & (SIG_UP | SIG_DOWN | SIG_SCROLL)) != 0) {
       if (event.type == SIG_SCROLL) {
-        selected += (int)(event.touch * 2);
+        selected += (int)(event.touch);
       } else {
         selected += event.type == SIG_UP ? -1 : 1;
       }

@@ -1,21 +1,12 @@
 #ifndef AL_TOUCH_H
 #define AL_TOUCH_H
 
-#include <stdint.h>
-
-/**
- * The touch event.
- */
-typedef struct {
-  uint8_t touches;
-  float position;
-  float delta;
-} al_touch_event_t;
-
 /**
  * The touch hook.
+ *
+ * @param position The touch position from -3 to 3 or NaN if released.
  */
-typedef void (*al_touch_hook_t)(al_touch_event_t);
+typedef void (*al_touch_hook_t)(float position);
 
 /**
  * Configure the touch sensor.

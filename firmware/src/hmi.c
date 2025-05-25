@@ -1,5 +1,6 @@
 #include <naos.h>
 #include <naos/sys.h>
+#include <math.h>
 
 #include <al/accel.h>
 #include <al/buttons.h>
@@ -40,24 +41,41 @@ static void hmi_accel_hook(al_accel_state_t state) {
   });
 }
 
-static void hmi_touch_hook(al_touch_event_t event) {
-  // play click
-  al_buzzer_click();
+static void hmi_touch_hook(float position) {
+  // prepare state
+  static float previous = 0;
 
-  // stop if not touched
-  if (event.touches == 0) {
+  // ignore same position
+  if (position == previous) {
     return;
   }
 
+  // play click
+  al_buzzer_click();
+
+  // calculate delta, if valid
+  float delta = 0;
+  if (!isnan(previous) && !isnan(position)) {
+    delta = position - previous;
+  }
+
+  // log
+  if (HMI_DEBUG) {
+    naos_log("hmi: position=%.2f delta: %.2f", position, delta);
+  }
+
+  // set state
+  previous = position;
+
   // update delta
   naos_lock(hmi_mutex);
-  hmi_touch_delta += event.delta;
+  hmi_touch_delta += delta;
   naos_unlock(hmi_mutex);
 
   // dispatch event
   sig_dispatch((sig_event_t){
       .type = SIG_TOUCH,
-      .touch = event.position,
+      .touch = position,
   });
 }
 

@@ -1,3 +1,4 @@
+#include <math.h>
 #include <naos.h>
 #include <naos/sys.h>
 #include <driver/gpio.h>
@@ -101,6 +102,16 @@ static void al_touch_exec(uint8_t cmd) {
   }
 }
 
+static bool al_touch_valid(uint8_t num) {
+  // check for exactly 0 or 1 bit set
+  if (__builtin_popcount(num) <= 1) {
+    return true;
+  }
+
+  // check for exactly 2 adjacent bits set
+  return (num & (num >> 1)) && __builtin_popcount(num) == 2;
+}
+
 static float al_touch_middle(uint8_t num) {
   // prepare state
   int start = -1, end = -1;
@@ -136,7 +147,9 @@ static float al_touch_middle(uint8_t num) {
     return -1;
   }
 
-  return (float)(start + end) / 2.0f;
+  // TODO: The rounding here generates a slight bias towards the left.
+
+  return roundf((float)(start + end) / 2.0f);
 }
 
 static void al_touch_check() {
@@ -147,27 +160,30 @@ static void al_touch_check() {
   uint8_t touches;
   al_touch_read(0xAA, &touches, 1);
 
-  // re-map touches
-  uint8_t mapped = 0;
+  // read debug status
+  if (AL_TOUCH_DEBUG && AL_TOUCH_DEBUG_SENSOR >= 0) {
+    uint8_t cp = al_touch_read8(0xdd);     // pF
+    uint16_t dc = al_touch_read16(0xde);   // difference count
+    uint16_t bl = al_touch_read16(0xe0);   // baseline
+    uint16_t rc = al_touch_read16(0xe2);   // raw count
+    uint16_t arc = al_touch_read16(0xe4);  // average raw count
+    naos_log("al-tch: debug pad=%d cp=%d dc=%d bl=%d rc=%d arc=%d", AL_TOUCH_DEBUG_SENSOR, cp, dc, bl, rc, arc);
+  }
+
+  // remap touches
+  uint8_t remapped = 0;
   for (size_t i = 0; i < 7; i++) {
     if (touches & (1 << i)) {
-      mapped |= (1 << al_touch_map[i]);
+      remapped |= (1 << al_touch_map[i]);
     }
   }
-  touches = mapped;
+  touches = remapped;
 
-  // check if changed
+  // ignore, if unchanged
   if (touches == al_touch_last) {
     naos_unlock(al_touch_mutex);
     return;
   }
-
-  // tick once
-  // al_buzzer_tick();
-
-  // capture and update last touches
-  uint8_t last = al_touch_last;
-  al_touch_last = touches;
 
   // log touches
   if (AL_TOUCH_DEBUG) {
@@ -181,38 +197,32 @@ static void al_touch_check() {
     naos_log("al-tch: touches %d %d %d %d %d %d %d", t1, t2, t3, t4, t5, t6, t7);
   }
 
-  // read debug status
-  if (AL_TOUCH_DEBUG && AL_TOUCH_DEBUG_SENSOR >= 0) {
-    uint8_t cp = al_touch_read8(0xdd);     // pF
-    uint16_t dc = al_touch_read16(0xde);   // difference count
-    uint16_t bl = al_touch_read16(0xe0);   // baseline
-    uint16_t rc = al_touch_read16(0xe2);   // raw count
-    uint16_t arc = al_touch_read16(0xe4);  // average raw count
-    naos_log("al-tch: debug pad=%d cp=%d dc=%d bl=%d rc=%d arc=%d", AL_TOUCH_DEBUG_SENSOR, cp, dc, bl, rc, arc);
-  }
-
-  // prepare middle and position
-  float middle = 0;
-  float position = 0;
-
-  // check if touched
-  if (touches != 0) {
-    // calculate middle
-    middle = al_touch_middle(touches);
+  // try to clear stray bit 2 if 5/6 is set
+  if ((touches & 0b1100000) != 0 && (touches & 0b100) != 0) {
+    touches &= ~0b100;
     if (AL_TOUCH_DEBUG) {
-      naos_log("al-tch: middle=%f", middle);
+      naos_log("al-tch: cleared stray bit 2");
     }
-
-    // calculate position
-    position = middle / 3 - 1;  // -1 to 1
   }
 
-  // calculate delta
-  float delta = 0;
-  if (touches != 0 && last != 0) {
-    delta = middle - al_touch_middle(last);
+  // ignore invalid touches
+  if (!al_touch_valid(touches)) {
     if (AL_TOUCH_DEBUG) {
-      naos_log("al-tch: delta=%f", delta);
+      naos_log("al-tch: invalid touches");
+    }
+    naos_unlock(al_touch_mutex);
+    return;
+  }
+
+  // update last touches
+  al_touch_last = touches;
+
+  // calculate middle and position, if touched
+  float position = NAN;
+  if (touches != 0) {
+    position = al_touch_middle(touches) - 3;
+    if (AL_TOUCH_DEBUG) {
+      naos_log("al-tch: position=%.2f", position);
     }
   }
 
@@ -221,11 +231,7 @@ static void al_touch_check() {
 
   // dispatch event
   if (al_touch_hook != NULL) {
-    al_touch_hook((al_touch_event_t){
-        .touches = touches,
-        .position = position,
-        .delta = delta,
-    });
+    al_touch_hook(position);
   }
 }
 

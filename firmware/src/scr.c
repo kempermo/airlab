@@ -913,7 +913,7 @@ static void* scr_view() {
       } else if (event.type == SIG_RIGHT) {
         position += resolution * (event.repeat ? 5 : 1);
       } else if (event.type == SIG_SCROLL) {
-        position += resolution * (int32_t)(event.touch * 2);
+        position += resolution * (int32_t)(event.touch);
       }
       if (position > source_stop) {
         position = source_stop;
@@ -1377,7 +1377,7 @@ static void* scr_develop() {
   // prepare labels
   const char* labels[] = {
       "System Info", "Sensor Data",  "Light Sleep",   "Deep Sleep",   "Power Reset", "Power Off",
-      "Ship Mode",   "Screen Saver", "Clear Display", "Test Bubbles", NULL,
+      "Ship Mode",   "Screen Saver", "Clear Display", "Test Bubbles", "Touch Info",  NULL,
   };
 
   // handle list
@@ -1472,6 +1472,33 @@ static void* scr_develop() {
     // handle bubbles test
     if (ret == 9) {
       return scr_bubbles;
+    }
+
+    // handle touch info
+    if (ret == 10) {
+      // prepare data
+      float touch = NAN;
+      float scroll = 0;
+
+      for (;;) {
+        // update screen
+        gui_write(lvx_fmt("Touch: %.2f\nScroll: %.2f", touch, scroll));
+
+        // await event
+        sig_event_t event = sig_await(SIG_ESCAPE | SIG_TOUCH | SIG_SCROLL, 0);
+
+        // cleanup
+        gui_cleanup(false);
+
+        // handle events
+        if (event.type & SIG_ESCAPE) {
+          break;
+        } else if (event.type & SIG_TOUCH) {
+          touch = event.touch;
+        } else if (event.type & SIG_SCROLL) {
+          scroll = event.touch;
+        }
+      }
     }
   }
 }

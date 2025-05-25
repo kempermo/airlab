@@ -30,7 +30,7 @@ typedef struct {
   sig_type_t type;
   union {
     bool repeat;  // keys
-    float touch;  // touch
+    float touch;  // touch, scroll
   };
 } sig_event_t;
 
