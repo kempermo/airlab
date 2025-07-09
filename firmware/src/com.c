@@ -13,6 +13,8 @@
 #include <al/store.h>
 #include <al/storage.h>
 
+#include "com.h"
+
 #define ENDPOINT 0xA1
 
 typedef enum {
@@ -234,7 +236,23 @@ static void com_task() {
   }
 }
 
-static void com_online() {
+static naos_param_t com_params[] = {
+    {.name = "mqtt-ha", .type = NAOS_BOOL, .sync_b = &com_mqtt_ha},
+    {.name = "mqtt-ha-topic", .type = NAOS_STRING, .default_s = "homeassistant"},
+};
+
+void com_init() {
+  // register params
+  for (size_t i = 0; i < sizeof(com_params) / sizeof(naos_param_t); i++) {
+    naos_register(&com_params[i]);
+  }
+
+  // run tasks
+  naos_run("com", 4096, 1, com_task);
+  naos_repeat("com-discovery", 10000, com_online);
+}
+
+void com_online() {
   // check if home assistant is enabled
   if (!com_mqtt_ha) {
     return;
@@ -256,20 +274,4 @@ static void com_online() {
   com_ha_config_sensor(ha_topic, device_id, base_topic, "al-voc", "voc", "VOC", "", "aqi");
   com_ha_config_sensor(ha_topic, device_id, base_topic, "al-nox", "nox", "NOx", "", "aqi");
   com_ha_config_sensor(ha_topic, device_id, base_topic, "al-prs", "prs", "Pressure", "hPa", "atmospheric_pressure");
-}
-
-static naos_param_t com_params[] = {
-    {.name = "mqtt-ha", .type = NAOS_BOOL, .sync_b = &com_mqtt_ha},
-    {.name = "mqtt-ha-topic", .type = NAOS_STRING, .default_s = "homeassistant"},
-};
-
-void com_init() {
-  // register params
-  for (size_t i = 0; i < sizeof(com_params) / sizeof(naos_param_t); i++) {
-    naos_register(&com_params[i]);
-  }
-
-  // run tasks
-  naos_run("com", 4096, 1, com_task);
-  naos_repeat("com-discovery", 10000, com_online);
 }
