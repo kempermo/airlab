@@ -17,6 +17,8 @@
 
 #define ENDPOINT 0xA1
 
+// TODO: Only send discover when the MQTT service comes online.
+
 typedef enum {
   COM_CMD_SENSOR_READ = 0x01,
 } com_cmd_t;
@@ -119,49 +121,8 @@ static naos_msg_reply_t com_handle(naos_msg_t msg) {
   return reply;
 }
 
-static void com_ha_config_device(const char *hat, const char *did, const char *fwv) {
-  // allocate buffer
-  void *buf = malloc(128 + 1024);
-  if (!buf) {
-    ESP_ERROR_CHECK(ESP_FAIL);
-  }
-
-  // calculate topic
-  int r = snprintf(buf, 128, "%s/device/%s/config", hat, did);
-  if (r < 0 || r >= 128) {
-    ESP_ERROR_CHECK(ESP_FAIL);
-  }
-
-  // calculate message
-#define DEV_TPL                           \
-  ("{"                                    \
-   "  \"device\": {"                      \
-   "    \"ids\": \"%s\","                 \
-   "    \"name\": \"Air Lab\","           \
-   "    \"mf\": \"Networked Artifacts\"," \
-   "    \"mdl\": \"NA-AL1\","             \
-   "    \"sw\": \"%s\","                  \
-   "    \"sn\": \"%s\","                  \
-   "    \"hw\": \"R4\""                   \
-   "  },"                                 \
-   "  \"origin\": {"                      \
-   "    \"name\":\"Air Lab\""             \
-   "  }"                                  \
-   "}")
-  r = snprintf(buf + 128, 1024, DEV_TPL, did, fwv, did);
-  if (r < 0 || r >= 1024) {
-    ESP_ERROR_CHECK(ESP_FAIL);
-  }
-
-  // publish discovery message
-  naos_publish_s(buf, buf + 128, 0, false, NAOS_GLOBAL);
-
-  // release buffer
-  free(buf);
-}
-
-static void com_ha_config_sensor(const char *hat, const char *did, const char *bt, const char *uid, const char *t,
-                                 const char *n, const char *uom, const char *dc) {
+static void com_ha_config_sensor(const char *hat, const char *did, const char *fwv, const char *bt, const char *uid,
+                                 const char *t, const char *n, const char *uom, const char *dc) {
   // allocate buffer
   void *buf = malloc(128 + 1024);
   if (!buf) {
@@ -174,21 +135,35 @@ static void com_ha_config_sensor(const char *hat, const char *did, const char *b
     ESP_ERROR_CHECK(ESP_FAIL);
   }
 
+  // prepare unit of measurement key
+  const char uom_key[64] = {0};
+  if (strlen(uom) > 0) {
+    r = snprintf(uom_key, sizeof(uom_key), "\"unit_of_measurement\": \"%s\",", uom);
+    if (r < 0 || r >= sizeof(uom_key)) {
+      ESP_ERROR_CHECK(ESP_FAIL);
+    }
+  }
+
   // calculate message
-#define SEN_TPL                          \
-  ("{"                                   \
-   "  \"name\": \"%s\","                 \
-   "  \"state_topic\": \"%s/%s\","       \
-   "  \"unit_of_measurement\": \"%s\", " \
-   "  \"device_class\": \"%s\","         \
-   "  \"state_class\": \"measurement\"," \
-   "  \"unique_id\": \"%s\","            \
-   "  \"device\": {"                     \
-   "    \"identifiers\": \"%s\","        \
-   "    \"name\": \"Air Lab\""           \
-   "  }"                                 \
+#define SEN_TPL                           \
+  ("{"                                    \
+   "  \"name\": \"%s\","                  \
+   "  \"state_topic\": \"%s/%s\","        \
+   "  %s"                                 \
+   "  \"device_class\": \"%s\","          \
+   "  \"state_class\": \"measurement\","  \
+   "  \"unique_id\": \"%s\","             \
+   "  \"device\": {"                      \
+   "    \"ids\": \"%s\","                 \
+   "    \"name\": \"Air Lab\","           \
+   "    \"mf\": \"Networked Artifacts\"," \
+   "    \"mdl\": \"NA-AL1\","             \
+   "    \"sw\": \"%s\","                  \
+   "    \"sn\": \"%s\","                  \
+   "    \"hw\": \"R4\""                   \
+   "  }"                                  \
    "}")
-  r = snprintf(buf + 128, 1024, SEN_TPL, n, bt, t, uom, dc, uid, did);
+  r = snprintf(buf + 128, 1024, SEN_TPL, n, bt, t, uom_key, dc, uid, did, fwv, did);
   if (r < 0 || r >= 1024) {
     ESP_ERROR_CHECK(ESP_FAIL);
   }
@@ -259,19 +234,16 @@ void com_online() {
   }
 
   // get information
-  const char *device_id = naos_get_s("device-id");
-  const char *firmware_version = naos_get_s("device-version");
-  const char *base_topic = naos_get_s("base-topic");
-  const char *ha_topic = naos_get_s("mqtt-ha-topic");
-
-  // configure device
-  com_ha_config_device(ha_topic, device_id, firmware_version);
+  const char *hat = naos_get_s("mqtt-ha-topic");
+  const char *did = naos_get_s("device-id");
+  const char *fwv = naos_get_s("device-version");
+  const char *bt = naos_get_s("base-topic");
 
   // configure sensors
-  com_ha_config_sensor(ha_topic, device_id, base_topic, "al-co2", "co2", "CO2", "ppm", "carbon_dioxide");
-  com_ha_config_sensor(ha_topic, device_id, base_topic, "al-tmp", "tmp", "Temperature", "°C", "temperature");
-  com_ha_config_sensor(ha_topic, device_id, base_topic, "al-hum", "hum", "Humidity", "%", "humidity");
-  com_ha_config_sensor(ha_topic, device_id, base_topic, "al-voc", "voc", "VOC", "", "aqi");
-  com_ha_config_sensor(ha_topic, device_id, base_topic, "al-nox", "nox", "NOx", "", "aqi");
-  com_ha_config_sensor(ha_topic, device_id, base_topic, "al-prs", "prs", "Pressure", "hPa", "atmospheric_pressure");
+  com_ha_config_sensor(hat, did, fwv, bt, "al-co2", "co2", "CO2", "ppm", "carbon_dioxide");
+  com_ha_config_sensor(hat, did, fwv, bt, "al-tmp", "tmp", "Temperature", "°C", "temperature");
+  com_ha_config_sensor(hat, did, fwv, bt, "al-hum", "hum", "Humidity", "%", "humidity");
+  com_ha_config_sensor(hat, did, fwv, bt, "al-voc", "voc", "VOC", "", "aqi");
+  com_ha_config_sensor(hat, did, fwv, bt, "al-nox", "nox", "NOx", "", "aqi");
+  com_ha_config_sensor(hat, did, fwv, bt, "al-prs", "prs", "Pressure", "hPa", "atmospheric_pressure");
 }
