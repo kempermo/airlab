@@ -5,6 +5,12 @@
 #include <stdint.h>
 #include <stddef.h>
 
+typedef enum {
+  AL_SENSOR_HAL_NORMAL = 0,     // 5s
+  AL_SENSOR_HAL_LOW_POWER = 1,  // 30s
+  AL_SENSOR_HAL_SLEEP
+} al_sensor_hal_mode_t;
+
 typedef struct {
   bool (*transfer)(uint8_t target, uint8_t* wd, size_t wl, uint8_t* rd, size_t rl);
   void (*delay)(uint32_t ms);
@@ -24,7 +30,7 @@ typedef struct {
 
 void al_sensor_hal_wire(al_sensor_hal_ops_t ops);
 
-bool al_sensor_hal_config(bool low_power);
+bool al_sensor_hal_config(al_sensor_hal_mode_t mode);
 
 bool al_sensor_hal_ready();
 

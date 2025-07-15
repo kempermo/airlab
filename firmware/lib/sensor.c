@@ -71,7 +71,7 @@ static void al_sensor_check() {
 
   // exit low power mode after 5s
   if (al_sensor_low_power_on && naos_millis() > 5000) {
-    al_sensor_hal_config(false);
+    al_sensor_hal_config(AL_SENSOR_HAL_NORMAL);
     al_sensor_low_power_on = false;
     if (AL_SENSOR_DEBUG) {
       naos_log("al-sns: low power off");
@@ -130,7 +130,7 @@ void al_sensor_init(bool reset) {
     }
 
     // reset sensor
-    if (!al_sensor_hal_config(false)) {
+    if (!al_sensor_hal_config(AL_SENSOR_HAL_NORMAL)) {
       ESP_ERROR_CHECK(ESP_FAIL);
     }
 
@@ -200,7 +200,7 @@ void al_sensor_low_power(bool on) {
   }
 
   // set low power mode
-  al_sensor_hal_config(on);
+  al_sensor_hal_config(on ? AL_SENSOR_HAL_LOW_POWER : AL_SENSOR_HAL_NORMAL);
 
   // set flag
   al_sensor_low_power_on = on;
