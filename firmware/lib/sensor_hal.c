@@ -119,6 +119,11 @@ bool al_sensor_hal_config(al_sensor_hal_mode_t mode) {
     return false;
   }
 
+  // turn off SGP heater when sleeping
+  if (mode == AL_SENSOR_HAL_SLEEP) {
+    AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SGP, 0x3615, 0, 0, false));
+  }
+
   // configure LPS sensor
   if (mode == AL_SENSOR_HAL_SLEEP) {
     AL_CHECK(al_sensor_hal_write_lps(0x10, 0x0));  // power down
