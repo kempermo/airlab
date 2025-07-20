@@ -1,7 +1,6 @@
 #ifndef AL_SENSOR_HAL_H
 #define AL_SENSOR_HAL_H
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -43,11 +42,8 @@ typedef struct {
 } al_sensor_hal_data_t;
 
 void al_sensor_hal_wire(al_sensor_hal_ops_t ops);
-
 al_sensor_hal_err_t al_sensor_hal_config(al_sensor_hal_mode_t mode);
-
 al_sensor_hal_err_t al_sensor_hal_ready();
-
 al_sensor_hal_err_t al_sensor_hal_read(al_sensor_hal_data_t* data);
 
 #endif  // AL_SENSOR_HAL_H

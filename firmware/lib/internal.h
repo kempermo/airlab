@@ -1,6 +1,7 @@
 #ifndef AL_INTERNAL_H
 #define AL_INTERNAL_H
 
+#include <stdbool.h>
 #include <esp_err.h>
 #include <esp_attr.h>
 

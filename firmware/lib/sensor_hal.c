@@ -1,3 +1,5 @@
+#include <stdbool.h>
+
 #include "sensor_hal.h"
 
 #define AL_SENSOR_HAL_SCD41 0x62
