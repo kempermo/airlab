@@ -65,13 +65,10 @@ static al_sensor_hal_err_t al_sensor_hal_transfer(uint8_t target, uint16_t addr,
   }
 
   // run command
-  bool ok = al_sensor_hal_ops.transfer(target, al_sensor_hal_bt, write, al_sensor_hal_bt, receive * 3);
-  if (!ok && !may_fail) {
-    return AL_SENSOR_HAL_ERR_TRANSFER | flag;
-  }
-
-  // skip verify if may fail
-  if (may_fail) {
+  al_sensor_hal_err_t err = al_sensor_hal_ops.transfer(target, al_sensor_hal_bt, write, al_sensor_hal_bt, receive * 3);
+  if (err != AL_SENSOR_HAL_OK && !may_fail) {
+    return err | flag;
+  } else if (err != AL_SENSOR_HAL_OK && may_fail) {
     return AL_SENSOR_HAL_OK;
   }
 
@@ -89,8 +86,9 @@ static al_sensor_hal_err_t al_sensor_hal_transfer(uint8_t target, uint16_t addr,
 
 static al_sensor_hal_err_t al_sensor_hal_read_lps(uint8_t reg, uint8_t* val) {
   // read register
-  if (!al_sensor_hal_ops.transfer(AL_SENSOR_HAL_LPS22, &reg, 1, val, 1)) {
-    return AL_SENSOR_HAL_ERR_TRANSFER | AL_SENSOR_HAL_ERR_LPS22;
+  al_sensor_hal_err_t err = al_sensor_hal_ops.transfer(AL_SENSOR_HAL_LPS22, &reg, 1, val, 1);
+  if (err != AL_SENSOR_HAL_OK) {
+    return err | AL_SENSOR_HAL_ERR_LPS22;
   }
 
   return AL_SENSOR_HAL_OK;
@@ -100,8 +98,9 @@ static al_sensor_hal_err_t al_sensor_hal_write_lps(uint8_t reg, uint8_t val) {
   // write register
   al_sensor_hal_bt[0] = reg;
   al_sensor_hal_bt[1] = val;
-  if (!al_sensor_hal_ops.transfer(AL_SENSOR_HAL_LPS22, al_sensor_hal_bt, 2, NULL, 0)) {
-    return AL_SENSOR_HAL_ERR_TRANSFER | AL_SENSOR_HAL_ERR_LPS22;
+  al_sensor_hal_err_t err = al_sensor_hal_ops.transfer(AL_SENSOR_HAL_LPS22, al_sensor_hal_bt, 2, NULL, 0);
+  if (err != AL_SENSOR_HAL_OK) {
+    return err | AL_SENSOR_HAL_ERR_LPS22;
   }
 
   return AL_SENSOR_HAL_OK;
@@ -151,7 +150,7 @@ al_sensor_hal_err_t al_sensor_hal_ready() {
   // check if SCD measurement is available
   AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0xe4b8, 0, 1, false));
   if ((al_sensor_hal_br[0] & 0xFFF) == 0) {
-    return AL_SENSOR_HAL_ERR_BUSY;
+    return AL_SENSOR_HAL_BUSY;
   }
 
   return AL_SENSOR_HAL_OK;

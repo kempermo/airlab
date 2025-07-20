@@ -17,7 +17,7 @@ volatile int64_t start = 0;
 volatile uint8_t counter = 0;
 volatile al_sensor_hal_data_t readings[READINGS] = {0};
 
-static bool transfer(uint8_t addr, uint8_t* wd, size_t wl, uint8_t* rd, size_t rl) {
+static al_sensor_hal_err_t transfer(uint8_t addr, uint8_t* wd, size_t wl, uint8_t* rd, size_t rl) {
   // set slave address
   ulp_riscv_i2c_master_set_slave_addr(addr);
 
@@ -37,7 +37,7 @@ static bool transfer(uint8_t addr, uint8_t* wd, size_t wl, uint8_t* rd, size_t r
     ulp_riscv_i2c_master_read_from_device(rd, rl);
   }
 
-  return true;
+  return AL_SENSOR_HAL_OK;
 }
 
 static void delay(uint32_t ms) {
@@ -66,12 +66,14 @@ int main(void) {
     delay(100);
 
     // check if ready
-    if (al_sensor_hal_ready() != AL_SENSOR_HAL_OK) {
+    al_sensor_hal_err_t err = al_sensor_hal_ready();
+    if (err != AL_SENSOR_HAL_OK) {
       continue;
     }
 
     // read sensor
-    if (al_sensor_hal_read(&data) != AL_SENSOR_HAL_OK) {
+    err = al_sensor_hal_read(&data);
+    if (err != AL_SENSOR_HAL_OK) {
       continue;
     }
 

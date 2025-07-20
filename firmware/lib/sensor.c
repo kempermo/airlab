@@ -20,8 +20,16 @@ AL_KEEP static GasIndexAlgorithmParams al_sensor_voc_params = {0};
 AL_KEEP static GasIndexAlgorithmParams al_sensor_nox_params = {0};
 AL_KEEP static int64_t al_sensor_store_epoch = 0;
 
-static bool al_sensor_transfer(uint8_t target, uint8_t *wd, size_t wl, uint8_t *rd, size_t rl) {
-  return al_i2c_transfer(target, wd, wl, rd, rl, 1000) == ESP_OK;
+static al_sensor_hal_err_t al_sensor_transfer(uint8_t target, uint8_t *wd, size_t wl, uint8_t *rd, size_t rl) {
+  // perform transfer
+  esp_err_t err = al_i2c_transfer(target, wd, wl, rd, rl, 1000);
+  if (err == ESP_ERR_TIMEOUT) {
+    return AL_SENSOR_HAL_ERR_TIMEOUT;
+  } else if (err != ESP_OK) {
+    return AL_SENSOR_HAL_ERR_TRANSFER;
+  }
+
+  return AL_SENSOR_HAL_OK;
 }
 
 static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
@@ -81,7 +89,7 @@ static void al_sensor_check() {
   // check if SCD measurement is available
   err = al_sensor_hal_ready();
   if (err != AL_SENSOR_HAL_OK) {
-    if (err != AL_SENSOR_HAL_ERR_BUSY) {
+    if (err != AL_SENSOR_HAL_BUSY) {
       naos_log("al-sns: HAL error=%d", err);
       ESP_ERROR_CHECK(ESP_FAIL);
     }
