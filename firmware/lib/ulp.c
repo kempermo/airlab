@@ -13,6 +13,20 @@
 extern const uint8_t al_ulp_bin_start[] asm("_binary_ulp_al_bin_start");
 extern const uint8_t al_ulp_bin_end[] asm("_binary_ulp_al_bin_end");
 
+void al_ulp_init(bool reset) {
+  // stop if not reset
+  if (!reset) {
+    return;
+  }
+
+  // every load of the ULP program will reset the ULP memory, but right after
+  // a reset we need to initialize the memory manually once
+
+  // clear memory
+  ulp_start = 0;
+  ulp_counter = 0;
+}
+
 void al_ulp_start() {
   // load ULP program
   ESP_ERROR_CHECK(ulp_riscv_load_binary(al_ulp_bin_start, al_ulp_bin_end - al_ulp_bin_start));
