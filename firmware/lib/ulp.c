@@ -13,18 +13,18 @@
 extern const uint8_t al_ulp_bin_start[] asm("_binary_ulp_al_bin_start");
 extern const uint8_t al_ulp_bin_end[] asm("_binary_ulp_al_bin_end");
 
+void al_ulp_stop() {
+  // stop ULP program
+  ulp_riscv_timer_stop();
+  ulp_riscv_halt();
+}
+
 void al_ulp_init(bool reset) {
-  // stop if not reset
-  if (!reset) {
-    return;
+  // clear memory on reset to prevent access of uninitialized memory
+  if (reset) {
+    ulp_start = 0;
+    ulp_counter = 0;
   }
-
-  // every load of the ULP program will reset the ULP memory, but right after
-  // a reset we need to initialize the memory manually once
-
-  // clear memory
-  ulp_start = 0;
-  ulp_counter = 0;
 }
 
 void al_ulp_start() {
@@ -40,6 +40,9 @@ void al_ulp_start() {
   i2c.i2c_pin_cfg.sda_io_num = GPIO_NUM_1;
   ESP_ERROR_CHECK(ulp_riscv_i2c_master_init(&i2c));
 
+  // prevent power down of I2C peripheral during ULP sleep
+  ESP_ERROR_CHECK(esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON));
+
   // clear counter
   ulp_counter = 0;
 
@@ -53,12 +56,6 @@ void al_ulp_start() {
 
   // log
   naos_log("al-ulp: started: length=%d", al_ulp_bin_end - al_ulp_bin_start);
-}
-
-void al_ulp_stop() {
-  // stop ULP program
-  ulp_riscv_timer_stop();
-  ulp_riscv_halt();
 }
 
 int al_ulp_readings() {

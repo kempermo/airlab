@@ -60,37 +60,29 @@ int main(void) {
       .epoch = epoch,
   });
 
-  // read sensor
-  for (;;) {
-    // wait
-    delay(100);
-
-    // check if ready
-    al_sensor_hal_err_t err = al_sensor_hal_ready();
-    if (err != AL_SENSOR_HAL_OK) {
-      continue;
-    }
-
-    // read sensor
-    err = al_sensor_hal_read(&data);
-    if (err != AL_SENSOR_HAL_OK) {
-      continue;
-    }
-
-    // store reading
-    readings[counter] = data;
-
-    // increment
-    counter++;
-
-    // stop if full
-    if (counter >= READINGS) {
-      break;
-    }
+  // check if ready
+  al_sensor_hal_err_t err = al_sensor_hal_ready();
+  if (err != AL_SENSOR_HAL_OK) {
+    return 0;
   }
 
-  // wake main CPU
-  ulp_riscv_wakeup_main_processor();
+  // read sensor
+  err = al_sensor_hal_read(&data);
+  if (err != AL_SENSOR_HAL_OK) {
+    return 0;
+  }
+
+  // store reading
+  readings[counter] = data;
+
+  // increment
+  counter++;
+
+  // stop if full
+  if (counter >= READINGS) {
+    ulp_riscv_timer_stop();
+    ulp_riscv_wakeup_main_processor();
+  }
 
   return 0;
 }

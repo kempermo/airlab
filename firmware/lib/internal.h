@@ -40,8 +40,8 @@ void al_sensor_low_power(bool on);
 void al_touch_sleep();
 void al_touch_wake();
 
-void al_ulp_start();
 void al_ulp_stop();
+void al_ulp_start();
 int al_ulp_readings();
 al_sensor_hal_data_t al_ulp_get_reading(int index);
 
