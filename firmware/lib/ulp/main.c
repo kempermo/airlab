@@ -1,11 +1,12 @@
 #include <ulp_riscv.h>
 #include <ulp_riscv_utils.h>
 #include <ulp_riscv_i2c.h>
+#include <hal/rtc_cntl_ll.h>
 
 #include "../sensor_hal.h"
 
 #define READINGS 16  // 80s
-#define ERRORS 64
+#define ERRORS 32
 #define DEBUG false
 
 // use our own constant to avoid software floating point calculations
@@ -14,6 +15,7 @@ static_assert(MS_CYCLES == ULP_RISCV_CYCLES_PER_MS, "cycles mismatch");
 
 static al_sensor_hal_data_t data = {0};
 
+volatile uint64_t offset = 0;
 volatile int64_t start = 0;
 volatile al_sensor_hal_data_t readings[READINGS] = {0};
 volatile int num_readings = 0;
@@ -48,11 +50,26 @@ static void delay(uint32_t ms) {
   ulp_riscv_delay_cycles(ms * MS_CYCLES);
 }
 
-static int64_t epoch() {
-  // calculate milliseconds from cycles
-  int millis = ULP_RISCV_GET_CCOUNT() / MS_CYCLES;
+static int millis() {
+  // get time
+  uint64_t now = rtc_cntl_ll_get_rtc_time();
 
-  return start + (int64_t)millis;
+  // get difference
+  uint64_t time = now - offset;
+  if (now < offset) {
+    time = (UINT64_MAX - offset) + now;
+  }
+
+  // calculate milliseconds
+  time *= 6667;         // ns
+  time /= 1000 * 1000;  // ms
+
+  return (int)time;
+}
+
+static int64_t epoch() {
+  // calculate epoch in milliseconds
+  return start + (int64_t)millis();
 }
 
 int main(void) {

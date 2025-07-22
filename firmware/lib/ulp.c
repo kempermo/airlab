@@ -2,6 +2,7 @@
 #include <ulp_riscv.h>
 #include <ulp_riscv_i2c.h>
 #include <esp_sleep.h>
+#include <hal/rtc_cntl_ll.h>
 
 #include <al/clock.h>
 
@@ -22,6 +23,7 @@ void al_ulp_stop() {
 void al_ulp_init(bool reset) {
   // clear memory on reset to prevent access of uninitialized memory
   if (reset) {
+    ulp_offset = 0;
     ulp_start = 0;
     ulp_num_readings = 0;
     ulp_num_errors = 0;
@@ -30,7 +32,7 @@ void al_ulp_init(bool reset) {
   // print errors
   for (int i = 0; i < ulp_num_errors; i++) {
     int log = ((int *)&ulp_errors)[i];
-    naos_log("al-ulp: error: %#010x", log);
+    naos_log("al-ulp: error: %d", log);
   }
 }
 
@@ -50,16 +52,16 @@ void al_ulp_start() {
   // prevent power down of I2C peripheral during ULP sleep
   ESP_ERROR_CHECK(esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON));
 
-  // clear counters
-  ulp_num_readings = 0;
-  ulp_num_errors = 0;
-
   // start ULP program
   ESP_ERROR_CHECK(ulp_riscv_run());
   ulp_riscv_timer_resume();
 
-  // store epoch
+  // get pointers
+  uint64_t *offset = (uint64_t *)&ulp_offset;
   int64_t *start = (int64_t *)&ulp_start;
+
+  // set state
+  *offset = rtc_cntl_ll_get_rtc_time();
   *start = al_clock_get_epoch();
 
   // log
