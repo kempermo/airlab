@@ -5,8 +5,10 @@
 
 #include "../sensor_hal.h"
 
+#include "shared.h"
+
 #define READINGS 16  // 80s
-#define ERRORS 32
+#define LOGS 32
 #define DEBUG false
 
 // use our own constant to avoid software floating point calculations
@@ -20,8 +22,8 @@ volatile uint64_t offset = 0;
 volatile int64_t start = 0;
 volatile al_sensor_hal_data_t readings[READINGS] = {0};
 volatile int num_readings = 0;
-volatile int errors[ERRORS];
-volatile int num_errors = 0;
+volatile al_ulp_log_t logs[LOGS];
+volatile int num_logs = 0;
 
 static al_sensor_hal_err_t transfer(uint8_t addr, uint8_t* wd, size_t wl, uint8_t* rd, size_t rl) {
   // set slave address
@@ -73,6 +75,19 @@ static int64_t epoch() {
   return start + (int64_t)millis();
 }
 
+static void log(al_ulp_log_type_t type, int64_t value) {
+  // stop if full
+  if (num_logs >= LOGS) {
+    return;
+  }
+
+  // otherwise, store log
+  logs[num_logs].time = millis();
+  logs[num_logs].type = type;
+  logs[num_logs].value = value;
+  num_logs++;
+}
+
 int main(void) {
   // wire sensor
   al_sensor_hal_init(
@@ -86,22 +101,16 @@ int main(void) {
   // check if ready
   al_sensor_hal_err_t err = al_sensor_hal_ready();
   if (err != AL_SENSOR_HAL_OK) {
-    // log error
-    if (err != AL_SENSOR_HAL_BUSY && num_errors < ERRORS) {
-      errors[num_errors++] = err;
+    if (err != AL_SENSOR_HAL_BUSY) {
+      log(AL_ULP_TYPE_ERROR, err);
     }
-
     return 0;
   }
 
   // read sensor
   err = al_sensor_hal_read(&data);
   if (err != AL_SENSOR_HAL_OK) {
-    // log error
-    if (num_errors < ERRORS) {
-      errors[num_errors++] = err;
-    }
-
+    log(AL_ULP_TYPE_ERROR, err);
     return 0;
   }
 

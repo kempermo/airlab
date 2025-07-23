@@ -9,6 +9,7 @@
 #include "sensor_hal.h"
 
 #include "ulp_al.h"
+#include "ulp/shared.h"
 
 extern const uint8_t al_ulp_bin_start[] asm("_binary_ulp_al_bin_start");
 extern const uint8_t al_ulp_bin_end[] asm("_binary_ulp_al_bin_end");
@@ -25,13 +26,17 @@ void al_ulp_init(bool reset) {
     ulp_offset = 0;
     ulp_start = 0;
     ulp_num_readings = 0;
-    ulp_num_errors = 0;
+    ulp_num_logs = 0;
   }
 
-  // print errors
-  for (int i = 0; i < ulp_num_errors; i++) {
-    int log = ((int *)&ulp_errors)[i];
-    naos_log("al-ulp: error: %d", log);
+  // print logs
+  for (int i = 0; i < ulp_num_logs; i++) {
+    al_ulp_log_t log = ((al_ulp_log_t *)&ulp_logs)[i];
+    if (log.type == AL_ULP_TYPE_ERROR) {
+      naos_log("al-ulp: error: [%d] %lld", log.time, log.value);
+    } else {
+      naos_log("al-ulp: log/%d: [%d] %lld", log.type, log.time, log.value);
+    }
   }
 }
 
