@@ -81,8 +81,8 @@ void al_ulp_load_state(al_sensor_hal_state_t *state) {
   }
 
   // copy state
-  al_sensor_hal_state_t *ulp_state = (al_sensor_hal_state_t *)&ulp_state;
-  *state = *ulp_state;
+  al_sensor_hal_state_t *s = (al_sensor_hal_state_t *)&ulp_state;
+  *state = *s;
 }
 
 int al_ulp_readings() {
