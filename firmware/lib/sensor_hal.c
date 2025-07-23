@@ -174,18 +174,11 @@ al_sensor_hal_err_t al_sensor_hal_ready() {
     if (al_sensor_hal_state->deadline == 0) {
       AL_CHECK(al_sensor_hal_measure());
     }
-
-    // determine readiness based on deadline
-    if (al_sensor_hal_ops.epoch() < al_sensor_hal_state->deadline) {
-      return AL_SENSOR_HAL_BUSY;
-    }
-
-    return AL_SENSOR_HAL_OK;
   }
 
   // otherwise, check if SCD measurement is available
-  AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0xe4b8, 0, 1, false));
-  if ((al_sensor_hal_br[0] & 0xFFF) == 0) {
+  al_sensor_hal_err_t err = al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0xe4b8, 0, 1, false);
+  if (err != AL_SENSOR_HAL_OK || (al_sensor_hal_br[0] & 0xFFF) == 0) {
     return AL_SENSOR_HAL_BUSY;
   }
 
