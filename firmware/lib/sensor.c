@@ -15,7 +15,8 @@ static naos_mutex_t al_sensor_mutex;
 static naos_signal_t al_sensor_signal;
 static al_sensor_hook_t al_sensor_hook;
 
-AL_KEEP static bool al_sensor_low_power_on = false;
+AL_KEEP static al_sensor_hal_state_t al_sensor_state = {0};
+AL_KEEP static al_sensor_hal_mode_t al_sensor_mode = AL_SENSOR_HAL_NORMAL;
 AL_KEEP static GasIndexAlgorithmParams al_sensor_voc_params = {0};
 AL_KEEP static GasIndexAlgorithmParams al_sensor_nox_params = {0};
 AL_KEEP static int64_t al_sensor_store_epoch = 0;
@@ -74,15 +75,15 @@ static void al_sensor_check() {
 
   // exit low power mode after 5s
   al_sensor_hal_err_t err = 0;
-  if (al_sensor_low_power_on && naos_millis() > 5000) {
+  if (al_sensor_mode != AL_SENSOR_HAL_NORMAL && naos_millis() > 5000) {
     err = al_sensor_hal_config(AL_SENSOR_HAL_NORMAL);
     if (err != AL_SENSOR_HAL_OK) {
       naos_log("al-sns: HAL error=%d", err);
       ESP_ERROR_CHECK(ESP_FAIL);
     }
-    al_sensor_low_power_on = false;
+    al_sensor_mode = AL_SENSOR_HAL_NORMAL;
     if (AL_SENSOR_DEBUG) {
-      naos_log("al-sns: low power off");
+      naos_log("al-sns: mode=normal");
     }
   }
 
@@ -125,12 +126,19 @@ void al_sensor_init(bool reset) {
   al_sensor_mutex = naos_mutex();
   al_sensor_signal = naos_signal();
 
+  // load ULP sensor state if not reset
+  if (!reset) {
+    al_ulp_load_state(&al_sensor_state);
+  }
+
   // wire sensor HAL
-  al_sensor_hal_wire((al_sensor_hal_ops_t){
-      .transfer = al_sensor_transfer,
-      .delay = naos_delay,
-      .epoch = al_clock_get_epoch,
-  });
+  al_sensor_hal_init(
+      (al_sensor_hal_ops_t){
+          .transfer = al_sensor_transfer,
+          .delay = naos_delay,
+          .epoch = al_clock_get_epoch,
+      },
+      &al_sensor_state);
 
   // perform reset
   if (reset) {
@@ -205,29 +213,35 @@ al_sample_t al_sensor_next() {
   return sample;
 }
 
-void al_sensor_low_power(bool on) {
+void al_sensor_low_power(bool on, bool manual) {
   // lock mutex
   naos_lock(al_sensor_mutex);
 
+  // determine mode
+  al_sensor_hal_mode_t mode = AL_SENSOR_HAL_NORMAL;
+  if (on) {
+    mode = manual ? AL_SENSOR_HAL_MANUAL : AL_SENSOR_HAL_LOW_POWER;
+  }
+
   // check flag
-  if (al_sensor_low_power_on == on) {
+  if (al_sensor_mode == mode) {
     naos_unlock(al_sensor_mutex);
     return;
   }
 
   // set low power mode
-  al_sensor_hal_err_t err = al_sensor_hal_config(on ? AL_SENSOR_HAL_LOW_POWER : AL_SENSOR_HAL_NORMAL);
+  al_sensor_hal_err_t err = al_sensor_hal_config(mode);
   if (err != AL_SENSOR_HAL_OK) {
     naos_log("al-sns: HAL error=%d", err);
     ESP_ERROR_CHECK(ESP_FAIL);
   }
 
-  // set flag
-  al_sensor_low_power_on = on;
+  // set mode
+  al_sensor_mode = mode;
 
   // log state
   if (AL_SENSOR_DEBUG) {
-    naos_log("al-sns: low power on=%d", on);
+    naos_log("al-sns: mode=%d", mode);
   }
 
   // unlock mutex

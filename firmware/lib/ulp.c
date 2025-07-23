@@ -6,7 +6,6 @@
 
 #include <al/clock.h>
 
-#include "internal.h"
 #include "sensor_hal.h"
 
 #include "ulp_al.h"
@@ -57,15 +56,28 @@ void al_ulp_start() {
   ulp_riscv_timer_resume();
 
   // get pointers
+  al_sensor_hal_state_t *state = (al_sensor_hal_state_t *)&ulp_state;
   uint64_t *offset = (uint64_t *)&ulp_offset;
   int64_t *start = (int64_t *)&ulp_start;
 
   // set state
+  *state = al_sensor_hal_dump();
   *offset = rtc_cntl_ll_get_rtc_time();
   *start = al_clock_get_epoch();
 
   // log
   naos_log("al-ulp: started: length=%d", al_ulp_bin_end - al_ulp_bin_start);
+}
+
+void al_ulp_load_state(al_sensor_hal_state_t *state) {
+  // check if ULP woke up
+  if (!esp_sleep_get_wakeup_cause()) {
+    return;
+  }
+
+  // copy state
+  al_sensor_hal_state_t *ulp_state = (al_sensor_hal_state_t *)&ulp_state;
+  *state = *ulp_state;
 }
 
 int al_ulp_readings() {

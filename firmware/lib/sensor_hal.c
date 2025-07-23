@@ -17,6 +17,7 @@
 // TODO: Perform SGP41 conditioning after reset (10s)?
 
 static al_sensor_hal_ops_t al_sensor_hal_ops;
+static al_sensor_hal_state_t* al_sensor_hal_state;
 static uint16_t al_sensor_hal_bw[4];
 static uint16_t al_sensor_hal_br[4];
 static uint8_t al_sensor_hal_bt[2 + 4 * 3];
@@ -108,9 +109,24 @@ static al_sensor_hal_err_t al_sensor_hal_write_lps(uint8_t reg, uint8_t val) {
   return AL_SENSOR_HAL_OK;
 }
 
-void al_sensor_hal_wire(al_sensor_hal_ops_t ops) {
-  // store ops
+static al_sensor_hal_err_t al_sensor_hal_measure() {
+  // wake up SCD41
+  AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0x36f6, 0, 0, true));
+  al_sensor_hal_ops.delay(30);
+
+  // initiate single-shot measurement
+  AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0x219d, 0, 0, false));
+
+  // set flag
+  al_sensor_hal_state->measured = al_sensor_hal_ops.epoch();
+
+  return AL_SENSOR_HAL_OK;
+}
+
+void al_sensor_hal_init(al_sensor_hal_ops_t ops, al_sensor_hal_state_t* state) {
+  // store ops and state
   al_sensor_hal_ops = ops;
+  al_sensor_hal_state = state;
 }
 
 al_sensor_hal_err_t al_sensor_hal_config(al_sensor_hal_mode_t mode) {
@@ -129,7 +145,7 @@ al_sensor_hal_err_t al_sensor_hal_config(al_sensor_hal_mode_t mode) {
     AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0x21ac, 0, 0, false));
   } else if (mode == AL_SENSOR_HAL_SLEEP) {
     AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0x36e0, 0, 0, false));
-  } else {
+  } else if (mode != AL_SENSOR_HAL_MANUAL) {
     return AL_SENSOR_HAL_ERR_MODE;
   }
 
@@ -145,11 +161,29 @@ al_sensor_hal_err_t al_sensor_hal_config(al_sensor_hal_mode_t mode) {
     AL_CHECK(al_sensor_hal_write_lps(0x10, 0x18));  // 1Hz, LPF on
   }
 
+  // store mode
+  al_sensor_hal_state->mode = mode;
+
   return AL_SENSOR_HAL_OK;
 }
 
 al_sensor_hal_err_t al_sensor_hal_ready() {
-  // check if SCD measurement is available
+  // handle manual mode
+  if (al_sensor_hal_state->mode == AL_SENSOR_HAL_MANUAL) {
+    // trigger measurement if not measuring
+    if (al_sensor_hal_state->measured == 0) {
+      AL_CHECK(al_sensor_hal_measure());
+    }
+
+    // determine readiness based on measured time
+    if (al_sensor_hal_ops.epoch() - al_sensor_hal_state->measured < 5000) {
+      return AL_SENSOR_HAL_BUSY;
+    }
+
+    return AL_SENSOR_HAL_OK;
+  }
+
+  // otherwise, check if SCD measurement is available
   AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0xe4b8, 0, 1, false));
   if ((al_sensor_hal_br[0] & 0xFFF) == 0) {
     return AL_SENSOR_HAL_BUSY;
@@ -183,5 +217,18 @@ al_sensor_hal_err_t al_sensor_hal_read(al_sensor_hal_data_t* data) {
   // set epoch
   data->epoch = al_sensor_hal_ops.epoch();
 
+  // clear flag
+  al_sensor_hal_state->measured = 0;
+
+  // trigger measurement in manual mode
+  if (al_sensor_hal_state->mode == AL_SENSOR_HAL_MANUAL) {
+    AL_CHECK(al_sensor_hal_measure());
+  }
+
   return AL_SENSOR_HAL_OK;
+}
+
+al_sensor_hal_state_t al_sensor_hal_dump() {
+  // return state
+  return *al_sensor_hal_state;
 }

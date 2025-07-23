@@ -15,6 +15,7 @@ static_assert(MS_CYCLES == ULP_RISCV_CYCLES_PER_MS, "cycles mismatch");
 
 static al_sensor_hal_data_t data = {0};
 
+volatile al_sensor_hal_state_t state = {0};
 volatile uint64_t offset = 0;
 volatile int64_t start = 0;
 volatile al_sensor_hal_data_t readings[READINGS] = {0};
@@ -74,11 +75,13 @@ static int64_t epoch() {
 
 int main(void) {
   // wire sensor
-  al_sensor_hal_wire((al_sensor_hal_ops_t){
-      .transfer = transfer,
-      .delay = delay,
-      .epoch = epoch,
-  });
+  al_sensor_hal_init(
+      (al_sensor_hal_ops_t){
+          .transfer = transfer,
+          .delay = delay,
+          .epoch = epoch,
+      },
+      &state);
 
   // check if ready
   al_sensor_hal_err_t err = al_sensor_hal_ready();

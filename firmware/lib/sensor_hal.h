@@ -5,8 +5,9 @@
 #include <stddef.h>
 
 typedef enum {
-  AL_SENSOR_HAL_NORMAL = 0,     // 5s
-  AL_SENSOR_HAL_LOW_POWER = 1,  // 30s
+  AL_SENSOR_HAL_NORMAL,     // 5s
+  AL_SENSOR_HAL_LOW_POWER,  // 30s
+  AL_SENSOR_HAL_MANUAL,
   AL_SENSOR_HAL_SLEEP
 } al_sensor_hal_mode_t;
 
@@ -32,6 +33,11 @@ typedef struct {
 } al_sensor_hal_ops_t;
 
 typedef struct {
+  al_sensor_hal_mode_t mode;
+  int64_t measured;
+} al_sensor_hal_state_t;
+
+typedef struct {
   int64_t epoch;
   uint16_t co2;
   uint16_t tmp;
@@ -41,9 +47,10 @@ typedef struct {
   uint32_t prs;
 } al_sensor_hal_data_t;
 
-void al_sensor_hal_wire(al_sensor_hal_ops_t ops);
+void al_sensor_hal_init(al_sensor_hal_ops_t ops, al_sensor_hal_state_t* state);
 al_sensor_hal_err_t al_sensor_hal_config(al_sensor_hal_mode_t mode);
 al_sensor_hal_err_t al_sensor_hal_ready();
 al_sensor_hal_err_t al_sensor_hal_read(al_sensor_hal_data_t* data);
+al_sensor_hal_state_t al_sensor_hal_dump();
 
 #endif  // AL_SENSOR_HAL_H

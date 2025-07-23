@@ -138,7 +138,7 @@ al_trigger_t al_sleep(bool deep, uint64_t timeout) {
   // prepare deep sleep
   if (deep) {
     // enable low power mode if not USB
-    al_sensor_low_power(!state.usb);
+    al_sensor_low_power(!state.usb, false);
 
     // disable I2C access
     naos_lock(al_i2c_mutex);
