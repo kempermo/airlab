@@ -34,7 +34,7 @@ typedef struct {
 
 typedef struct {
   al_sensor_hal_mode_t mode;
-  int64_t measured;
+  int64_t deadline;
 } al_sensor_hal_state_t;
 
 typedef struct {

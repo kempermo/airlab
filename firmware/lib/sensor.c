@@ -223,7 +223,7 @@ void al_sensor_low_power(bool on, bool manual) {
     mode = manual ? AL_SENSOR_HAL_MANUAL : AL_SENSOR_HAL_LOW_POWER;
   }
 
-  // check flag
+  // check mode
   if (al_sensor_mode == mode) {
     naos_unlock(al_sensor_mutex);
     return;

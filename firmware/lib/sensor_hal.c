@@ -117,8 +117,8 @@ static al_sensor_hal_err_t al_sensor_hal_measure() {
   // initiate single-shot measurement
   AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0x219d, 0, 0, false));
 
-  // set flag
-  al_sensor_hal_state->measured = al_sensor_hal_ops.epoch();
+  // set deadline
+  al_sensor_hal_state->deadline = al_sensor_hal_ops.epoch() + 5500; // 5.5 seconds
 
   return AL_SENSOR_HAL_OK;
 }
@@ -171,12 +171,12 @@ al_sensor_hal_err_t al_sensor_hal_ready() {
   // handle manual mode
   if (al_sensor_hal_state->mode == AL_SENSOR_HAL_MANUAL) {
     // trigger measurement if not measuring
-    if (al_sensor_hal_state->measured == 0) {
+    if (al_sensor_hal_state->deadline == 0) {
       AL_CHECK(al_sensor_hal_measure());
     }
 
-    // determine readiness based on measured time
-    if (al_sensor_hal_ops.epoch() - al_sensor_hal_state->measured < 5000) {
+    // determine readiness based on deadline
+    if (al_sensor_hal_ops.epoch() < al_sensor_hal_state->deadline) {
       return AL_SENSOR_HAL_BUSY;
     }
 
@@ -217,8 +217,8 @@ al_sensor_hal_err_t al_sensor_hal_read(al_sensor_hal_data_t* data) {
   // set epoch
   data->epoch = al_sensor_hal_ops.epoch();
 
-  // clear flag
-  al_sensor_hal_state->measured = 0;
+  // clear deadline
+  al_sensor_hal_state->deadline = 0;
 
   // trigger measurement in manual mode
   if (al_sensor_hal_state->mode == AL_SENSOR_HAL_MANUAL) {
