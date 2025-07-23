@@ -229,7 +229,7 @@ void al_sensor_low_power(bool on, bool manual) {
   }
 
   // set low power mode
-  al_sensor_hal_err_t err = al_sensor_hal_config(mode, 15000);
+  al_sensor_hal_err_t err = al_sensor_hal_config(mode, 55000);
   if (err != AL_SENSOR_HAL_OK) {
     naos_log("al-sns: HAL error=%d", err);
     ESP_ERROR_CHECK(ESP_FAIL);
