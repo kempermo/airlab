@@ -58,8 +58,9 @@ static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
       .prs = (int16_t)prs,
   };
   if (AL_SENSOR_DEBUG) {
-    naos_log("al-sns: ingest co2=%d tmp=%d hum=%d voc=%d nox=%d prs=%d ingest off=%d epoch=%lld", sample.co2,
-             sample.tmp, sample.hum, sample.voc, sample.nox, sample.prs, sample.off, data.epoch);
+    int64_t diff = sample.off - al_store_last().off;
+    naos_log("al-sns: ingest co2=%d tmp=%d hum=%d voc=%d nox=%d prs=%d ingest off=%d epoch=%lld diff=%lld", sample.co2,
+             sample.tmp, sample.hum, sample.voc, sample.nox, sample.prs, sample.off, data.epoch, diff);
   }
 
   // ingest sample
