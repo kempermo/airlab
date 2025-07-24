@@ -419,9 +419,6 @@ static void* scr_sensor() {
 }
 
 static void* scr_saver() {
-  // prepare variables
-  DEV_KEEP static bool right = true;
-
   // set timeout return
   scr_return_timeout = scr_saver;
 
@@ -469,9 +466,6 @@ static void* scr_saver() {
     // get accelerometer state
     al_accel_state_t acc = al_accel_get();
 
-    // flip side
-    right = !right;
-
     // begin draw
     gfx_begin(false, false);
 
@@ -512,12 +506,12 @@ static void* scr_saver() {
       lv_obj_align(time, LV_ALIGN_BOTTOM_RIGHT, -25, -25);
       lv_obj_align(status.row, LV_ALIGN_BOTTOM_LEFT, 25, -25);
     } else {
-      lv_align_t align = right ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT;
-      lv_obj_align(status.row, align, right ? -20 : 20, 19);
-      lv_obj_align(time, align, right ? -19 : 19, 41);
-      lv_obj_align(co2, align, right ? -19 : 19, 59);
-      lv_obj_align(tmp, align, right ? -19 : 19, 77);
-      lv_obj_align(hum, align, right ? -19 : 19, 95);
+      lv_align_t align = LV_ALIGN_TOP_LEFT;
+      lv_obj_align(status.row, align, 20, 19);
+      lv_obj_align(time, align, 19, 41);
+      lv_obj_align(co2, align, 19, 59);
+      lv_obj_align(tmp, align, 19, 77);
+      lv_obj_align(hum, align, 19, 95);
       lv_obj_align(co2_big, 0, -100, -100);
       lv_obj_align(tmp_big, 0, -100, -100);
       lv_obj_align(hum_big, 0, -100, -100);
