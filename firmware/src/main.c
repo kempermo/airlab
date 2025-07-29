@@ -1,5 +1,6 @@
 #include <naos.h>
 #include <naos/cpu.h>
+#include <naos/serial.h>
 #include <naos/sys.h>
 
 #include <al/core.h>
@@ -72,5 +73,6 @@ void app_main() {
   // run naos
   naos_init(&config);
   naos_cpu_init();
+  naos_serial_init_stdio();
   naos_start();
 }
