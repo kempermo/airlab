@@ -1,4 +1,5 @@
 #include <naos.h>
+#include <naos/auth.h>
 #include <naos/sys.h>
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
@@ -15,6 +16,7 @@
    BIT64(AL_BUTTONS_F))
 
 static naos_mutex_t al_i2c_mutex;
+static naos_auth_data_t al_auth_data = {0};
 
 static al_trigger_t al_trigger() {
   // get cause
@@ -44,6 +46,10 @@ al_trigger_t al_init() {
 
   // create mutex
   al_i2c_mutex = naos_mutex();
+
+  // read authentication data
+  bool ok = naos_auth_describe(&al_auth_data) == NAOS_AUTH_ERR_OK;
+  naos_log("al_init: auth=%s rev=%d", ok ? "ok" : "failed", al_auth_data.revision);
 
   // install interrupt service
   ESP_ERROR_CHECK(gpio_install_isr_service(0));
