@@ -607,10 +607,18 @@ static void* scr_view() {
   // prepare variables
   static int8_t mode = 0;  // co2, tmp, hum, voc, nox, prs
   static bool advanced = false;
-  static al_sample_t samples[LVX_CHART_SIZE];
 
-  // zero samples
-  memset(samples, 0, sizeof(samples));
+  // allocate sample buffer
+  static al_sample_t* samples = NULL;
+  if (samples == NULL) {
+    samples = al_calloc(LVX_CHART_SIZE, sizeof(al_sample_t));
+  }
+
+  // prepare chart buffer
+  static lv_color_t* chart_buffer = NULL;
+  if (chart_buffer == NULL) {
+    chart_buffer = al_calloc(1, LV_CANVAS_BUF_SIZE_TRUE_COLOR(288, 96));
+  }
 
   // find file, if not live
   dat_file_t* file = NULL;
@@ -633,7 +641,6 @@ static void* scr_view() {
 
   // add chart
   lv_obj_t* canvas = lv_canvas_create(lv_scr_act());
-  static lv_color_t chart_buffer[LV_CANVAS_BUF_SIZE_TRUE_COLOR(288, 96)] = {0};
   lv_canvas_set_buffer(canvas, chart_buffer, 288, 96, LV_IMG_CF_TRUE_COLOR);
   lv_obj_align(canvas, LV_ALIGN_BOTTOM_LEFT, 5, -5);
   lv_canvas_fill_bg(canvas, lv_color_white(), LV_OPA_COVER);

@@ -155,7 +155,7 @@ void gfx_init(bool reset) {
   }
 
   // run task
-  naos_run("gfx", 8192, 1, gfx_task);
+  naos_run("gfx", 4096, 1, gfx_task);
 }
 
 void gfx_begin(bool refresh, bool invert) {

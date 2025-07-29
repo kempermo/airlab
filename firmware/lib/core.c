@@ -53,7 +53,7 @@ al_trigger_t al_init() {
       .mosi_io_num = GPIO_NUM_38,
       .miso_io_num = -1,
       .sclk_io_num = GPIO_NUM_39,
-      .max_transfer_sz = 8192,
+      .max_transfer_sz = 5125,
       .flags = SPICOMMON_BUSFLAG_MASTER,
   };
   ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &spi, SPI_DMA_CH_AUTO));
