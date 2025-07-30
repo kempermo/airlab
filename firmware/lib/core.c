@@ -33,7 +33,7 @@ static al_trigger_t al_trigger() {
     if ((status & AL_BUTTONS) != 0) {
       return AL_BUTTON;
     } else if ((status & BIT64(AL_INT_IN)) != 0) {
-      return AL_INT_IN;
+      return AL_INTERRUPT;
     }
   }
 
@@ -60,8 +60,7 @@ al_trigger_t al_init() {
   al_i2c_mutex = naos_mutex();
 
   // read authentication data
-  bool ok = naos_auth_describe(&al_auth_data) == NAOS_AUTH_ERR_OK;
-  naos_log("al_init: auth=%s rev=%d", ok ? "ok" : "failed", al_auth_data.revision);
+  bool auth = naos_auth_describe(&al_auth_data) == NAOS_AUTH_ERR_OK;
 
   // install interrupt service
   ESP_ERROR_CHECK(gpio_install_isr_service(0));
@@ -124,7 +123,13 @@ al_trigger_t al_init() {
   ESP_ERROR_CHECK(gpio_config(&cfg));
   ESP_ERROR_CHECK(gpio_isr_handler_add(AL_INT_IN, al_int_signal, NULL));
 
-  return al_trigger();
+  // get trigger
+  al_trigger_t trigger = al_trigger();
+
+  // log initialization
+  naos_log("al_init: trigger=%d auth=%s rev=%d", trigger, auth ? "ok" : "failed", al_auth_data.revision);
+
+  return trigger;
 }
 
 esp_err_t al_i2c_transfer(uint8_t addr, uint8_t* tx, size_t tx_len, uint8_t* rx, size_t rx_len, int timeout) {
