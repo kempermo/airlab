@@ -547,7 +547,7 @@ static void* scr_saver() {
     if (!rec_running()) {
       if (power.usb) {
         // wait one second
-        sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_MOTION, 60 * 1000);
+        sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_INTERRUPT, 60 * 1000);
 
         // handle unlock
         if (event.type & SIG_KEYS) {
@@ -579,7 +579,7 @@ static void* scr_saver() {
     // check if powered
     if (power.usb) {
       // wait some time
-      sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_MOTION, timeout);
+      sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_INTERRUPT, timeout);
 
       // handle unlock
       if (event.type & SIG_KEYS) {
@@ -1772,12 +1772,12 @@ static void* scr_menu() {
     fun = false;
 
     // await event
-    sig_event_t event = sig_await(SIG_SENSOR | SIG_KEYS, 0);
+    sig_event_t event = sig_await(SIG_SENSOR | SIG_INTERRUPT | SIG_KEYS, 0);
 
     // handle deadline
-    if (event.type == SIG_SENSOR && naos_millis() > deadline) {
+    if (event.type & (SIG_SENSOR | SIG_INTERRUPT) && naos_millis() > deadline) {
       event.type = SIG_TIMEOUT;
-    } else if (event.type != SIG_SENSOR) {
+    } else if ((event.type & SIG_KEYS) != 0) {
       deadline = naos_millis() + SCR_IDLE_TIMEOUT;
     }
 
@@ -1787,8 +1787,8 @@ static void* scr_menu() {
       continue;
     }
 
-    // loop on sensor or scape
-    if (event.type == SIG_SENSOR || event.type == SIG_ESCAPE) {
+    // loop on sensor, interrupt, or escape
+    if (event.type & (SIG_SENSOR | SIG_INTERRUPT | SIG_ESCAPE)) {
       // show fun fact after half of deadline expired
       if (deadline - naos_millis() < SCR_IDLE_TIMEOUT / 2) {
         fun = true;
