@@ -263,7 +263,7 @@ void lvx_status_create(lvx_status_t* status, lv_obj_t* parent) {
   status->net = lv_img_create(status->row);
 
   // set images
-  lv_img_set_src(status->pwr, &img_power);
+  lv_img_set_src(status->pwr, &img_powered);
   lv_img_set_src(status->rec, &img_record);
   lv_img_set_src(status->net, &img_connected);
 }
@@ -271,8 +271,10 @@ void lvx_status_create(lvx_status_t* status, lv_obj_t* parent) {
 void lvx_status_update(lvx_status_t* status) {
   // update power
   al_power_state_t power = al_power_get();
-  if (power.usb) {
-    lv_img_set_src(status->pwr, &img_power);
+  if (power.charging) {
+    lv_img_set_src(status->pwr, &img_charging);
+  } else if (power.usb) {
+    lv_img_set_src(status->pwr, &img_powered);
   } else if (power.battery > 0.75) {
     lv_img_set_src(status->pwr, &img_bat3);
   } else if (power.battery > 0.5) {

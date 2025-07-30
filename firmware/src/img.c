@@ -652,7 +652,7 @@ const lv_img_dsc_t img_bat3 = {
     .data = img_bat3_map,
 };
 
-static const uint8_t img_power_map[] = {
+static const uint8_t img_charging_map[] = {
     0x00, 0x00, 0x00, 0x00, /* color of index 0 */
     0x00, 0x00, 0x00, 0xff, /* color of index 1 */
 
@@ -660,14 +660,32 @@ static const uint8_t img_power_map[] = {
     0xc0, 0xc0, 0xc0, 0xc0, 0xf3, 0xc0, 0xf3, 0xc0, 0xff, 0xc0, 0xff, 0xc0, 0xff, 0xc0, 0xff, 0xc0,
 };
 
-const lv_img_dsc_t img_power = {
+const lv_img_dsc_t img_charging = {
     .header.cf = LV_IMG_CF_INDEXED_1BIT,
     .header.always_zero = 0,
     .header.reserved = 0,
     .header.w = 10,
     .header.h = 16,
     .data_size = 40,
-    .data = img_power_map,
+    .data = img_charging_map,
+};
+
+const uint8_t img_powered_map[] = {
+    0x00, 0x00, 0x00, 0xff, /* color of index 0 */
+    0xfb, 0xfb, 0xfd, 0xff, /* color of index 1 */
+
+    0xe1, 0xc0, 0xe1, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x00, 0x30, 0x00,
+    0x0c, 0x00, 0x0c, 0x00, 0x03, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+const lv_img_dsc_t img_powered = {
+    .header.cf = LV_IMG_CF_INDEXED_1BIT,
+    .header.always_zero = 0,
+    .header.reserved = 0,
+    .header.w = 10,
+    .header.h = 16,
+    .data_size = 40,
+    .data = img_powered_map,
 };
 
 static const uint8_t img_record_map[] = {
