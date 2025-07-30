@@ -37,6 +37,11 @@ static sig_type_t hmi_map[] = {
 };
 
 static void hmi_accel_hook(al_accel_state_t state) {
+  // log accel state
+  if (HMI_DEBUG) {
+    naos_log("hmi: accel state: front=%d, rotation=%d", state.front, state.rotation);
+  }
+
   // dispatch event
   sig_dispatch((sig_event_t){
       .type = SIG_MOTION,
