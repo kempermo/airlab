@@ -28,6 +28,39 @@ static bool al_accel_read(uint8_t reg, uint8_t *val) {
   return err == ESP_OK;
 }
 
+void al_accel_init(bool reset) {
+  // perform reset
+  if (reset) {
+    // reset device
+    al_accel_write(0x15, 0b10000000);
+
+    // configure interrupt polarity and wake from sleep
+    al_accel_write(0x18, 0b00010000);
+
+    // enable orientation interrupt
+    al_accel_write(0x20, 0b00001000);
+
+    // enable orientation detection with debounce
+    al_accel_write(0x29, 0b01000000);
+    al_accel_write(0x2A, 6);
+
+    // set ODR to 6.25Hz
+    al_accel_write(0x17, 0b10011001);
+
+    // activate device
+    al_accel_write(0x15, 0b00000001);
+  }
+
+  // create mutex
+  al_accel_mutex = naos_mutex();
+
+  // check immediately to clear interrupt
+  al_accel_check();
+
+  // run check task to ensure the interrupt is cleared eventually
+  naos_repeat("al-acc", 1000, al_accel_check);
+}
+
 void al_accel_check() {
   // lock mutex
   naos_lock(al_accel_mutex);
@@ -66,39 +99,6 @@ void al_accel_check() {
   if (changed && al_accel_hook != NULL) {
     al_accel_hook(state);
   }
-}
-
-void al_accel_init(bool reset) {
-  // perform reset
-  if (reset) {
-    // reset device
-    al_accel_write(0x15, 0b10000000);
-
-    // configure interrupt polarity and wake from sleep
-    al_accel_write(0x18, 0b00010000);
-
-    // enable orientation interrupt
-    al_accel_write(0x20, 0b00001000);
-
-    // enable orientation detection with debounce
-    al_accel_write(0x29, 0b01000000);
-    al_accel_write(0x2A, 6);
-
-    // set ODR to 6.25Hz
-    al_accel_write(0x17, 0b10011001);
-
-    // activate device
-    al_accel_write(0x15, 0b00000001);
-  }
-
-  // create mutex
-  al_accel_mutex = naos_mutex();
-
-  // check immediately to clear interrupt
-  al_accel_check();
-
-  // run check task to ensure the interrupt is cleared eventually
-  naos_repeat("al-acc", 1000, al_accel_check);
 }
 
 void al_accel_config(al_accel_hook_t hook) {
