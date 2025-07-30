@@ -438,6 +438,9 @@ static void* scr_saver() {
   lv_obj_t* co2 = lv_label_create(lv_scr_act());
   lv_obj_t* tmp = lv_label_create(lv_scr_act());
   lv_obj_t* hum = lv_label_create(lv_scr_act());
+  lv_obj_t* voc = lv_label_create(lv_scr_act());
+  lv_obj_t* nox = lv_label_create(lv_scr_act());
+  lv_obj_t* prs = lv_label_create(lv_scr_act());
 
   // add big values
   lv_obj_t* co2_big = lv_label_create(lv_scr_act());
@@ -482,8 +485,6 @@ static void* scr_saver() {
     // update status
     lvx_status_update(&status);
 
-    // TODO: Show VOC, NOx and pressure.
-
     // update values
     lv_label_set_text(time, lvx_fmt("%02d:%02d", hour, minute));
     if (vertical) {
@@ -498,24 +499,32 @@ static void* scr_saver() {
       lv_label_set_text(tmp, lvx_fmt("%.1f °C", al_sample_read(sample, AL_SAMPLE_TMP)));
       lv_label_set_text(hum, lvx_fmt("%.1f%% RH", al_sample_read(sample, AL_SAMPLE_HUM)));
     }
+    lv_label_set_text(voc, lvx_fmt("%.0f VOC", al_sample_read(sample, AL_SAMPLE_VOC)));
+    lv_label_set_text(nox, lvx_fmt("%.0f NOX", al_sample_read(sample, AL_SAMPLE_NOX)));
+    lv_label_set_text(prs, lvx_fmt("%.0f hPa", al_sample_read(sample, AL_SAMPLE_PRS)));
 
     // align objects
     if (vertical) {
-      lv_obj_align(co2_big, LV_ALIGN_TOP_MID, 0, 25);
-      lv_obj_align(co2, LV_ALIGN_TOP_MID, 0, 25 + 27);
-      lv_obj_align(tmp_big, LV_ALIGN_TOP_MID, 0, 100);
-      lv_obj_align(tmp, LV_ALIGN_TOP_MID, 0, 100 + 27);
-      lv_obj_align(hum_big, LV_ALIGN_TOP_MID, 0, 175);
-      lv_obj_align(hum, LV_ALIGN_TOP_MID, 0, 175 + 27);
-      lv_obj_align(time, LV_ALIGN_BOTTOM_RIGHT, -25, -25);
-      lv_obj_align(status.row, LV_ALIGN_BOTTOM_LEFT, 25, -25);
+      lv_obj_align(co2_big, LV_ALIGN_TOP_MID, 0, 20);
+      lv_obj_align(co2, LV_ALIGN_TOP_MID, 0, 20 + 27);
+      lv_obj_align(tmp_big, LV_ALIGN_TOP_MID, 0, 79);
+      lv_obj_align(tmp, LV_ALIGN_TOP_MID, 0, 79 + 27);
+      lv_obj_align(hum_big, LV_ALIGN_TOP_MID, 0, 136);
+      lv_obj_align(hum, LV_ALIGN_TOP_MID, 0, 136 + 27);
+      lv_obj_align(voc, LV_ALIGN_BOTTOM_MID, 0, -85);
+      lv_obj_align(nox, LV_ALIGN_BOTTOM_MID, 0, -65);
+      lv_obj_align(prs, LV_ALIGN_BOTTOM_MID, 0, -45);
+      lv_obj_align(time, LV_ALIGN_BOTTOM_RIGHT, -25, -13);
+      lv_obj_align(status.row, LV_ALIGN_BOTTOM_LEFT, 25, -15);
     } else {
-      lv_align_t align = LV_ALIGN_TOP_LEFT;
-      lv_obj_align(status.row, align, 20, 19);
-      lv_obj_align(time, align, 19, 41);
-      lv_obj_align(co2, align, 19, 59);
-      lv_obj_align(tmp, align, 19, 77);
-      lv_obj_align(hum, align, 19, 95);
+      lv_obj_align(status.row, LV_ALIGN_TOP_LEFT, 20, 19);
+      lv_obj_align(co2, LV_ALIGN_TOP_LEFT, 19, 53);
+      lv_obj_align(tmp, LV_ALIGN_TOP_LEFT, 19, 74);
+      lv_obj_align(hum, LV_ALIGN_TOP_LEFT, 19, 95);
+      lv_obj_align(time, LV_ALIGN_TOP_LEFT, 148, 21);
+      lv_obj_align(voc, LV_ALIGN_TOP_LEFT, 148, 53);
+      lv_obj_align(nox, LV_ALIGN_TOP_LEFT, 148, 74);
+      lv_obj_align(prs, LV_ALIGN_TOP_LEFT, 148, 95);
       lv_obj_align(co2_big, 0, -100, -100);
       lv_obj_align(tmp_big, 0, -100, -100);
       lv_obj_align(hum_big, 0, -100, -100);
