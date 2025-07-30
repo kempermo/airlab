@@ -43,7 +43,7 @@ void gui_progress_start(const char* text) {
 
   // add label
   lv_obj_t* lbl = lv_label_create(lv_scr_act());
-  lv_obj_align(lbl, LV_ALIGN_CENTER, 0, -10);
+  lv_obj_align(lbl, LV_ALIGN_CENTER, 0, -20);
   lv_label_set_text(lbl, text);
   lv_obj_set_style_text_line_space(lbl, 6, LV_PART_MAIN);
   lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -51,7 +51,7 @@ void gui_progress_start(const char* text) {
   // add bar
   gui_progress_bar = lv_bar_create(lv_scr_act());
   lv_obj_set_size(gui_progress_bar, 200, 10);
-  lv_obj_align(gui_progress_bar, LV_ALIGN_CENTER, 0, 10);
+  lv_obj_align(gui_progress_bar, LV_ALIGN_CENTER, 0, 20);
   lv_obj_set_style_radius(gui_progress_bar, 0, LV_PART_MAIN);
   lv_bar_set_value(gui_progress_bar, 0, LV_ANIM_OFF);
 
