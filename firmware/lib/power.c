@@ -212,6 +212,9 @@ void al_power_init() {
   ESP_ERROR_CHECK(adc1_config_channel_atten(AL_POWER_BAT_LVL, ADC_ATTEN_DB_12));
   esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12, 1100, &al_power_calib);
 
+  // mask interrupts
+  al_power_write(0x0A, 0b11);
+
   // check power
   al_power_check();
 
