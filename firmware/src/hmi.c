@@ -36,6 +36,18 @@ static sig_type_t hmi_map[] = {
     SIG_ENTER, SIG_ESCAPE, SIG_UP, SIG_RIGHT, SIG_DOWN, SIG_LEFT,
 };
 
+static void hmi_power_hook(al_power_state_t state) {
+  // log power state
+  if (HMI_DEBUG) {
+    naos_log("hmi: power state: usb=%d, charging=%d", state.usb, state.charging);
+  }
+
+  // dispatch event
+  sig_dispatch((sig_event_t){
+      .type = SIG_POWER,
+  });
+}
+
 static void hmi_accel_hook(al_accel_state_t state) {
   // log accel state
   if (HMI_DEBUG) {
@@ -245,6 +257,9 @@ static void hmi_led_check() {
 void hmi_init() {
   // create mutex
   hmi_mutex = naos_mutex();
+
+  // register power hook
+  al_power_config(hmi_power_hook);
 
   // register accelerometer hook
   al_accel_config(hmi_accel_hook);
