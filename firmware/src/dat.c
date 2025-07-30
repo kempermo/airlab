@@ -432,7 +432,7 @@ al_sample_source_t dat_source(uint16_t num) {
   };
 }
 
-bool dat_import(uint16_t num) {
+bool dat_import(uint16_t num, dat_progress_t progress) {
   // find file
   dat_file_t *file = dat_find(num, NULL);
   if (file == NULL) {
@@ -453,6 +453,11 @@ bool dat_import(uint16_t num) {
     return false;
   }
 
+  // start progress
+  if (progress != NULL) {
+    progress(0, count);
+  }
+
   // append samples
   for (size_t i = 0; i < count; i += 32) {
     // read samples
@@ -460,16 +465,19 @@ bool dat_import(uint16_t num) {
     al_sample_t samples[32];
     source.read(source.ctx, samples, n, i);
 
-    // TODO: Improve writing speed or report progress.
-
     // append samples
     dat_append(num, samples, n);
+
+    // update progress
+    if (progress != NULL) {
+      progress(i + n, count);
+    }
   }
 
   return true;
 }
 
-bool dat_export(uint16_t num) {
+bool dat_export(uint16_t num, dat_progress_t progress) {
   // ensure directory
   mkdir(AL_STORAGE_ROOT "/" DAT_EXPORT_DIR, 0777);
 
@@ -498,14 +506,17 @@ bool dat_export(uint16_t num) {
   // prepare pos
   size_t pos = strlen(header);
 
+  // start progress
+  if (progress != NULL) {
+    progress(0, file->size);
+  }
+
   // write samples
   for (size_t i = 0; i < file->size; i += 32) {
     // read samples
     size_t count = DAT_MIN(file->size - i, 32);
     al_sample_t samples[32];
     dat_read(num, samples, count, i);
-
-    // TODO: Improve writing speed or report progress.
 
     // write samples
     for (size_t j = 0; j < count; j++) {
@@ -519,6 +530,11 @@ bool dat_export(uint16_t num) {
       // write line
       dat_write_file(DAT_EXPORT_DIR, name, (void *)line, pos, strlen(line), false);
       pos += strlen(line);
+
+      // update progress
+      if (progress != NULL) {
+        progress(i + j, file->size);
+      }
     }
   }
 

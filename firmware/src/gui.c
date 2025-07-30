@@ -2,6 +2,10 @@
 #include <stdio.h>
 
 #include "gui.h"
+
+#include <naos.h>
+#include <naos/sys.h>
+
 #include "gfx.h"
 #include "lvx.h"
 #include "sig.h"
@@ -25,6 +29,52 @@ void gui_write(const char* text) {
   lv_obj_set_style_text_line_space(lbl, 6, LV_PART_MAIN);
   lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
   gfx_end(false, false);
+}
+
+static lv_obj_t* gui_progress_bar = NULL;
+static int64_t gui_progress_updated = 0;
+
+void gui_progress_start(const char* text) {
+  // cleanup screen
+  gui_cleanup(false);
+
+  // begin draw
+  gfx_begin(false, false);
+
+  // add label
+  lv_obj_t* lbl = lv_label_create(lv_scr_act());
+  lv_obj_align(lbl, LV_ALIGN_CENTER, 0, -10);
+  lv_label_set_text(lbl, text);
+  lv_obj_set_style_text_line_space(lbl, 6, LV_PART_MAIN);
+  lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+
+  // add bar
+  gui_progress_bar = lv_bar_create(lv_scr_act());
+  lv_obj_set_size(gui_progress_bar, 200, 10);
+  lv_obj_align(gui_progress_bar, LV_ALIGN_CENTER, 0, 10);
+  lv_obj_set_style_radius(gui_progress_bar, 0, LV_PART_MAIN);
+  lv_bar_set_value(gui_progress_bar, 0, LV_ANIM_OFF);
+
+  // end draw
+  gfx_end(false, false);
+
+  // clear position
+  gui_progress_updated = 0;
+}
+
+void gui_progress_update(size_t current, size_t total) {
+  // check if too early
+  if (naos_millis() - gui_progress_updated < 500) {
+    return;
+  }
+
+  // update bar
+  gfx_begin(false, false);
+  lv_bar_set_value(gui_progress_bar, (int)((current * 100) / total), LV_ANIM_OFF);
+  gfx_end(false, false);
+
+  // update position
+  gui_progress_updated = naos_millis();
 }
 
 void gui_message(const char* text, uint32_t timeout) {

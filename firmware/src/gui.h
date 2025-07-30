@@ -8,6 +8,9 @@ void gui_cleanup(bool refresh);
 void gui_write(const char* text);
 void gui_message(const char* text, uint32_t timeout);
 
+void gui_progress_start(const char* text);
+void gui_progress_update(size_t current, size_t total);
+
 bool gui_confirm(const char* message, const char* confirm, const char* cancel, bool invert, int64_t timeout);
 int gui_choose(const char* first, const char* second, bool invert, int64_t timeout);
 

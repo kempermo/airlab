@@ -23,6 +23,8 @@ typedef struct {
   int8_t marks;  // num marks
 } dat_file_t;
 
+typedef void (*dat_progress_t)(size_t current, size_t total);
+
 void dat_init();
 
 size_t dat_count();
@@ -39,8 +41,8 @@ void dat_delete(uint16_t num);
 
 al_sample_source_t dat_source(uint16_t num);
 
-bool dat_import(uint16_t num);
-bool dat_export(uint16_t num);
+bool dat_import(uint16_t num, dat_progress_t progress);
+bool dat_export(uint16_t num, dat_progress_t progress);
 
 void dat_reset();
 

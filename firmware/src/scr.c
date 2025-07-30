@@ -1030,13 +1030,14 @@ static void* scr_create() {
       hmi_set_flag(HMI_FLAG_PROCESS);
 
       // perform import
-      dat_import(scr_file);
+      gui_progress_start("Importing...");
+      dat_import(scr_file, gui_progress_update);
+      gui_cleanup(false);
 
       // clear flag
       hmi_clear_flag(HMI_FLAG_PROCESS);
 
       // write message
-      gui_cleanup(false);
       gui_message(scr_trans()->create__imported, 2000);
     }
 
@@ -1134,7 +1135,9 @@ static void* scr_edit() {
       hmi_set_flag(HMI_FLAG_PROCESS);
 
       // perform export
-      bool ok = dat_export(scr_file);
+      gui_progress_start("Exporting...");
+      bool ok = dat_export(scr_file, gui_progress_update);
+      gui_cleanup(false);
 
       // clear flag
       hmi_clear_flag(HMI_FLAG_PROCESS);
