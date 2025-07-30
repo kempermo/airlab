@@ -1,5 +1,5 @@
 {
-  "version": "f19149e",
+  "version": "05ecbae",
   "name": "na-airlab",
   "target": "esp32s3",
   "tag_prefix": "firmware/",

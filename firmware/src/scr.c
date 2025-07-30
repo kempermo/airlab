@@ -1325,7 +1325,7 @@ static void* scr_settings() {
 
   // add info
   lv_obj_t* version = lv_label_create(lv_scr_act());
-  lv_label_set_text(version, "v" DEV_VERSION);
+  lv_label_set_text(version, naos_config()->app_version);
   lv_obj_align(version, LV_ALIGN_TOP_RIGHT, -5, 5);
 
   // add storage
