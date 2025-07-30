@@ -105,8 +105,11 @@ void al_accel_init(bool reset) {
   ESP_ERROR_CHECK(gpio_config(&cfg));
   ESP_ERROR_CHECK(gpio_isr_handler_add(AL_ACCEL_INT, al_accel_signal, NULL));
 
-  // clear interrupt
+  // check immediately to clear interrupt
   al_accel_check();
+
+  // run check task to ensure the interrupt is cleared eventually
+  naos_repeat("al-acc", 1000, al_accel_check);
 }
 
 void al_accel_config(al_accel_hook_t hook) {
