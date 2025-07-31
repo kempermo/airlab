@@ -93,7 +93,6 @@ typedef struct {
   const char* exit__back;
   const char* exit__stopped;
   const char* create__full;
-  const char* create__new;
   const char* create__name;
   const char* create__length;
   const char* create__start;
@@ -147,9 +146,8 @@ static const scr_trans_t scr_trans_map[] = {
             .exit__back = "Zurück zum Labor",
             .exit__stopped = "%s\n beendet!",
             .create__full = "Speicher voll!",
-            .create__new = "Neue Messung erstellen?",
             .create__name = "Messung %u",
-            .create__length = "Länge ca. %d-%d Stunden",
+            .create__length = "Länge min. %d Stunden",
             .create__start = "Starten",
             .create__import = "Bestehende Daten importieren?",
             .create__importing = "Importiere Daten...",
@@ -199,9 +197,8 @@ static const scr_trans_t scr_trans_map[] = {
             .exit__back = "Go back to Lab",
             .exit__stopped = "%s\n stopped!",
             .create__full = "Storage full!",
-            .create__new = "Create new measurement?",
             .create__name = "Measurement %u",
-            .create__length = "Length approx. %d-%d hours",
+            .create__length = "Length min. %d hours",
             .create__start = "Start",
             .create__import = "Import existing data?",
             .create__importing = "Importing data...",
@@ -1091,30 +1088,24 @@ static void* scr_create() {
 
   // calculate min and max time
   uint32_t min_hours = samples / 12 / 60;  // 12 samples per minute
-  uint32_t max_hours = samples / 2 / 60;   // 2 samples per minute
 
   // begin draw
   gfx_begin(false, false);
 
-  // add title
-  lv_obj_t* title = lv_label_create(lv_scr_act());
-  lv_label_set_text(title, scr_trans()->create__new);
-  lv_obj_align(title, LV_ALIGN_TOP_LEFT, 5, 5);
-
   // add name
   lv_obj_t* name = lv_label_create(lv_scr_act());
   lv_label_set_text(name, lvx_fmt(scr_trans()->create__name, dat_next()));
-  lv_obj_align(name, LV_ALIGN_TOP_LEFT, 5, 26);
+  lv_obj_align(name, LV_ALIGN_TOP_LEFT, 5, 5);
 
   // add mode
   lv_obj_t* mode = lv_label_create(lv_scr_act());
-  lv_label_set_text(mode, "CO2, TMP, RH, VOC, NOx, PRS");
-  lv_obj_align(mode, LV_ALIGN_TOP_LEFT, 5, 47);
+  lv_label_set_text(mode, "CO2, TMP, RH, VOC, NOX, PRS");
+  lv_obj_align(mode, LV_ALIGN_TOP_LEFT, 5, 26);
 
   // add length
   lv_obj_t* length = lv_label_create(lv_scr_act());
-  lv_label_set_text(length, lvx_fmt(scr_trans()->create__length, min_hours, max_hours));
-  lv_obj_align(length, LV_ALIGN_TOP_LEFT, 5, 68);
+  lv_label_set_text(length, lvx_fmt(scr_trans()->create__length, min_hours));
+  lv_obj_align(length, LV_ALIGN_TOP_LEFT, 5, 47);
 
   // add signs
   lvx_sign_t start = {
