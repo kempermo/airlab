@@ -66,6 +66,15 @@ int al_store_get_interval() {
 }
 
 void al_store_set_interval(int interval) {
+  // TODO: Update this when we get more range.
+
+  // limit interval to 30s-7min
+  if (interval < 30) {
+    interval = 30;
+  } else if (interval > 7 * 60) {
+    interval = 7 * 60;
+  }
+
   // set interval
   naos_lock(al_store_mutex);
   al_store_interval = interval;
