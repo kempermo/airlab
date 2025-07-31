@@ -66,19 +66,22 @@ int al_store_get_interval() {
 }
 
 void al_store_set_interval(int interval) {
-  // TODO: Update this when we get more range.
-
-  // limit interval to 30s-7min
+  // limit interval to 30s-15min
   if (interval < 30) {
     interval = 30;
-  } else if (interval > 7 * 60) {
-    interval = 7 * 60;
+  } else if (interval > 15 * 60) {
+    interval = 15 * 60;
   }
 
   // set interval
   naos_lock(al_store_mutex);
   al_store_interval = interval;
   naos_unlock(al_store_mutex);
+
+  // log interval
+  if (AL_STORE_DEBUG) {
+    naos_log("al-str: set interval=%d", al_store_interval);
+  }
 }
 
 int64_t al_store_get_base() {
@@ -110,6 +113,11 @@ void al_store_set_base(int64_t base, bool move) {
     }
   }
 
+  // log base change
+  if (AL_STORE_DEBUG) {
+    naos_log("al-str: set base=%lld shift=%lld", al_store_base, shift);
+  }
+
   // unlock mutex
   naos_unlock(al_store_mutex);
 }
@@ -133,7 +141,7 @@ void al_store_ingest(al_sample_t sample) {
       al_sample_t last_long = al_store_long[al_store_index(AL_STORE_LONG, -1)];
       al_sample_t first_short = al_store_short[al_store_pos_short];
       if (AL_STORE_DEBUG) {
-        naos_log("al-str: diff=%d", first_short.off - last_long.off);
+        naos_log("al-str: sample diff=%d", first_short.off - last_long.off);
       }
       if (first_short.off - last_long.off > al_store_interval * 1000) {
         move = true;

@@ -3,7 +3,7 @@
 
 #include <al/sample.h>
 
-#define AL_STORE_NUM_SHORT 180  // 15min-1.5h (5s/30s)
+#define AL_STORE_NUM_SHORT 180  // 15min-3h (5s/60s)
 #define AL_STORE_NUM_LONG 300   // 2.5h-75h (30s/15m)
 
 /**
@@ -23,6 +23,8 @@ int al_store_get_interval();
 
 /**
  * Sets the interval at which short term samples are moved to long term storage.
+ *
+ * Note: The interval range is limited to 30s-15min.
  *
  * @param interval The interval in seconds.
  */
