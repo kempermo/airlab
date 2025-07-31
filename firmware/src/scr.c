@@ -2118,7 +2118,7 @@ static void* scr_intro() {
     const char* date_time = lvx_fmt(scr_trans()->intro__watch, hour, minute, month, day, year);
 
     // confirm date/time
-    if (!gui_confirm(date_time, scr_trans()->intro__adjust, scr_trans()->intro__correct, false, -1)) {
+    if (!gui_confirm(date_time, scr_trans()->intro__adjust, scr_trans()->intro__correct, false, SCR_ACTION_TIMEOUT)) {
       break;
     }
 
