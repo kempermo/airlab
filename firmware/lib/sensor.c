@@ -119,6 +119,43 @@ static void al_sensor_check() {
   }
 }
 
+static void al_sensor_monitor() {
+  // prepare last epoch
+  static int64_t last_epoch = 0;
+
+  // TODO: This could be improved.
+
+  // handle initialization
+  if (last_epoch == 0) {
+    last_epoch = al_clock_get_epoch();
+    return;
+  }
+
+  // get difference
+  int64_t diff = al_clock_get_epoch() - last_epoch;
+
+  // update epoch
+  last_epoch = al_clock_get_epoch();
+
+  // stop if less than 1 minute
+  if (diff < 60 * 1000 && diff > -60 * 1000) {
+    return;
+  }
+
+  // if the difference is larger than 1 minute we assume that the clock has been
+  // changed. to remediate this we will just shift the store base by the changed
+  // amount and leave all samples in place
+
+  // remove interval from difference
+  diff += 1000;
+  naos_log("al-sns: clock shift detected: shifting store base by %lld ms", diff);
+
+  // set new store base
+  naos_lock(al_sensor_mutex);
+  al_store_set_base(al_store_get_base() + diff, false);
+  naos_unlock(al_sensor_mutex);
+}
+
 void al_sensor_init(bool reset) {
   // create mutex and signal
   al_sensor_mutex = naos_mutex();
@@ -179,8 +216,9 @@ void al_sensor_init(bool reset) {
     al_sensor_ingest(al_ulp_get_reading(i));
   }
 
-  // run check task
-  naos_repeat("al-sns", 100, al_sensor_check);
+  // run check and monitor tasks
+  naos_repeat("al-sns-c", 100, al_sensor_check);
+  naos_repeat("al-sns-m", 1000, al_sensor_monitor);
 }
 
 void al_sensor_config(al_sensor_hook_t hook) {
