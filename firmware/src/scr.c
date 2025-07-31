@@ -2,6 +2,7 @@
 #include <naos/sys.h>
 #include <naos/cpu.h>
 #include <naos/ble.h>
+#include <naos/auth.h>
 #include <esp_err.h>
 #include <esp_system.h>
 #include <art32/numbers.h>
@@ -119,6 +120,7 @@ typedef struct {
   const char* settings__title;
   const char* settings__storage;
   const char* settings__date_time;
+  const char *settings__about;
   const char* settings__language;
   const char* settings__off;
   const char* settings__reset;
@@ -172,6 +174,7 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__title = "Einstellungen",
             .settings__storage = "Speicher: %.1f%% belegt",
             .settings__date_time = "Datum & Zeit",
+            .settings__about = "Über",
             .settings__language = "Sprache",
             .settings__off = "Ausschalten",
             .settings__reset = "Zurücksetzen",
@@ -222,6 +225,7 @@ static const scr_trans_t scr_trans_map[] = {
             .reset__reset = "Air Lab\nsuccessfully reset!",
             .settings__title = "Settings",
             .settings__storage = "Storage: %.1f%% used",
+            .settings__about = "About",
             .settings__date_time = "Date & Time",
             .settings__language = "Language",
             .settings__off = "Power Off",
@@ -1459,6 +1463,47 @@ static void* scr_ble() {
   return scr_menu;
 }
 
+static void *scr_about() {
+  // begin draw
+  gfx_begin(false, false);
+
+  // add label
+  lv_obj_t* label = lv_label_create(lv_scr_act());
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_set_style_text_line_space(label, 6, LV_PART_MAIN);
+
+  // end draw
+  gfx_end(true, false);
+
+  for (;;) {
+    // get authentication data
+    naos_auth_data_t auth = {0};
+    naos_auth_describe(&auth);
+
+    // prepare text
+    const char* text = lvx_fmt("NA-AL1-R%d/%d\n%s", auth.revision, auth.batch, naos_config()->app_version);
+
+    // update label
+    gfx_begin(false, false);
+    lv_label_set_text(label, text);
+    gfx_end(false, false);
+
+    // await event
+    sig_event_t event = sig_await(SIG_KEYS, 1000);
+
+    // loop on timeout
+    if (event.type == SIG_TIMEOUT) {
+      continue;
+    }
+
+    // cleanup
+    gui_cleanup(false);
+
+    return scr_settings;
+  }
+}
+
 static void* scr_settings() {
   // get storage info
   al_storage_info_t info = al_storage_info();
@@ -1471,11 +1516,6 @@ static void* scr_settings() {
   lv_label_set_text(title, scr_trans()->settings__title);
   lv_obj_align(title, LV_ALIGN_TOP_LEFT, 5, 5);
 
-  // add info
-  lv_obj_t* version = lv_label_create(lv_scr_act());
-  lv_label_set_text(version, naos_config()->app_version);
-  lv_obj_align(version, LV_ALIGN_TOP_RIGHT, -5, 5);
-
   // add storage
   lv_obj_t* storage = lv_label_create(lv_scr_act());
   lv_label_set_text(storage, lvx_fmt(scr_trans()->settings__storage, info.usage * 100.f));
@@ -1486,8 +1526,14 @@ static void* scr_settings() {
       .title = "↑",
       .text = scr_trans()->settings__date_time,
       .align = LV_ALIGN_BOTTOM_LEFT,
-      .offset = -25,
+      .offset = -50,
   };
+  lvx_sign_t about = {
+    .title = "A",
+    .text = scr_trans()->settings__about,
+    .align = LV_ALIGN_BOTTOM_LEFT,
+    .offset = -25,
+};
   lvx_sign_t back = {
       .title = "B",
       .text = scr_trans()->back,
@@ -1511,6 +1557,7 @@ static void* scr_settings() {
       .align = LV_ALIGN_BOTTOM_RIGHT,
   };
   lvx_sign_create(&datetime, lv_scr_act());
+  lvx_sign_create(&about, lv_scr_act());
   lvx_sign_create(&reset, lv_scr_act());
   lvx_sign_create(&back, lv_scr_act());
   lvx_sign_create(&off, lv_scr_act());
@@ -1521,8 +1568,7 @@ static void* scr_settings() {
 
   for (;;) {
     // await event
-    sig_type_t filter = SIG_UP | SIG_DOWN | SIG_LEFT | SIG_RIGHT | SIG_ESCAPE;
-    sig_event_t event = sig_await(filter, SCR_ACTION_TIMEOUT);
+    sig_event_t event = sig_await(SIG_KEYS, SCR_ACTION_TIMEOUT);
 
     // cleanup
     gui_cleanup(false);
@@ -1558,6 +1604,8 @@ static void* scr_settings() {
       case SIG_RIGHT:
         scr_power_off();
         break;
+      case SIG_ENTER:
+        return scr_about;
       case SIG_ESCAPE:
       case SIG_TIMEOUT:
         // set action
