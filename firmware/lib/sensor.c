@@ -120,18 +120,23 @@ static void al_sensor_check() {
 }
 
 static void al_sensor_monitor() {
-  // prepare last epoch
-  static int64_t last_epoch = 0;
-
-  // TODO: This could be improved.
-
   // get time
   int64_t now = al_clock_get_epoch();
 
-  // handle initialization
+  /* check if store needs to be shifted */
+
+  // if zero, or older than 84 hours, set store base to 96 hours ago
+  int64_t store_base = al_store_get_base();
+  if (store_base == 0 || now - store_base > 90 * 60 * 60 * 1000) {
+    al_store_set_base(now - 84 * 60 * 60 * 1000, true);
+  }
+
+  /* check if clock has been changed */
+
+  // prepare last epoch
+  static int64_t last_epoch = 0;
   if (last_epoch == 0) {
     last_epoch = now;
-    return;
   }
 
   // get difference
@@ -201,17 +206,8 @@ void al_sensor_init(bool reset) {
     GasIndexAlgorithm_init_with_sampling_interval(&al_sensor_nox_params, GasIndexAlgorithm_ALGORITHM_TYPE_NOX, 5.f);
   }
 
-  // get time and base
-  int64_t now = al_clock_get_epoch();
-  int64_t store_base = al_store_get_base();
-
-  // TODO: What happens if device is always plugged in?
-  // TODO: We need to increase the range here substantially.
-
-  // if zero, or older than 24 hours, set store base to 12 hours ago
-  if (store_base == 0 || now - store_base > 24 * 60 * 60 * 1000) {
-    al_store_set_base(now - 12 * 60 * 60 * 1000, true);
-  }
+  // ensure store is shifted once
+  al_sensor_monitor();
 
   // ingest ULP readings
   naos_log("al-sns: ULP readings=%d", al_ulp_readings());
