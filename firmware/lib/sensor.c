@@ -170,7 +170,7 @@ void al_sensor_init(bool reset) {
 
   // if zero, or older than 24 hours, set store base to 12 hours ago
   if (store_base == 0 || now - store_base > 24 * 60 * 60 * 1000) {
-    al_store_set_base(now - 12 * 60 * 60 * 1000);
+    al_store_set_base(now - 12 * 60 * 60 * 1000, true);
   }
 
   // ingest ULP readings

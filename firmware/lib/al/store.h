@@ -31,18 +31,17 @@ void al_store_set_interval(int interval);
 /**
  * Returns the epoch time that references the sample offsets.
  *
- * @return The epoch time in seconds.
+ * @return The epoch time in milliseconds.
  */
 int64_t al_store_get_base();
 
 /**
  * Sets the epoch time that references the sample offsets.
  *
- * Note: This will shift all samples in the store.
- *
- * @param base The epoch time in seconds.
+ * @param base The new epoch time in milliseconds.
+ * @param move If true, the samples will be adjusted accordingly.
  */
-void al_store_set_base(int64_t base);
+void al_store_set_base(int64_t base, bool move);
 
 /**
  * Adds a sample to the short term store. Might move a sample to the long term store.

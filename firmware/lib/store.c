@@ -90,25 +90,24 @@ int64_t al_store_get_base() {
   return base;
 }
 
-void al_store_set_base(int64_t base) {
+void al_store_set_base(int64_t base, bool move) {
   // lock mutex
   naos_lock(al_store_mutex);
 
   // determine shift
   int64_t shift = base - al_store_base;
-  if (shift < 0) {
-    ESP_ERROR_CHECK(ESP_FAIL);
-  }
 
   // set base
   al_store_base = base;
 
   // update stores
-  for (int i = 0; i < al_store_count_short; i++) {
-    al_store_short[i].off -= (int32_t)shift;
-  }
-  for (int i = 0; i < al_store_count_long; i++) {
-    al_store_long[i].off -= (int32_t)shift;
+  if (move) {
+    for (int i = 0; i < al_store_count_short; i++) {
+      al_store_short[i].off -= (int32_t)shift;
+    }
+    for (int i = 0; i < al_store_count_long; i++) {
+      al_store_long[i].off -= (int32_t)shift;
+    }
   }
 
   // unlock mutex
