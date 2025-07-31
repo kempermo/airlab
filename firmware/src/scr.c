@@ -89,6 +89,7 @@ typedef struct {
   const char* next;
   const char* cancel;
   const char* measurement;
+  const char* recording;
   const char* exit__stop;
   const char* exit__back;
   const char* exit__stopped;
@@ -109,7 +110,6 @@ typedef struct {
   const char* edit__export_done;
   const char* explore__empty;
   const char* explore__open;
-  const char* usb__running;
   const char* usb__disconnected;
   const char* usb__active;
   const char* usb__eject;
@@ -119,7 +119,7 @@ typedef struct {
   const char* settings__title;
   const char* settings__storage;
   const char* settings__date_time;
-  const char *settings__about;
+  const char* settings__about;
   const char* settings__language;
   const char* settings__off;
   const char* settings__reset;
@@ -142,6 +142,7 @@ static const scr_trans_t scr_trans_map[] = {
             .next = "Weiter",
             .cancel = "Abbrechen",
             .measurement = "Messung %u",
+            .recording = "Messung läuft!",
             .exit__stop = "Messung beenden",
             .exit__back = "Zurück zum Labor",
             .exit__stopped = "%s\n beendet!",
@@ -162,7 +163,6 @@ static const scr_trans_t scr_trans_map[] = {
             .edit__export_done = "Export erfolgreich!",
             .explore__empty = "Keine gespeicherte\nMessungen...",
             .explore__open = "Öffnen",
-            .usb__running = "Messung läuft!",
             .usb__disconnected = "USB nicht angeschlossen!",
             .usb__active = "USB-Modus Aktiv",
             .usb__eject = "USB-Verbindung getrennt",
@@ -193,6 +193,7 @@ static const scr_trans_t scr_trans_map[] = {
             .next = "Next",
             .cancel = "Cancel",
             .measurement = "Measurement %u",
+            .recording = "Measurement running!",
             .exit__stop = "Stop Measurement",
             .exit__back = "Go back to Lab",
             .exit__stopped = "%s\n stopped!",
@@ -213,7 +214,6 @@ static const scr_trans_t scr_trans_map[] = {
             .edit__export_done = "Export done!",
             .explore__empty = "No saved\nmeasurements...",
             .explore__open = "Open",
-            .usb__running = "Measurement running!",
             .usb__disconnected = "USB not connected!",
             .usb__active = "USB Mode Active",
             .usb__eject = "USB-Connection disconnected",
@@ -1355,7 +1355,7 @@ static void* scr_usb() {
   // check recording
   if (rec_running()) {
     // show message
-    gui_message(scr_trans()->usb__running, 2000);
+    gui_message(scr_trans()->recording, 2000);
 
     return scr_menu;
   }
@@ -1454,7 +1454,7 @@ static void* scr_ble() {
   return scr_menu;
 }
 
-static void *scr_about() {
+static void* scr_about() {
   // begin draw
   gfx_begin(false, false);
 
@@ -1520,11 +1520,11 @@ static void* scr_settings() {
       .offset = -50,
   };
   lvx_sign_t about = {
-    .title = "A",
-    .text = scr_trans()->settings__about,
-    .align = LV_ALIGN_BOTTOM_LEFT,
-    .offset = -25,
-};
+      .title = "A",
+      .text = scr_trans()->settings__about,
+      .align = LV_ALIGN_BOTTOM_LEFT,
+      .offset = -25,
+  };
   lvx_sign_t back = {
       .title = "B",
       .text = scr_trans()->back,
@@ -1557,56 +1557,84 @@ static void* scr_settings() {
   // end draw
   gfx_end(false, false);
 
-  for (;;) {
-    // await event
-    sig_event_t event = sig_await(SIG_KEYS, SCR_ACTION_TIMEOUT);
+  // await event
+  sig_event_t event = sig_await(SIG_KEYS, SCR_ACTION_TIMEOUT);
 
-    // cleanup
-    gui_cleanup(false);
+  // cleanup
+  gui_cleanup(false);
 
-    // handle reset
-    if (event.type == SIG_LEFT) {
-      // confirm reset
-      if (!gui_confirm(scr_trans()->reset__confirm, scr_trans()->yes, scr_trans()->no, true, SCR_ACTION_TIMEOUT)) {
-        return scr_settings;
-      }
-
-      // reset data
-      dat_reset();
-
-      // show message
-      gui_message(scr_trans()->reset__reset, 2000);
-
-      // restart device
-      esp_restart();
-
-      continue;
+  // handle reset
+  if (event.type == SIG_LEFT) {
+    // check recording
+    if (rec_running()) {
+      gui_message(scr_trans()->recording, 2000);
+      return scr_settings;
     }
 
-    // handle event
-    switch (event.type) {
-      case SIG_UP:
-        if (scr_date()) {
-          scr_time();
-        }
-        return scr_settings;
-      case SIG_DOWN:
-        return scr_language;
-      case SIG_RIGHT:
-        scr_power_off();
-        break;
-      case SIG_ENTER:
-        return scr_about;
-      case SIG_ESCAPE:
-      case SIG_TIMEOUT:
-        // set action
-        scr_action = STM_FROM_SETTINGS;
-
-        return scr_menu;
-      default:
-        ESP_ERROR_CHECK(ESP_FAIL);
+    // confirm reset
+    if (!gui_confirm(scr_trans()->reset__confirm, scr_trans()->yes, scr_trans()->no, true, SCR_ACTION_TIMEOUT)) {
+      return scr_settings;
     }
+
+    // reset data
+    dat_reset();
+
+    // show message
+    gui_message(scr_trans()->reset__reset, 2000);
+
+    // restart device
+    esp_restart();
+
+    return scr_settings;
   }
+
+  // handle date/time
+  if (event.type == SIG_UP) {
+    // check recording
+    if (rec_running()) {
+      gui_message(scr_trans()->recording, 2000);
+      return scr_settings;
+    }
+
+    // run date/time screens
+    if (scr_date()) {
+      scr_time();
+    }
+
+    return scr_settings;
+  }
+
+  // handle power off
+  if (event.type == SIG_RIGHT) {
+    // check recording
+    if (rec_running()) {
+      gui_message(scr_trans()->recording, 2000);
+      return scr_settings;
+    }
+
+    // turn off
+    scr_power_off();
+
+    return scr_settings;
+  }
+
+  // handle event
+  switch (event.type) {
+    case SIG_DOWN:
+      return scr_language;
+    case SIG_ENTER:
+      return scr_about;
+    case SIG_ESCAPE:
+    case SIG_TIMEOUT:
+      // set action
+      scr_action = STM_FROM_SETTINGS;
+
+      return scr_menu;
+    default:
+      ESP_ERROR_CHECK(ESP_FAIL);
+  }
+
+  return scr_settings;
 }
 
 static void* scr_develop() {
