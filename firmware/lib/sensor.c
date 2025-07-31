@@ -166,10 +166,11 @@ void al_sensor_init(bool reset) {
   int64_t store_base = al_store_get_base();
 
   // TODO: What happens if device is always plugged in?
+  // TODO: We need to increase the range here substantially.
 
-  // if zero, or older than 6 days, set store base to 5 days ago
-  if (store_base == 0 || now - store_base > 6 * 24 * 60 * 60 * 1000) {
-    al_store_set_base(now - 5 * 24 * 60 * 60 * 1000);
+  // if zero, or older than 24 hours, set store base to 12 hours ago
+  if (store_base == 0 || now - store_base > 24 * 60 * 60 * 1000) {
+    al_store_set_base(now - 12 * 60 * 60 * 1000);
   }
 
   // ingest ULP readings
