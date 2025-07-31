@@ -97,6 +97,7 @@ bool gui_confirm(const char* message, const char* confirm, const char* cancel, b
   lv_label_set_text(text, message);
   lv_obj_align(text, LV_ALIGN_TOP_MID, 0, 25);
   lv_obj_set_style_text_align(text, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_set_style_text_line_space(text, 6, LV_PART_MAIN);
 
   // add signs
   lvx_sign_t next = {

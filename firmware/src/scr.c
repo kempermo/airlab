@@ -123,11 +123,13 @@ typedef struct {
   const char* settings__off;
   const char* settings__reset;
   const char* menu__no_data;
-  const char* time__message;
-  const char* time__continue;
-  const char* date__message;
   const char* language__message;
-  const char* intro_message;
+  const char* intro__hello1;
+  const char* intro__hello2;
+  const char* intro__watch;
+  const char* intro__correct;
+  const char* intro__adjust;
+  const char* intro__end;
 } scr_trans_t;
 
 static const scr_trans_t scr_trans_map[] = {
@@ -174,11 +176,13 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__off = "Ausschalten",
             .settings__reset = "Zurücksetzen",
             .menu__no_data = "Keine Daten",
-            .time__message = "Und wie spät ist es gerade?",
-            .time__continue = "Wie die Zeit vergeht...\nKomm, lass uns ins Labor gehen.",
-            .date__message = "Ich habe zieeemlich\nlang geschlafen!\nWelcher Tag ist heute?",
             .language__message = "In welcher Sprache\nmöchtest du quatschen?",
-            .intro_message = "Hi! Ich bin Robin,\nProfessor für Luftwiss-\nenschaften im Air Lab.",
+            .intro__hello1 = "Hi! Ich bin Professor Robin,\nWissenschaftsleiter am Air Lab.",
+            .intro__hello2 = "Da bin ich eben kurz eingenickt.\nSag mal wie spät ist es?",
+            .intro__watch = "Meine Uhr zeigt %d:%02d\nam %d/%d/%d, richtig?",
+            .intro__correct = "Richtig!",
+            .intro__adjust = "<Anpassen>",
+            .intro__end = "Ach, Wie die Zeit vergeht...\nKomm, lass uns ins Labor gehen!",
         },
     [SCR_EN] =
         {
@@ -223,11 +227,13 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__off = "Power Off",
             .settings__reset = "Reset",
             .menu__no_data = "No Data",
-            .time__message = "What time is it?",
-            .time__continue = "Time flies...\nLet's go to the lab.",
-            .date__message = "I slept for a\nloooong time!\nWhat day is it?",
             .language__message = "In which language\nwould you like to chat?",
-            .intro_message = "Hi! I'm Robin,\nprofessor of air\nsciences at Air Lab.",
+            .intro__hello1 = "Hi! I'm Professor Robin,\nhead of sciences at Air Lab.",
+            .intro__hello2 = "I dozed off for a bit...\nCan you tell me the time?",
+            .intro__watch = "My watch says its %d:%02d\non the %d/%d/%d, right?",
+            .intro__correct = "Correct!",
+            .intro__adjust = "<Adjust>",
+            .intro__end = "Oh, how time flies...\nLet's go to the lab!",
         },
 };
 
@@ -265,8 +271,146 @@ static void* scr_explore();
 static void* scr_menu();
 static void* scr_settings();
 static void* scr_develop();
-static void* scr_date();
 static void* scr_language();
+
+static bool scr_time() {
+  // begin draw
+  gfx_begin(false, false);
+
+  // add row
+  lv_obj_t* row = lv_obj_create(lv_scr_act());
+  lv_obj_set_size(row, 200, 100);
+  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_align(row, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_style_pad_row(row, 5, LV_PART_MAIN);
+  lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
+
+  // prepare wheels
+  lvx_wheel_t hour = {.value = 12, .min = 0, .max = 23, .format = "%02d", .fixed = true};
+  lvx_wheel_t minute = {.value = 30, .min = 0, .max = 59, .format = "%02d", .fixed = true};
+
+  // assign current time
+  uint16_t seconds;
+  al_clock_get_time(&hour.value, &minute.value, &seconds);
+
+  // add wheels
+  lvx_wheel_create(&hour, row);
+  lvx_wheel_create(&minute, row);
+
+  // add button
+  lvx_sign_t back = {
+      .title = "B",
+      .text = scr_trans()->back,
+      .align = LV_ALIGN_BOTTOM_LEFT,
+  };
+  lvx_sign_t next = {
+      .title = "A",
+      .text = scr_trans()->next,
+      .align = LV_ALIGN_BOTTOM_RIGHT,
+  };
+  lvx_sign_create(&back, lv_scr_act());
+  lvx_sign_create(&next, lv_scr_act());
+
+  // end draw
+  gfx_end(false, false);
+
+  for (;;) {
+    // await event
+    sig_event_t event = sig_await(SIG_KEYS | SIG_SCROLL, SCR_ACTION_TIMEOUT);
+
+    // forward arrows
+    if ((event.type & (SIG_ARROWS | SIG_SCROLL)) != 0) {
+      lvx_handle(event, true);
+      continue;
+    }
+
+    // cleanup
+    gui_cleanup(false);
+
+    // handle escape/timeout event
+    if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
+      return false;
+    }
+
+    /* handle enter */
+
+    // save time
+    al_clock_set_time(hour.value, minute.value, 0);
+
+    return true;
+  }
+}
+
+static bool scr_date() {
+  // begin draw
+  gfx_begin(false, false);
+
+  // add row
+  lv_obj_t* row = lv_obj_create(lv_scr_act());
+  lv_obj_set_size(row, 200, 100);
+  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_align(row, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_style_pad_row(row, 5, LV_PART_MAIN);
+  lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
+
+  // prepare wheels
+  lvx_wheel_t day = {.value = 15, .min = 1, .max = 31, .format = "%02d", .fixed = true};
+  lvx_wheel_t month = {.value = 6, .min = 1, .max = 12, .format = "%02d", .fixed = true};
+  lvx_wheel_t year = {.value = 2023, .min = 2023, .max = 2999, .fixed = true};
+
+  // assign current date
+  al_clock_get_date(&year.value, &month.value, &day.value);
+
+  // add wheels
+  lvx_wheel_create(&day, row);
+  lvx_wheel_create(&month, row);
+  lvx_wheel_create(&year, row);
+
+  // add button
+  lvx_sign_t next = {
+      .title = "A",
+      .text = scr_trans()->next,
+      .align = LV_ALIGN_BOTTOM_RIGHT,
+  };
+  lvx_sign_t off = {
+      .title = "B",
+      .text = scr_trans()->cancel,
+      .align = LV_ALIGN_BOTTOM_LEFT,
+  };
+  lvx_sign_create(&next, lv_scr_act());
+  lvx_sign_create(&off, lv_scr_act());
+
+  // end draw
+  gfx_end(false, false);
+
+  for (;;) {
+    // await event
+    sig_event_t event = sig_await(SIG_KEYS | SIG_SCROLL, SCR_ACTION_TIMEOUT);
+
+    // handle arrows
+    if ((event.type & (SIG_ARROWS | SIG_SCROLL)) != 0) {
+      lvx_handle(event, true);
+      continue;
+    }
+
+    // cleanup
+    gui_cleanup(false);
+
+    // return on escape/timeout
+    if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
+      return false;
+    }
+
+    /* handle enter */
+
+    // save date
+    al_clock_set_date(year.value, month.value, day.value);
+
+    return true;
+  }
+}
 
 static void* scr_bubbles() {
   // begin draw
@@ -1413,7 +1557,10 @@ static void* scr_settings() {
     // handle event
     switch (event.type) {
       case SIG_UP:
-        return scr_date;
+        if (scr_date()) {
+          scr_time();
+        }
+        return scr_settings;
       case SIG_DOWN:
         return scr_language;
       case SIG_RIGHT:
@@ -1867,157 +2014,6 @@ static void* scr_menu() {
   }
 }
 
-static void* scr_time() {
-  // show message
-  gui_message(scr_trans()->time__message, 3000);
-
-  // begin draw
-  gfx_begin(false, false);
-
-  // add row
-  lv_obj_t* row = lv_obj_create(lv_scr_act());
-  lv_obj_set_size(row, 200, 100);
-  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_align(row, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_style_pad_row(row, 5, LV_PART_MAIN);
-  lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
-
-  // prepare wheels
-  lvx_wheel_t hour = {.value = 12, .min = 0, .max = 23, .format = "%02d", .fixed = true};
-  lvx_wheel_t minute = {.value = 30, .min = 0, .max = 59, .format = "%02d", .fixed = true};
-
-  // assign current time
-  uint16_t seconds;
-  al_clock_get_time(&hour.value, &minute.value, &seconds);
-
-  // add wheels
-  lvx_wheel_create(&hour, row);
-  lvx_wheel_create(&minute, row);
-
-  // add button
-  lvx_sign_t back = {
-      .title = "B",
-      .text = scr_trans()->back,
-      .align = LV_ALIGN_BOTTOM_LEFT,
-  };
-  lvx_sign_t next = {
-      .title = "A",
-      .text = scr_trans()->next,
-      .align = LV_ALIGN_BOTTOM_RIGHT,
-  };
-  lvx_sign_create(&back, lv_scr_act());
-  lvx_sign_create(&next, lv_scr_act());
-
-  // end draw
-  gfx_end(false, false);
-
-  for (;;) {
-    // await event
-    sig_event_t event = sig_await(SIG_KEYS | SIG_SCROLL, SCR_ACTION_TIMEOUT);
-
-    // forward arrows
-    if ((event.type & (SIG_ARROWS | SIG_SCROLL)) != 0) {
-      lvx_handle(event, true);
-      continue;
-    }
-
-    // cleanup
-    gui_cleanup(false);
-
-    // handle escape/timeout event
-    if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
-      return scr_date;
-    }
-
-    /* handle enter */
-
-    // save time
-    al_clock_set_time(hour.value, minute.value, 0);
-
-    // show message
-    gui_message(scr_trans()->time__continue, 5000);
-
-    // section action
-    scr_action = STM_FROM_INTRO;
-
-    return scr_menu;
-  }
-}
-
-static void* scr_date() {
-  // show message
-  gui_message(scr_trans()->date__message, 5000);
-
-  // begin draw
-  gfx_begin(false, false);
-
-  // add row
-  lv_obj_t* row = lv_obj_create(lv_scr_act());
-  lv_obj_set_size(row, 200, 100);
-  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_align(row, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_style_pad_row(row, 5, LV_PART_MAIN);
-  lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
-
-  // prepare wheels
-  lvx_wheel_t day = {.value = 15, .min = 1, .max = 31, .format = "%02d", .fixed = true};
-  lvx_wheel_t month = {.value = 6, .min = 1, .max = 12, .format = "%02d", .fixed = true};
-  lvx_wheel_t year = {.value = 2023, .min = 2023, .max = 2999, .fixed = true};
-
-  // assign current date
-  al_clock_get_date(&year.value, &month.value, &day.value);
-
-  // add wheels
-  lvx_wheel_create(&day, row);
-  lvx_wheel_create(&month, row);
-  lvx_wheel_create(&year, row);
-
-  // add button
-  lvx_sign_t next = {
-      .title = "A",
-      .text = scr_trans()->next,
-      .align = LV_ALIGN_BOTTOM_RIGHT,
-  };
-  lvx_sign_t off = {
-      .title = "B",
-      .text = scr_trans()->cancel,
-      .align = LV_ALIGN_BOTTOM_LEFT,
-  };
-  lvx_sign_create(&next, lv_scr_act());
-  lvx_sign_create(&off, lv_scr_act());
-
-  // end draw
-  gfx_end(false, false);
-
-  for (;;) {
-    // await event
-    sig_event_t event = sig_await(SIG_KEYS | SIG_SCROLL, SCR_ACTION_TIMEOUT);
-
-    // handle arrows
-    if ((event.type & (SIG_ARROWS | SIG_SCROLL)) != 0) {
-      lvx_handle(event, true);
-      continue;
-    }
-
-    // cleanup
-    gui_cleanup(false);
-
-    // return on escape/timeout
-    if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
-      return scr_settings;
-    }
-
-    /* handle enter */
-
-    // save date
-    al_clock_set_date(year.value, month.value, day.value);
-
-    return scr_time;
-  }
-}
-
 static void* scr_language() {
   // prepare state
   static int offset = 0;
@@ -2048,32 +2044,43 @@ static void* scr_intro() {
   lv_img_set_src(img, &img_robin_standing);
   lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
   gfx_end(false, false);
-
-  // wait a bit
-  naos_delay(2000);
-
-  // show text
-  gfx_begin(false, false);
-  lv_obj_add_flag(img, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_t* lbl = lv_label_create(lv_scr_act());
-  lv_obj_align(lbl, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_style_text_line_space(lbl, 6, LV_PART_MAIN);
-  lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-  lv_label_set_text(lbl, scr_trans()->intro_message);
-  gfx_end(false, false);
-
-  // wait a bit
   naos_delay(3000);
-
-  // cleanup
   gui_cleanup(false);
 
-  return scr_date;
+  // show messages
+  gui_message(scr_trans()->intro__hello1, 5000);
+  gui_message(scr_trans()->intro__hello2, 5000);
+
+  for (;;) {
+    // format current date/time
+    uint16_t year, month, day, hour, minute, seconds;
+    al_clock_get_date(&year, &month, &day);
+    al_clock_get_time(&hour, &minute, &seconds);
+    const char* date_time = lvx_fmt(scr_trans()->intro__watch, hour, minute, month, day, year);
+
+    // confirm date/time
+    if (!gui_confirm(date_time, scr_trans()->intro__adjust, scr_trans()->intro__correct, false, -1)) {
+      break;
+    }
+
+    // otherwise, update date/time
+    if (scr_date()) {
+      scr_time();
+    }
+  }
+
+  // show end
+  gui_message(scr_trans()->intro__end, 5000);
+
+  // section action
+  scr_action = STM_FROM_INTRO;
+
+  return scr_menu;
 }
 
 /* Management */
 
-static void* (*scr_handler)() = scr_menu;
+static void* (*scr_handler)();
 
 static void scr_task() {
   // call handlers
@@ -2085,7 +2092,10 @@ static void scr_task() {
 
 void scr_run(al_trigger_t trigger) {
   // handle return
-  if (trigger == AL_BUTTON && scr_return_unlock != NULL) {
+  scr_handler = scr_menu;
+  if (trigger == AL_RESET) {
+    scr_handler = scr_intro;
+  } else if (trigger == AL_BUTTON && scr_return_unlock != NULL) {
     scr_handler = scr_return_unlock;
   } else if ((trigger == AL_TIMEOUT || trigger == AL_INTERRUPT) && scr_return_timeout != NULL) {
     scr_handler = scr_return_timeout;
