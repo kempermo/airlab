@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <naos.h>
 #include <esp_vfs_fat.h>
 #include <esp_partition.h>
@@ -46,7 +47,7 @@ static char const *al_storage_usb_str_desc[] = {
 static void al_storage_usb_msc_cb(tinyusb_msc_event_t *event) {
   // log event
   if (AL_STORAGE_DEBUG) {
-    naos_log("dat: MSC event=%d mounted=%d", event->type, event->mount_changed_data.is_mounted);
+    naos_log("al-sto: MSC event=%d mounted=%d", event->type, event->mount_changed_data.is_mounted);
   }
 
   // dispatch eject event on device-side re-mount
@@ -61,6 +62,7 @@ static bool al_storage_access() {
   // open file
   FILE *file = fopen(AL_STORAGE_ROOT "/TEST", "w");
   if (file == NULL) {
+    naos_log("al-sto: failed to create test file, error=%d", errno);
     return false;
   }
 
@@ -70,6 +72,7 @@ static bool al_storage_access() {
   // remove file
   int ret = remove(AL_STORAGE_ROOT "/TEST");
   if (ret != 0) {
+    naos_log("al-sto: failed to remove test file, error=%d", ret);
     return false;
   }
 
@@ -91,6 +94,12 @@ void al_storage_init() {
     ESP_ERROR_CHECK(esp_vfs_fat_spiflash_format_rw_wl(AL_STORAGE_ROOT, "storage"));
     naos_log("al-sto: storage formatted!");
   }
+
+  // set label
+  FRESULT res = f_setlabel("AIR LAB");
+  if (res != FR_OK) {
+    naos_log("al-sto: failed to set label, error=%d", res);
+  }
 }
 
 al_storage_info_t al_storage_info() {
@@ -99,7 +108,7 @@ al_storage_info_t al_storage_info() {
   uint32_t free_clusters;
   FRESULT res = f_getfree(AL_STORAGE_ROOT, &free_clusters, &fs);
   if (res != FR_OK) {
-    // ESP_ERROR_CHECK(res);
+    naos_log("al-sto: failed to get free clusters, error=%d", res);
     return (al_storage_info_t){0};
   }
 
@@ -119,6 +128,9 @@ al_storage_info_t al_storage_info() {
 }
 
 void al_storage_enable_usb(al_storage_eject_t eject) {
+  // set eject callback
+  al_storage_eject = eject;
+
   // unmount storage
   ESP_ERROR_CHECK(esp_vfs_fat_spiflash_unmount_rw_wl(AL_STORAGE_ROOT, al_storage_wl_handle));
 
