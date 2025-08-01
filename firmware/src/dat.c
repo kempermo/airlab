@@ -482,7 +482,7 @@ bool dat_import(uint16_t num, dat_progress_t progress) {
   // append samples
   for (size_t i = 0; i < count; i += 32) {
     // read samples
-    size_t n = DAT_MIN(file->size - i, 32);
+    size_t n = DAT_MIN(count - i, 32);
     al_sample_t samples[32];
     source.read(source.ctx, samples, n, i);
 
