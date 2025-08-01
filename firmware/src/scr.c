@@ -124,7 +124,6 @@ typedef struct {
   const char* settings__off;
   const char* settings__reset;
   const char* menu__no_data;
-  const char* language__message;
   const char* intro__hello1;
   const char* intro__hello2;
   const char* intro__watch;
@@ -155,19 +154,19 @@ static const scr_trans_t scr_trans_map[] = {
             .create__imported = "Import erfolgreich!",
             .delete__confirm = "%s\nwirklich löschen?",
             .delete__delete = "Löschen",
-            .delete__deleted = "Messung %d\nerfolgreich gelöscht!",
+            .delete__deleted = "Messung %d gelöscht!",
             .edit__analyse = "Analysieren",
             .edit__delete = "Löschen",
             .edit__export = "CSV Exportieren",
             .edit__export_fail = "Export fehlgeschlagen!",
             .edit__export_done = "Export erfolgreich!",
-            .explore__empty = "Keine gespeicherte\nMessungen...",
+            .explore__empty = "Keine gespeicherte Messungen.",
             .explore__open = "Öffnen",
             .usb__disconnected = "USB nicht angeschlossen!",
-            .usb__active = "USB-Modus Aktiv",
-            .usb__eject = "USB-Verbindung getrennt",
-            .ble__active = "Bluetooth Pairing Aktive",
-            .reset__confirm = "Air Lab\nwirklich zurücksetzen?",
+            .usb__active = "USB-Modus aktiv",
+            .usb__eject = "USB-Modus getrennt",
+            .ble__active = "Bluetooth Pairing aktiv",
+            .reset__confirm = "Air Lab zurücksetzen?",
             .reset__reset = "Air Lab\nerfolgreich zurückgesetzt!",
             .settings__title = "Einstellungen",
             .settings__storage = "Speicher: %.1f%% belegt",
@@ -177,7 +176,6 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__off = "Ausschalten",
             .settings__reset = "Zurücksetzen",
             .menu__no_data = "Keine Daten",
-            .language__message = "In welcher Sprache\nmöchtest du quatschen?",
             .intro__hello1 = "Hi! Ich bin Professor Robin,\nWissenschaftsleiter am Air Lab.",
             .intro__hello2 = "Da bin ich eben kurz eingenickt.\nSag mal wie spät ist es?",
             .intro__watch = "Meine Uhr zeigt %d:%02d\nam %d/%d/%d, richtig?",
@@ -194,7 +192,7 @@ static const scr_trans_t scr_trans_map[] = {
             .cancel = "Cancel",
             .measurement = "Measurement %u",
             .recording = "Measurement running!",
-            .exit__stop = "Stop Measurement",
+            .exit__stop = "Stop measurement",
             .exit__back = "Go back to Lab",
             .exit__stopped = "%s\n stopped!",
             .create__full = "Storage full!",
@@ -206,19 +204,19 @@ static const scr_trans_t scr_trans_map[] = {
             .create__imported = "Import successful!",
             .delete__confirm = "Really delete %s?",
             .delete__delete = "Delete",
-            .delete__deleted = "Measurement %d\nsuccessfully deleted!",
+            .delete__deleted = "Measurement %d deleted!",
             .edit__analyse = "Analyse",
             .edit__delete = "Delete",
             .edit__export = "Export CSV",
             .edit__export_fail = "Export failed!",
             .edit__export_done = "Export done!",
-            .explore__empty = "No saved\nmeasurements...",
+            .explore__empty = "No saved measurements.",
             .explore__open = "Open",
             .usb__disconnected = "USB not connected!",
-            .usb__active = "USB Mode Active",
-            .usb__eject = "USB-Connection disconnected",
-            .ble__active = "Bluetooth Pairing Active",
-            .reset__confirm = "Fully Reset Air Lab?",
+            .usb__active = "USB Volume active",
+            .usb__eject = "USB Volume ejected",
+            .ble__active = "Bluetooth pairing active",
+            .reset__confirm = "Fully reset Air Lab?",
             .reset__reset = "Air Lab\nsuccessfully reset!",
             .settings__title = "Settings",
             .settings__storage = "Storage: %.1f%% used",
@@ -228,7 +226,6 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__off = "Power Off",
             .settings__reset = "Reset",
             .menu__no_data = "No Data",
-            .language__message = "In which language\nwould you like to chat?",
             .intro__hello1 = "Hi! I'm Professor Robin,\nhead of sciences at Air Lab.",
             .intro__hello2 = "I dozed off for a bit...\nCan you tell me the time?",
             .intro__watch = "My watch says its %d:%02d\non the %d/%d/%d, right?",
@@ -2080,9 +2077,6 @@ static void* scr_menu() {
 static void* scr_language() {
   // prepare state
   static int offset = 0;
-
-  // show message
-  gui_message(scr_trans()->language__message, 5000);
 
   // select language
   const char* labels[] = {"Deutsch", "English", NULL};
