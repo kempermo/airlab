@@ -4,6 +4,8 @@
 
 #include "stm.h"
 
+#define STM_NUM (sizeof(stm_entries) / sizeof(stm_entry_t))
+
 stm_entry_t stm_entries[] = {
     /* Exclaims */
     {
@@ -190,9 +192,10 @@ stm_entry_t stm_entries[] = {
     },
 };
 
-size_t stm_num = sizeof(stm_entries) / sizeof(stm_entry_t);
-
-stm_entry_t* stm_get(size_t i) { return i < stm_num ? &stm_entries[i] : NULL; }
+stm_entry_t* stm_get(size_t i) {
+  // return entry by index
+  return i < STM_NUM ? &stm_entries[i] : NULL;
+}
 
 stm_entry_t* stm_query(bool exclaim, stm_action_t action) {
   // get last sample
@@ -201,16 +204,16 @@ stm_entry_t* stm_query(bool exclaim, stm_action_t action) {
   // check if ok
   bool ok = al_sample_valid(sample);
 
+  // calculate values
+  float co2 = al_sample_read(sample, AL_SAMPLE_CO2);
+  float tmp = al_sample_read(sample, AL_SAMPLE_TMP);
+  float hum = al_sample_read(sample, AL_SAMPLE_HUM);
+
   // de/select and count entries
   int selected = 0;
-  for (size_t i = 0; i < stm_num; i++) {
+  for (size_t i = 0; i < STM_NUM; i++) {
     // get entry
     stm_entry_t* entry = &stm_entries[i];
-
-    // calculate values
-    float co2 = al_sample_read(sample, AL_SAMPLE_CO2);
-    float tmp = al_sample_read(sample, AL_SAMPLE_TMP);
-    float hum = al_sample_read(sample, AL_SAMPLE_HUM);
 
     // set selection
     entry->selected = true;
@@ -218,32 +221,40 @@ stm_entry_t* stm_query(bool exclaim, stm_action_t action) {
     // check exclaim
     if (entry->exclaim != exclaim) {
       entry->selected = false;
+      continue;
     }
 
     // check action
     if (entry->action != 0 && action != entry->action) {
       entry->selected = false;
+      continue;
     }
 
     // check co2
     if (entry->co2_min != 0 && (!ok || co2 < entry->co2_min)) {
       entry->selected = false;
+      continue;
     } else if (entry->co2_max != 0 && (!ok || co2 > entry->co2_max)) {
       entry->selected = false;
+      continue;
     }
 
     // check temperature
     if (entry->tmp_min != 0 && (!ok || tmp < entry->tmp_min)) {
       entry->selected = false;
+      continue;
     } else if (entry->tmp_max != 0 && (!ok || tmp > entry->tmp_max)) {
       entry->selected = false;
+      continue;
     }
 
     // check humidity
     if (entry->hum_min != 0 && (!ok || hum < entry->hum_min)) {
       entry->selected = false;
+      continue;
     } else if (entry->hum_max != 0 && (!ok || hum > entry->hum_max)) {
       entry->selected = false;
+      continue;
     }
 
     // increment if selected
@@ -261,7 +272,7 @@ stm_entry_t* stm_query(bool exclaim, stm_action_t action) {
   selected = (int)esp_random() % selected;
 
   // find and return entry
-  for (int i = 0; i < stm_num; i++) {
+  for (int i = 0; i < STM_NUM; i++) {
     stm_entry_t* entry = &stm_entries[i];
     if (entry->selected) {
       selected--;
