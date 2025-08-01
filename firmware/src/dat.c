@@ -21,6 +21,7 @@
 #define DAT_NAME_FMT "file-%04u.bin"
 #define DAT_EXPORT_FMT "file-%04u.csv"
 #define DAT_FILES 128
+#define DAT_EXPORT_BUF 4096
 #define DAT_DEBUG false
 
 #define DAT_MIN(x, y) (((x) < (y)) ? (x) : (y))
@@ -531,7 +532,11 @@ bool dat_export(uint16_t num, dat_progress_t progress) {
   dat_write_file(DAT_EXPORT_DIR, name, (void *)header, 0, strlen(header), true);
 
   // prepare pos
-  size_t pos = strlen(header);
+  size_t file_pos = strlen(header);
+
+  // allocate buffer
+  void *buffer = al_alloc(DAT_EXPORT_BUF);
+  size_t buf_pos = 0;
 
   // start progress
   if (progress != NULL) {
@@ -547,21 +552,24 @@ bool dat_export(uint16_t num, dat_progress_t progress) {
 
     // log
     if (DAT_DEBUG) {
-      naos_log("dat: export num=%u i=%zu n=%zu pos=%zu size=%zu", num, i, n, pos, file->size);
+      naos_log("dat: export num=%u i=%zu n=%zu pos=%zu size=%zu", num, i, n, file_pos, file->size);
     }
 
     // write samples
     for (size_t j = 0; j < n; j++) {
-      // prepare line
-      char line[64];
-      snprintf(line, sizeof(line), "%lld,%.0f,%.2f,%.2f,%.0f,%.0f,%.0f\n", file->head.start + (int64_t)samples[j].off,
-               al_sample_read(samples[j], AL_SAMPLE_CO2), al_sample_read(samples[j], AL_SAMPLE_TMP),
-               al_sample_read(samples[j], AL_SAMPLE_HUM), al_sample_read(samples[j], AL_SAMPLE_VOC),
-               al_sample_read(samples[j], AL_SAMPLE_NOX), al_sample_read(samples[j], AL_SAMPLE_PRS));
+      // append line to buffer
+      buf_pos += snprintf(buffer + buf_pos, DAT_EXPORT_BUF - buf_pos, "%lld,%.0f,%.2f,%.2f,%.0f,%.0f,%.0f\n",
+                          file->head.start + (int64_t)samples[j].off, al_sample_read(samples[j], AL_SAMPLE_CO2),
+                          al_sample_read(samples[j], AL_SAMPLE_TMP), al_sample_read(samples[j], AL_SAMPLE_HUM),
+                          al_sample_read(samples[j], AL_SAMPLE_VOC), al_sample_read(samples[j], AL_SAMPLE_NOX),
+                          al_sample_read(samples[j], AL_SAMPLE_PRS));
 
-      // write line
-      dat_write_file(DAT_EXPORT_DIR, name, (void *)line, pos, strlen(line), false);
-      pos += strlen(line);
+      // flush buffer if full
+      if (buf_pos > DAT_EXPORT_BUF - 128) {
+        dat_write_file(DAT_EXPORT_DIR, name, buffer, file_pos, buf_pos, false);
+        file_pos += buf_pos;
+        buf_pos = 0;
+      }
 
       // update progress
       if (progress != NULL) {
@@ -569,6 +577,14 @@ bool dat_export(uint16_t num, dat_progress_t progress) {
       }
     }
   }
+
+  // flush buffer
+  if (buf_pos > 0) {
+    dat_write_file(DAT_EXPORT_DIR, name, buffer, file_pos, buf_pos, false);
+  }
+
+  // free buffer
+  free(buffer);
 
   return true;
 }
