@@ -27,9 +27,6 @@ typedef enum {
 } stm_mood_t;
 
 typedef struct {
-  const char *text_de;
-  const char *text_en;
-  stm_mood_t mood;
   bool urgent;
   stm_action_t action;
   float co2_min;
@@ -38,6 +35,9 @@ typedef struct {
   float tmp_max;
   float hum_min;
   float hum_max;
+  const char *text_de;
+  const char *text_en;
+  stm_mood_t mood;
   // ---
   bool selected;
 } stm_entry_t;
