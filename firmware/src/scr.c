@@ -1496,8 +1496,12 @@ static void* scr_about() {
     naos_auth_data_t auth = {0};
     naos_auth_describe(&auth);
 
+    // get settings
+    bool developer = naos_get_b("developer");
+
     // prepare text
-    const char* text = lvx_fmt("NA-AL1-R%d/%d\n%s", auth.revision, auth.batch, naos_config()->app_version);
+    const char* text = lvx_fmt("NA-AL1-R%d/%d\n%s%s", auth.revision, auth.batch, naos_config()->app_version,
+                               developer ? "\n(Developer)" : "");
 
     // update label
     gfx_begin(false, false);
@@ -1505,10 +1509,11 @@ static void* scr_about() {
     gfx_end(false, false);
 
     // await event
-    sig_event_t event = sig_await(SIG_KEYS, 1000);
+    sig_event_t event = sig_await(SIG_KEYS, 0);
 
-    // loop on timeout
-    if (event.type == SIG_TIMEOUT) {
+    // toggle developer on right
+    if (event.type == SIG_RIGHT) {
+      naos_set_b("developer", !developer);
       continue;
     }
 
@@ -1803,6 +1808,9 @@ static void* scr_menu() {
   static int8_t opt = 0;   // create, explore, settings, usb, ble, develop
   static bool fan_alt = false;
 
+  // get settings
+  bool developer = naos_get_b("developer");
+
   // begin draw
   gfx_begin(false, false);
 
@@ -2047,12 +2055,12 @@ static void* scr_menu() {
     if (event.type == SIG_LEFT) {
       opt--;
       if (opt < 0) {
-        opt = 5;
+        opt = developer ? 5 : 4;
       }
       continue;
     } else if (event.type == SIG_RIGHT) {
       opt++;
-      if (opt > 5) {
+      if (opt > (developer ? 5 : 4)) {
         opt = 0;
       }
       continue;
@@ -2116,6 +2124,11 @@ static void* scr_language() {
 }
 
 static void* scr_intro() {
+  // skip if developer
+  if (naos_get_b("developer")) {
+    return scr_menu;
+  }
+
   // wait a bit
   naos_delay(1000);
 
