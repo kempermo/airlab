@@ -31,6 +31,20 @@ stm_entry_t stm_entries[] = {
     },
     {
         .urgent = true,
+        .action = STM_START_MEASUREMENT,
+        .text_de = "Die Maschine läuft, jetzt heisst es abwarten!",
+        .text_en = "The machine is running, now it's time to wait!",
+        .mood = STM_WORKING,
+    },
+    {
+        .urgent = true,
+        .action = STM_START_MEASUREMENT,
+        .text_de = "Alles klar, Messung gestartet. Die Technik macht den Rest.",
+        .text_en = "All set, measurement started. The tech will handle the rest.",
+        .mood = STM_WORKING,
+    },
+    {
+        .urgent = true,
         .action = STM_FROM_MEASUREMENT,
         .text_de = "Ich bin am rechnen...",
         .text_en = "I'm calculating...",
@@ -39,15 +53,8 @@ stm_entry_t stm_entries[] = {
     {
         .urgent = true,
         .action = STM_FROM_MEASUREMENT,
-        .text_de = "Hmmm...",
-        .text_en = "Hmmm...",
-        .mood = STM_WORKING,
-    },
-    {
-        .urgent = true,
-        .action = STM_FROM_MEASUREMENT,
-        .text_de = "Ich mache gerade eine wichtige Messung...",
-        .text_en = "I'm taking an important measurement...",
+        .text_de = "Diesen Wert muss ich kurz nachprüfen.",
+        .text_en = "I need to double-check this value.",
         .mood = STM_WORKING,
     },
     {
@@ -73,12 +80,40 @@ stm_entry_t stm_entries[] = {
     },
     {
         .urgent = true,
+        .action = STM_FROM_ANALYSIS,
+        .text_de = "Daten ohne Analyse sind wie Bücher ohne Lesen.",
+        .text_en = "Data without analysis is like books without reading.",
+        .mood = STM_POINTING,
+    },
+    {
+        .urgent = true,
+        .action = STM_FROM_ANALYSIS,
+        .text_de = "Verstehen heisst, Muster in Zahlen zu sehen.",
+        .text_en = "To understand is to see patterns in numbers.",
+        .mood = STM_POINTING,
+    },
+    {
+        .urgent = true,
+        .action = STM_FROM_ANALYSIS,
+        .text_de = "Wer misst, misst manchmal Mist.",
+        .text_en = "Measure twice, analyze once.",
+        .mood = STM_POINTING,
+    },
+    {
+        .urgent = true,
         .action = STM_DEL_MEASUREMENT,
-        .text_de = "Ein sauberes Labor, ist die hälfte der Messung.",
+        .text_de = "Ein sauberes Labor ist die hälfte der Messung.",
         .text_en = "Maintaining a clean lab is half the measurement.",
         .mood = STM_POINTING,
     },
-    /* Urgent Facts */
+    {
+        .urgent = true,
+        .action = STM_DEL_MEASUREMENT,
+        .text_de = "Aufräumen gehört genauso dazu wie messen.",
+        .text_en = "Tidying up is just as much a part of science as measuring.",
+        .mood = STM_POINTING,
+    },
+    /* Urgent Conditions */
     {
         .urgent = true,
         .co2_min = 4000,
@@ -119,6 +154,14 @@ stm_entry_t stm_entries[] = {
     },
     {
         .urgent = true,
+        .co2_min = 1000,
+        .co2_max = 1400,
+        .text_de = "Puh, langsam wird die Luft stickig.",
+        .text_en = "Phew, the air is getting stuffy.",
+        .mood = STM_STANDING,
+    },
+    {
+        .urgent = true,
         .tmp_max = 10,
         .text_de = "Boa ey, ist das kalt hier!",
         .text_en = "Uff, it's cold in here!",
@@ -139,7 +182,31 @@ stm_entry_t stm_entries[] = {
         .text_en = "Ahem, super dry here!",
         .mood = STM_COLD,
     },
-    /* Fun Facts */
+    {
+        .urgent = true,
+        .tmp_min = 28,
+        .hum_max = 30,
+        .text_de = "Uff, heiss und trocken hier drin!",
+        .text_en = "Ugh, it's hot and dry in here!",
+        .mood = STM_ANGRY1,
+    },
+    {
+        .urgent = true,
+        .tmp_max = 10,
+        .hum_max = 30,
+        .text_de = "Brrr... kalt und trocken, meine Haut spannt schon.",
+        .text_en = "Brrr... cold and dry, my skin feels tight.",
+        .mood = STM_COLD,
+    },
+    /* Good Conditions */
+    {
+        .urgent = true,
+        .co2_min = 600,
+        .co2_max = 1000,
+        .text_de = "Alles im grünen Bereich, gute Luftqualität!",
+        .text_en = "All good, air quality is fine!",
+        .mood = STM_HAPPY,
+    },
     {
         .co2_max = 600,
         .text_de = "Ahhh... Ich liebe frische Luft!",
@@ -154,6 +221,7 @@ stm_entry_t stm_entries[] = {
         .text_en = "The air here is really nice now!",
         .mood = STM_HAPPY,
     },
+    /* Air Facts */
     {
         .text_de = "Warme Luft kann mehr Feuchtigkeit auf- nehmen als kalte Luft.",
         .text_en = "Warm air can absorb more moisture than cold air.",
@@ -208,6 +276,31 @@ stm_entry_t stm_entries[] = {
         .text_de = "Ein Kubikmeter CO2 wiegt 1.98 kg.",
         .text_en = "One cubic meter of CO2 weighs 1.98 kg.",
         .mood = STM_POINTING,
+    },
+    {
+        .text_de = "Zu trockene Luft kann deine Schleimhäute reizen.",
+        .text_en = "Air that's too dry can irritate your mucous membranes.",
+        .mood = STM_POINTING,
+    },
+    {
+        .text_de = "Im Sommer fühlen sich 24°C oft angenehm an, im Winter eher kühl.",
+        .text_en = "In summer, 24°C feels comfortable, but in winter it feels cool.",
+        .mood = STM_POINTING,
+    },
+    {
+        .text_de = "In Klassenzimmern erreicht CO2 oft über 2000 ppm!",
+        .text_en = "In classrooms, CO2 often exceeds 2000 ppm!",
+        .mood = STM_POINTING,
+    },
+    {
+        .text_de = "CO2 wird mit photoakustischer Spektroskopie gemessen.",
+        .text_en = "CO2 is measured using photoacoustic spectroscopy.",
+        .mood = STM_POINTING,
+    },
+    {
+        .text_de = "Öffne das Fenster und schau, wie sich die Luft verändert!",
+        .text_en = "Try opening the window and see how the air changes!",
+        .mood = STM_HAPPY,
     },
 };
 
