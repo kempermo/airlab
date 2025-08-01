@@ -41,7 +41,7 @@ static void dat_read_file(const char *dir, const char *name, void *buf, size_t o
 
   // log
   if (DAT_DEBUG) {
-    naos_log("dat: read %s %d %d", path, offset, length);
+    naos_log("dat: read path=%s offset=%d length=%d", path, offset, length);
   }
 
   // open file
@@ -78,7 +78,7 @@ static void dat_write_file(const char *dir, const char *name, void *buf, size_t 
 
   // log
   if (DAT_DEBUG) {
-    naos_log("dat: write %s %d %d %d", path, offset, length, truncate);
+    naos_log("dat: write path=%s offset=%d length=%d truncate=%d", path, offset, length, truncate);
   }
 
   // open file
@@ -115,7 +115,7 @@ static void dat_delete_file(const char *dir, const char *name) {
 
   // log
   if (DAT_DEBUG) {
-    naos_log("dat: delete %s", path);
+    naos_log("dat: delete path=%s", path);
   }
 
   // remove file
@@ -135,9 +135,6 @@ static void dat_eject() {
 void dat_init() {
   // allocate files
   dat_files = al_calloc(DAT_FILES, sizeof(dat_file_t));
-  if (dat_files == NULL) {
-    ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
-  }
 
   // ensure directory
   mkdir(AL_STORAGE_ROOT "/" DAT_DATA_DIR, 0777);
@@ -230,6 +227,12 @@ void dat_init() {
       ESP_ERROR_CHECK(ESP_FAIL);
     }
 
+    // log file
+    if (DAT_DEBUG) {
+      naos_log("dat: add num=%u start=%lld size=%zu stop=%d marks=%d ", file.head.num, file.head.start, file.size,
+               file.stop, file.marks);
+    }
+
     // add file
     dat_files[dat_files_length] = file;
     dat_files_length++;
@@ -277,6 +280,11 @@ uint16_t dat_create(int64_t start) {
       .start = start,
   };
 
+  // log
+  if (DAT_DEBUG) {
+    naos_log("dat: create num=%u start=%lld", head.num, head.start);
+  }
+
   // encode name
   char name[32];
   snprintf(name, sizeof(name), DAT_NAME_FMT, head.num);
@@ -305,6 +313,12 @@ void dat_mark(uint16_t num, int32_t offset) {
   dat_file_t *file = dat_find(num, NULL);
   if (file == NULL) {
     ESP_ERROR_CHECK(ESP_FAIL);
+    return;
+  }
+
+  // log
+  if (DAT_DEBUG) {
+    naos_log("dat: mark num=%u offset=%d", num, offset);
   }
 
   // check marks
@@ -329,6 +343,7 @@ void dat_append(uint16_t num, al_sample_t *samples, size_t count) {
   dat_file_t *file = dat_find(num, NULL);
   if (file == NULL) {
     ESP_ERROR_CHECK(ESP_FAIL);
+    return;
   }
 
   // calculate offset
@@ -336,6 +351,11 @@ void dat_append(uint16_t num, al_sample_t *samples, size_t count) {
 
   // calculate length
   size_t length = sizeof(al_sample_t) * count;
+
+  // log
+  if (DAT_DEBUG) {
+    naos_log("dat: append num=%u count=%zu offset=%zu length=%zu ", num, count, offset, length);
+  }
 
   // encode name
   char name[32];
@@ -354,7 +374,7 @@ void dat_append(uint16_t num, al_sample_t *samples, size_t count) {
   file->stop = samples[count - 1].off;
 }
 
-void dat_read(uint16_t num, al_sample_t *samples, size_t count, size_t start) {
+void dat_load(uint16_t num, al_sample_t *samples, size_t count, size_t start) {
   // find file
   dat_file_t *file = dat_find(num, NULL);
   if (file == NULL) {
@@ -366,6 +386,11 @@ void dat_read(uint16_t num, al_sample_t *samples, size_t count, size_t start) {
 
   // calculate length
   size_t length = sizeof(al_sample_t) * count;
+
+  // log
+  if (DAT_DEBUG) {
+    naos_log("dat: load num=%u count=%zu start=%zu offset=%zu length=%zu", num, count, start, offset, length);
+  }
 
   // encode name
   char name[32];
@@ -413,7 +438,7 @@ static int32_t dat_source_stop(void *ctx) {
 
 static void dat_source_read(void *ctx, al_sample_t *samples, size_t count, size_t offset) {
   // read samples
-  dat_read(((dat_file_t *)ctx)->head.num, samples, count, offset);
+  dat_load(((dat_file_t *)ctx)->head.num, samples, count, offset);
 }
 
 al_sample_source_t dat_source(uint16_t num) {
@@ -441,15 +466,11 @@ bool dat_import(uint16_t num, dat_progress_t progress) {
 
   // prepare source
   al_sample_source_t source = al_store_source();
-
-  // get source info
   size_t count = source.count(source.ctx);
 
-  // calculate size
-  size_t size = sizeof(dat_head_t) + (count * sizeof(al_sample_t)) + 1024;
-
-  // check space
-  if (size > al_storage_info().free) {
+  // check required space
+  size_t space = sizeof(dat_head_t) + (count * sizeof(al_sample_t)) + 1024;
+  if (space > al_storage_info().free) {
     return false;
   }
 
@@ -464,6 +485,11 @@ bool dat_import(uint16_t num, dat_progress_t progress) {
     size_t n = DAT_MIN(file->size - i, 32);
     al_sample_t samples[32];
     source.read(source.ctx, samples, n, i);
+
+    // log
+    if (DAT_DEBUG) {
+      naos_log("dat: import num=%u i=%zu n=%zu count=%zu", num, i, n, count);
+    }
 
     // append samples
     dat_append(num, samples, n);
@@ -485,6 +511,7 @@ bool dat_export(uint16_t num, dat_progress_t progress) {
   dat_file_t *file = dat_find(num, NULL);
   if (file == NULL) {
     ESP_ERROR_CHECK(ESP_FAIL);
+    return false;
   }
 
   // calculate size
@@ -514,12 +541,17 @@ bool dat_export(uint16_t num, dat_progress_t progress) {
   // write samples
   for (size_t i = 0; i < file->size; i += 32) {
     // read samples
-    size_t count = DAT_MIN(file->size - i, 32);
+    size_t n = DAT_MIN(file->size - i, 32);
     al_sample_t samples[32];
-    dat_read(num, samples, count, i);
+    dat_load(num, samples, n, i);
+
+    // log
+    if (DAT_DEBUG) {
+      naos_log("dat: export num=%u i=%zu n=%zu pos=%zu size=%zu", num, i, n, pos, file->size);
+    }
 
     // write samples
-    for (size_t j = 0; j < count; j++) {
+    for (size_t j = 0; j < n; j++) {
       // prepare line
       char line[64];
       snprintf(line, sizeof(line), "%lld,%.0f,%.2f,%.2f,%.0f,%.0f,%.0f\n", file->head.start + (int64_t)samples[j].off,

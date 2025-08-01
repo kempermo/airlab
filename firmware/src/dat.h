@@ -36,7 +36,7 @@ uint16_t dat_create(int64_t start);
 
 void dat_mark(uint16_t num, int32_t offset);
 void dat_append(uint16_t num, al_sample_t *samples, size_t count);
-void dat_read(uint16_t num, al_sample_t *samples, size_t count, size_t start);
+void dat_load(uint16_t num, al_sample_t *samples, size_t count, size_t start);
 void dat_delete(uint16_t num);
 
 al_sample_source_t dat_source(uint16_t num);
