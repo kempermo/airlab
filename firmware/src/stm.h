@@ -35,6 +35,10 @@ typedef struct {
   float tmp_max;
   float hum_min;
   float hum_max;
+  float voc_min;
+  float voc_max;
+  float nox_min;
+  float nox_max;
   const char *text_de;
   const char *text_en;
   stm_mood_t mood;

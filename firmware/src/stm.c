@@ -196,6 +196,36 @@ stm_entry_t stm_entries[] = {
         .text_en = "Brrr... cold and dry, my skin feels tight.",
         .mood = STM_COLD,
     },
+    {
+        .urgent = true,
+        .voc_min = 150,
+        .voc_max = 250,
+        .text_de = "Hmm, hier riecht es etwas streng.",
+        .text_en = "Hmm, it's starting to smell a bit strong here.",
+        .mood = STM_STANDING,
+    },
+    {
+        .urgent = true,
+        .voc_min = 250,
+        .text_de = "Uff, die Luft ist voller Ausdünstungen!",
+        .text_en = "Ugh, the air is full of fumes!",
+        .mood = STM_ANGRY1,
+    },
+    {
+        .urgent = true,
+        .nox_min = 50,
+        .nox_max = 150,
+        .text_de = "Da sind Abgase in der Luft!",
+        .text_en = "There are exhaust fumes in the air!",
+        .mood = STM_ANGRY2,
+    },
+    {
+        .urgent = true,
+        .nox_min = 150,
+        .text_de = "Achtung, zu viele Stickoxide! Lüften empfohlen!",
+        .text_en = "Warning, too much NOx! Ventilation recommended!",
+        .mood = STM_ANGRY1,
+    },
     /* Good Conditions */
     {
         .urgent = true,
@@ -217,6 +247,18 @@ stm_entry_t stm_entries[] = {
         .hum_max = 60,
         .text_de = "Die Luft hier ist jetzt richtig nice!",
         .text_en = "The air here is really nice now!",
+        .mood = STM_HAPPY,
+    },
+    {
+        .voc_max = 150,
+        .text_de = "Schön, keine störenden Gerüche in der Luft!",
+        .text_en = "Nice, no bothersome smells in the air!",
+        .mood = STM_HAPPY,
+    },
+    {
+        .nox_max = 50,
+        .text_de = "Kaum Stickoxide, die Luft ist sauber!",
+        .text_en = "Hardly any NOx, the air is clean!",
         .mood = STM_HAPPY,
     },
     /* Air Facts */
@@ -291,10 +333,36 @@ stm_entry_t stm_entries[] = {
         .mood = STM_POINTING,
     },
     {
-        .text_de = "CO2 wird mit photoakustischer Spektroskopie gemessen.",
+        .text_de = "CO2 wird mit photoa- kustischer Spektro- skopie gemessen.",
         .text_en = "CO2 is measured using photoacoustic spectroscopy.",
         .mood = STM_POINTING,
     },
+    {
+        .text_de = "VOC sind flüchtige organische Verbind- ungen, oft von Farben.",
+        .text_en = "VOCs are volatile organic compounds, often from paints.",
+        .mood = STM_POINTING,
+    },
+    {
+        .text_de = "Stickoxide (NOx) stammen oft aus Verbrennung.",
+        .text_en = "Nitrogen oxides (NOx) often come from combustion.",
+        .mood = STM_POINTING,
+    },
+    {
+        .text_de = "Der Luftdruck hier liegt bei etwa 1013 hPa auf Meereshöhe.",
+        .text_en = "Air pressure is about 1013 hPa at sea level.",
+        .mood = STM_POINTING,
+    },
+    {
+        .text_de = "Gute Belüftung hilft, VOCs und NOx zu reduzieren.",
+        .text_en = "Good ventilation helps reduce VOCs and NOx.",
+        .mood = STM_POINTING,
+    },
+    {
+        .text_de = "Neue Möbel können VOCs freisetzen, am besten gut lüften!",
+        .text_en = "New furniture can emit VOCs, best to ventilate well!",
+        .mood = STM_POINTING,
+    },
+    /* Exercise Prompts */
     {
         .text_de = "Öffne das Fenster und schau, wie sich die Luft verändert!",
         .text_en = "Try opening the window and see how the air changes!",
@@ -323,6 +391,8 @@ stm_entry_t* stm_query(bool urgent, stm_action_t action) {
   float co2 = al_sample_read(sample, AL_SAMPLE_CO2);
   float tmp = al_sample_read(sample, AL_SAMPLE_TMP);
   float hum = al_sample_read(sample, AL_SAMPLE_HUM);
+  float voc = al_sample_read(sample, AL_SAMPLE_VOC);
+  float nox = al_sample_read(sample, AL_SAMPLE_NOX);
 
   // de/select and count entries
   int selected = 0;
@@ -368,6 +438,24 @@ stm_entry_t* stm_query(bool urgent, stm_action_t action) {
       entry->selected = false;
       continue;
     } else if (entry->hum_max != 0 && (!ok || hum > entry->hum_max)) {
+      entry->selected = false;
+      continue;
+    }
+
+    // check VOC
+    if (entry->voc_min != 0 && (!ok || voc < entry->voc_min)) {
+      entry->selected = false;
+      continue;
+    } else if (entry->voc_max != 0 && (!ok || voc > entry->voc_max)) {
+      entry->selected = false;
+      continue;
+    }
+
+    // check NOx
+    if (entry->nox_min != 0 && (!ok || nox < entry->nox_min)) {
+      entry->selected = false;
+      continue;
+    } else if (entry->nox_max != 0 && (!ok || nox > entry->nox_max)) {
       entry->selected = false;
       continue;
     }
