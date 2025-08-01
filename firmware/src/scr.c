@@ -1002,7 +1002,7 @@ static void* scr_view() {
           return scr_view;
         }
 
-        // set action
+        // set action, if not set (to not override action set by scr_create)
         if (scr_action == 0) {
           scr_action = STM_FROM_MEASUREMENT;
         }
@@ -1988,9 +1988,10 @@ static void* scr_menu() {
       deadline = naos_millis() + SCR_IDLE_TIMEOUT;
     }
 
-    // clear statement on any key
+    // clear statement and action on any key
     if (statement != NULL && (event.type & SIG_KEYS) != 0) {
       statement = NULL;
+      scr_action = 0;
       continue;
     }
 
