@@ -42,6 +42,7 @@ typedef struct {
   bool selected;
 } stm_entry_t;
 
+int stm_num();
 stm_entry_t *stm_get(size_t i);
 stm_entry_t *stm_query(bool urgent, stm_action_t action);
 

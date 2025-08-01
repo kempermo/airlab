@@ -4,8 +4,6 @@
 
 #include "stm.h"
 
-#define STM_NUM (sizeof(stm_entries) / sizeof(stm_entry_t))
-
 stm_entry_t stm_entries[] = {
     /* Urgent Actions */
     {
@@ -304,9 +302,14 @@ stm_entry_t stm_entries[] = {
     },
 };
 
+int stm_num() {
+  // return number of entries
+  return sizeof(stm_entries) / sizeof(stm_entry_t);
+}
+
 stm_entry_t* stm_get(size_t i) {
   // return entry by index
-  return i < STM_NUM ? &stm_entries[i] : NULL;
+  return i < stm_num() ? &stm_entries[i] : NULL;
 }
 
 stm_entry_t* stm_query(bool urgent, stm_action_t action) {
@@ -323,7 +326,7 @@ stm_entry_t* stm_query(bool urgent, stm_action_t action) {
 
   // de/select and count entries
   int selected = 0;
-  for (size_t i = 0; i < STM_NUM; i++) {
+  for (size_t i = 0; i < stm_num(); i++) {
     // get entry
     stm_entry_t* entry = &stm_entries[i];
 
@@ -384,7 +387,7 @@ stm_entry_t* stm_query(bool urgent, stm_action_t action) {
   selected = (int)esp_random() % selected;
 
   // find and return entry
-  for (int i = 0; i < STM_NUM; i++) {
+  for (int i = 0; i < stm_num(); i++) {
     stm_entry_t* entry = &stm_entries[i];
     if (entry->selected) {
       selected--;

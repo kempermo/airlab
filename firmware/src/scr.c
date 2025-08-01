@@ -451,13 +451,19 @@ static void* scr_bubbles() {
     gfx_end(false, false);
 
     // await event
-    sig_event_t event = sig_await(SIG_ESCAPE | SIG_RIGHT, 0);
+    sig_event_t event = sig_await(SIG_ESCAPE | SIG_RIGHT | SIG_LEFT, 0);
 
     // handle right
     if (event.type == SIG_RIGHT) {
       index++;
-      if (!stm_get(index)) {
+      if (index >= stm_num()) {
         index = 0;
+      }
+      continue;
+    } else if (event.type == SIG_LEFT) {
+      index--;
+      if (index < 0) {
+        index = stm_num() - 1;
       }
       continue;
     }
