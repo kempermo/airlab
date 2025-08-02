@@ -1575,6 +1575,9 @@ static void* scr_settings() {
     // reset data
     dat_reset();
 
+    // reset settings
+    naos_reset();
+
     // show message
     gui_message(scr_trans()->reset__reset, 2000);
 
