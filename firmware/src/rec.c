@@ -1,19 +1,64 @@
+#include <naos.h>
 #include <naos/sys.h>
 #include <esp_err.h>
 
 #include <al/sensor.h>
 #include <al/clock.h>
 #include <al/storage.h>
+#include <al/store.h>
 
+#include "dev.h"
 #include "rec.h"
 #include "sig.h"
 #include "dat.h"
 
 #define REC_MIN_FREE_NEW (3 * 4096)
 #define REC_MIN_FREE_CONT (2 * 4096)
+#define REC_DEBUG true
+
+DEV_KEEP static uint16_t rec_current = 0;
 
 static naos_mutex_t rec_mutex = NULL;
-static uint16_t rec_current = 0;
+
+static void rec_backfill() {
+  // find file
+  dat_file_t* file = dat_find(rec_current, NULL);
+  if (file == NULL) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+    return;
+  }
+
+  // prepare store source
+  al_sample_source_t source = al_store_source();
+  int64_t start = source.start(source.ctx);
+  int32_t stop = source.stop(source.ctx);
+  size_t count = source.count(source.ctx);
+
+  // calculate the source relative offset of the next sample
+  int32_t offset = (int32_t)(file->head.start - start + (int64_t)file->stop + 1000);
+
+  // log debug info
+  if (REC_DEBUG) {
+    naos_log("rec_backfill: source start=%lld needle=%zu stop=%d", start, offset, stop);
+  }
+
+  // search for index of next sample
+  int index = al_sample_search(&source, &offset);
+  if (index < 0) {
+    if (REC_DEBUG) {
+      naos_log("rec_backfill: next sample not found");
+    }
+    return;
+  }
+
+  // log debug info
+  if (REC_DEBUG) {
+    naos_log("rec_backfill: found sample index=%d num=%d", index, count - index);
+  }
+
+  // import samples
+  dat_import(rec_current, index, NULL);
+}
 
 static void rec_task() {
   // acquire mutex
@@ -47,14 +92,27 @@ static void rec_task() {
     dat_file_t* file = dat_find(rec_current, NULL);
     if (file == NULL) {
       ESP_ERROR_CHECK(ESP_FAIL);
+      continue;
     }
 
-    // set offset
-    int64_t offset = al_clock_get_epoch() - file->head.start;
-    sample.off = (int32_t)offset;
+    // adjust sample offset to reference file start
+    sample.off = (int32_t)(al_store_get_base() - file->head.start + (int64_t)sample.off);
+
+    // skip if sample is not newer than last recorded
+    if (sample.off <= file->stop) {
+      if (REC_DEBUG) {
+        naos_log("rec_task: skip file=%d offset=%d stop=%d", rec_current, sample.off, file->stop);
+      }
+      continue;
+    }
 
     // append sample
     dat_append(rec_current, &sample, 1);
+
+    // log debug info
+    if (REC_DEBUG) {
+      naos_log("rec_task: append file=%d offset=%d stop=%d", rec_current, sample.off, file->stop);
+    }
 
     // dispatch event
     sig_dispatch((sig_event_t){
@@ -63,9 +121,14 @@ static void rec_task() {
   }
 }
 
-void rec_init() {
+void rec_init(bool reset) {
   // create mutex
   rec_mutex = naos_mutex();
+
+  // backfill if not reset and recording
+  if (!reset && rec_current != 0) {
+    rec_backfill();
+  }
 
   // run task
   naos_run("rec", 4096, 1, rec_task);
@@ -128,6 +191,7 @@ void rec_mark() {
   // check file
   if (!rec_running()) {
     ESP_ERROR_CHECK(ESP_FAIL);
+    return;
   }
 
   // acquire mutex
@@ -137,6 +201,7 @@ void rec_mark() {
   dat_file_t* file = dat_find(rec_current, NULL);
   if (file == NULL) {
     ESP_ERROR_CHECK(ESP_FAIL);
+    return;
   }
 
   // calculate offset

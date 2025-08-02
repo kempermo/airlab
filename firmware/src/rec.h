@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-void rec_init();
+void rec_init(bool reset);
 uint32_t rec_free(bool new);
 uint16_t rec_file();
 bool rec_running();

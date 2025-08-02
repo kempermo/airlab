@@ -9,7 +9,7 @@
 #include "sensor_hal.h"
 #include "sensor_gas.h"
 
-#define AL_SENSOR_DEBUG true
+#define AL_SENSOR_DEBUG false
 
 static naos_mutex_t al_sensor_mutex;
 static naos_signal_t al_sensor_signal;

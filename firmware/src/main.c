@@ -49,7 +49,7 @@ static void setup() {
   hmi_init();
   gfx_init(reset);
   dat_init();
-  rec_init();
+  rec_init(reset);
   com_init();
 
   // run sync
