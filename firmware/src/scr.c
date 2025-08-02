@@ -881,11 +881,17 @@ static void* scr_view() {
     // TODO: Only query needed dimension.
 
     // query samples
+    size_t num = 0;
     if (source_count > 0) {
-      size_t num = al_sample_query(&source, samples, LVX_CHART_SIZE, start, resolution);
+      num = al_sample_query(&source, samples, LVX_CHART_SIZE, start, resolution);
       if (recording) {
         index = num - 1;
       }
+    }
+    
+    // ensure index is within valid sample range
+    if (index >= num) {
+      index = num > 0 ? num - 1 : 0;
     }
 
     // find marks
