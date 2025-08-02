@@ -128,7 +128,7 @@ void al_sensor_hal_init(al_sensor_hal_ops_t ops, al_sensor_hal_state_t* state) {
   al_sensor_hal_state = state;
 }
 
-al_sensor_hal_err_t al_sensor_hal_config(al_sensor_hal_mode_t mode, int rate) {
+al_sensor_hal_err_t al_sensor_hal_config(al_sensor_hal_mode_t mode, int interval) {
   // wake up SCD
   AL_CHECK(al_sensor_hal_transfer(AL_SENSOR_HAL_SCD41, 0x36f6, 0, 0, true));
   al_sensor_hal_ops.delay(30);
@@ -162,7 +162,7 @@ al_sensor_hal_err_t al_sensor_hal_config(al_sensor_hal_mode_t mode, int rate) {
 
   // store mode
   al_sensor_hal_state->mode = mode;
-  al_sensor_hal_state->rate = rate;
+  al_sensor_hal_state->interval = interval;
 
   return AL_SENSOR_HAL_OK;
 }
@@ -172,18 +172,18 @@ al_sensor_hal_err_t al_sensor_hal_ready() {
   if (al_sensor_hal_state->mode == AL_SENSOR_HAL_MANUAL) {
     // ensure next measurement if zero
     if (al_sensor_hal_state->next == 0) {
-      al_sensor_hal_state->next = al_sensor_hal_ops.epoch() + al_sensor_hal_state->rate;
+      al_sensor_hal_state->next = al_sensor_hal_ops.epoch() + al_sensor_hal_state->interval;
     }
 
-    // limit measurement deadline to current rate
-    if (al_sensor_hal_state->next > al_sensor_hal_ops.epoch() + al_sensor_hal_state->rate) {
-      al_sensor_hal_state->next = al_sensor_hal_ops.epoch() + al_sensor_hal_state->rate;
+    // limit measurement deadline to current interval
+    if (al_sensor_hal_state->next > al_sensor_hal_ops.epoch() + al_sensor_hal_state->interval) {
+      al_sensor_hal_state->next = al_sensor_hal_ops.epoch() + al_sensor_hal_state->interval;
     }
 
     // take measurement if deadline is reached
     if (al_sensor_hal_ops.epoch() >= al_sensor_hal_state->next - AL_SENSOR_MSR_TIME) {
       AL_CHECK(al_sensor_hal_measure());
-      al_sensor_hal_state->next = al_sensor_hal_ops.epoch() + al_sensor_hal_state->rate;
+      al_sensor_hal_state->next = al_sensor_hal_ops.epoch() + al_sensor_hal_state->interval;
     }
   }
 
@@ -226,7 +226,7 @@ al_sensor_hal_err_t al_sensor_hal_read(al_sensor_hal_data_t* data) {
 
   // set next measurement in manual mode
   if (al_sensor_hal_state->mode == AL_SENSOR_HAL_MANUAL) {
-    al_sensor_hal_state->next = al_sensor_hal_ops.epoch() + al_sensor_hal_state->rate;
+    al_sensor_hal_state->next = al_sensor_hal_ops.epoch() + al_sensor_hal_state->interval;
   }
 
   return AL_SENSOR_HAL_OK;
