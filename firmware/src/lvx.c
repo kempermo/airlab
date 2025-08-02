@@ -79,14 +79,14 @@ static void lvx_wheel_key(lv_event_t* event) {
       if (wheel->value >= wheel->max) {
         wheel->value = wheel->min;
       } else {
-        wheel->value++;
+        wheel->value += wheel->step;
       }
       break;
     case LV_KEY_DOWN:
       if (wheel->value <= wheel->min) {
         wheel->value = wheel->max;
       } else {
-        wheel->value--;
+        wheel->value -= wheel->step;
       }
       break;
     default:
@@ -143,6 +143,11 @@ void lvx_wheel_create(lvx_wheel_t* wheel, lv_obj_t* parent) {
   // ensure format
   if (wheel->format == NULL) {
     wheel->format = "%d";
+  }
+
+  // ensure step
+  if (wheel->step == 0) {
+    wheel->step = 1;
   }
 
   // add column

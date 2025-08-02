@@ -15,6 +15,7 @@ typedef struct {
   const char *format;
   uint16_t value;
   uint16_t min;
+  uint16_t step;
   uint16_t max;
   bool fixed;
   // ---
