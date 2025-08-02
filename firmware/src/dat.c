@@ -463,6 +463,7 @@ bool dat_import(uint16_t num, int start, dat_progress_t progress) {
   dat_file_t *file = dat_find(num, NULL);
   if (file == NULL) {
     ESP_ERROR_CHECK(ESP_FAIL);
+    return false;
   }
 
   // prepare source
@@ -486,10 +487,16 @@ bool dat_import(uint16_t num, int start, dat_progress_t progress) {
     size_t n = DAT_MIN(count - i, 32);
     al_sample_t samples[32];
     source.read(source.ctx, samples, n, i);
+    int64_t base = source.start(source.ctx);
 
     // log
     if (DAT_DEBUG) {
       naos_log("dat: import num=%u i=%zu n=%zu count=%zu", num, i, n, count);
+    }
+
+    // adjust sample offsets to reference file start
+    for (size_t j = 0; j < n; j++) {
+      samples[j].off += (int32_t)(base - file->head.start);
     }
 
     // append samples

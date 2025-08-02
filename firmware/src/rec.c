@@ -35,7 +35,7 @@ static void rec_backfill() {
   size_t count = source.count(source.ctx);
 
   // calculate the source relative offset of the next sample
-  int32_t offset = (int32_t)(file->head.start - start + (int64_t)file->stop + 1000);
+  int32_t offset = (int32_t)(file->head.start + (int64_t)file->stop + 1000 - start);
 
   // log debug info
   if (REC_DEBUG) {
@@ -68,6 +68,7 @@ static void rec_task() {
     // await next sample (without mutex)
     naos_unlock(rec_mutex);
     al_sample_t sample = al_sensor_next();
+    int64_t base = al_store_get_base();
     naos_lock(rec_mutex);
 
     // skip if not running
@@ -96,7 +97,7 @@ static void rec_task() {
     }
 
     // adjust sample offset to reference file start
-    sample.off = (int32_t)(al_store_get_base() - file->head.start + (int64_t)sample.off);
+    sample.off += (int32_t)(base - file->head.start);
 
     // skip if sample is not newer than last recorded
     if (sample.off <= file->stop) {
