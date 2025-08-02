@@ -725,29 +725,23 @@ static void* scr_saver() {
       }
     }
 
-    // calculate timeout: 5s-30s (0-5min)
-    int64_t timeout = a32_safe_map_l(duration, 0, 300000, 5000, 30000);
-
     // check if powered
     if (power.usb) {
       // wait some time
-      sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_INTERRUPT, timeout);
+      sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_INTERRUPT, 60 * 1000);
 
       // handle unlock
       if (event.type & SIG_KEYS) {
         break;
       }
     } else {
-      // TODO: Also use deep sleep here?
+      // set rate
+      al_sensor_set_rate(AL_SENSOR_RATE_5S);
 
-      // light sleep for some time
-      al_trigger_t trigger = al_sleep(false, timeout);
+      // sleep for one minute (no return)
+      al_sleep(true, 60 * 1000);
 
-      // handle unlock
-      if (trigger == AL_BUTTON) {
-        sig_await(SIG_ENTER, 1000);
-        break;
-      }
+      continue;
     }
 
     // await next measurement or stop
