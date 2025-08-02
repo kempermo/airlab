@@ -9,7 +9,7 @@
 #include "sensor_hal.h"
 #include "sensor_gas.h"
 
-#define AL_SENSOR_DEBUG false
+#define AL_SENSOR_DEBUG true
 
 static naos_mutex_t al_sensor_mutex;
 static naos_signal_t al_sensor_signal;
@@ -72,21 +72,8 @@ static void al_sensor_check() {
   // acquire mutex
   naos_lock(al_sensor_mutex);
 
-  // exit low power mode after 5s
-  al_sensor_hal_err_t err = 0;
-  if (al_sensor_state.mode != AL_SENSOR_HAL_NORMAL && naos_millis() > 5000) {
-    err = al_sensor_hal_config(AL_SENSOR_HAL_NORMAL, 0);
-    if (err != AL_SENSOR_HAL_OK) {
-      naos_log("al-sns: HAL error=%d", err);
-      ESP_ERROR_CHECK(ESP_FAIL);
-    }
-    if (AL_SENSOR_DEBUG) {
-      naos_log("al-sns: mode=normal");
-    }
-  }
-
   // check if SCD measurement is available
-  err = al_sensor_hal_ready();
+  al_sensor_hal_err_t err = al_sensor_hal_ready();
   if (err != AL_SENSOR_HAL_OK) {
     if (err != AL_SENSOR_HAL_BUSY) {
       naos_log("al-sns: HAL error=%d", err);
@@ -206,6 +193,9 @@ void al_sensor_init(bool reset) {
     GasIndexAlgorithm_init_with_sampling_interval(&al_sensor_nox_params, GasIndexAlgorithm_ALGORITHM_TYPE_NOX, 5.f);
   }
 
+  // log state
+  naos_log("al-sns: init mode=%d interval=%d", al_sensor_state.mode, al_sensor_state.interval);
+
   // ensure store is shifted once
   al_sensor_monitor();
 
@@ -239,33 +229,37 @@ al_sample_t al_sensor_next() {
   return sample;
 }
 
-void al_sensor_low_power(bool on, bool manual) {
+void al_sensor_set_rate(al_sensor_rate_t rate) {
   // lock mutex
   naos_lock(al_sensor_mutex);
 
-  // determine mode
+  // determine mode and interval
   al_sensor_hal_mode_t mode = AL_SENSOR_HAL_NORMAL;
-  if (on) {
-    mode = manual ? AL_SENSOR_HAL_MANUAL : AL_SENSOR_HAL_LOW_POWER;
+  int interval = 0;
+  if (rate == AL_SENSOR_RATE_60S) {
+    mode = AL_SENSOR_HAL_MANUAL;
+    interval = 55000;
+  } else if (rate == AL_SENSOR_RATE_30S) {
+    mode = AL_SENSOR_HAL_LOW_POWER;
+  } else {
+    mode = AL_SENSOR_HAL_NORMAL;
   }
 
-  // check mode
-  if (al_sensor_state.mode == mode) {
+  // skip if already set
+  if (al_sensor_state.mode == mode && al_sensor_state.interval == interval) {
     naos_unlock(al_sensor_mutex);
     return;
   }
 
-  // set mode and rate
-  al_sensor_hal_err_t err = al_sensor_hal_config(mode, 55000);
+  // set mode and interval
+  al_sensor_hal_err_t err = al_sensor_hal_config(mode, interval);
   if (err != AL_SENSOR_HAL_OK) {
     naos_log("al-sns: HAL error=%d", err);
     ESP_ERROR_CHECK(ESP_FAIL);
   }
 
   // log state
-  if (AL_SENSOR_DEBUG) {
-    naos_log("al-sns: mode=%d", mode);
-  }
+  naos_log("al-sns: mode=%d interval=%d", mode, interval);
 
   // unlock mutex
   naos_unlock(al_sensor_mutex);

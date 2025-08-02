@@ -7,8 +7,8 @@
 #include <al/power.h>
 #include <al/store.h>
 #include <al/storage.h>
+#include <al/sensor.h>
 
-#include "dev.h"
 #include "sig.h"
 #include "hmi.h"
 #include "gfx.h"
@@ -32,6 +32,11 @@ static void sync() {
   }
 }
 
+static void wake() {
+  // set fast sensor rate
+  al_sensor_set_rate(AL_SENSOR_RATE_5S);
+}
+
 static void setup() {
   // init core
   al_trigger_t trigger = al_init();
@@ -49,6 +54,9 @@ static void setup() {
 
   // run sync
   naos_repeat("sync", 1000, sync);
+
+  // defer wake
+  naos_defer("wake", 5000, wake);
 
   // run screen
   scr_run(trigger);

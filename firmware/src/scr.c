@@ -715,14 +715,11 @@ static void* scr_saver() {
 
         continue;
       } else {
-        // sleep for one second (no return)
-        al_trigger_t trigger = al_sleep(true, 60 * 1000);
+        // set rate
+        al_sensor_set_rate(AL_SENSOR_RATE_30S);
 
-        // handle unlock
-        if (trigger == AL_BUTTON) {
-          sig_await(SIG_ENTER, 1000);
-          break;
-        }
+        // sleep for one minute (no return)
+        al_sleep(true, 60 * 1000);
 
         continue;
       }
@@ -2126,7 +2123,7 @@ static void* scr_language() {
   }
 
   // set language
-  const char * langs[] = {"de", "en"};
+  const char* langs[] = {"de", "en"};
   naos_set_s("language", langs[selected]);
 
   return scr_settings;

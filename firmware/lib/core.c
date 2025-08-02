@@ -7,7 +7,6 @@
 #include <esp_sleep.h>
 
 #include <al/core.h>
-#include <al/power.h>
 
 #include "internal.h"
 
@@ -156,9 +155,6 @@ esp_err_t al_i2c_transfer(uint8_t addr, uint8_t* tx, size_t tx_len, uint8_t* rx,
 }
 
 al_trigger_t al_sleep(bool deep, uint64_t timeout) {
-  // get power state
-  al_power_state_t state = al_power_get();
-
   // sleep peripherals
   al_touch_sleep();
 
@@ -174,9 +170,6 @@ al_trigger_t al_sleep(bool deep, uint64_t timeout) {
 
   // prepare deep sleep
   if (deep) {
-    // enable low power mode if not USB
-    al_sensor_low_power(!state.usb, false);
-
     // disable I2C access
     naos_lock(al_i2c_mutex);
     ESP_ERROR_CHECK(i2c_driver_delete(I2C_NUM_0));
