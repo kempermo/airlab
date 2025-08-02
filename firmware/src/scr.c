@@ -36,7 +36,6 @@
 
 static stm_action_t scr_action = 0;
 DEV_KEEP static uint16_t scr_file = 0;
-DEV_KEEP static int64_t scr_saver_enter = 0;
 DEV_KEEP static void* scr_return_timeout = NULL;
 DEV_KEEP static void* scr_return_unlock = NULL;
 
@@ -694,41 +693,15 @@ static void* scr_saver() {
 
     /* Sleep Control */
 
-    // determine duration
-    int64_t duration = al_clock_get_epoch() - scr_saver_enter;
-
     // power off if battery is low and not charging
     if (power.battery < 0.10 && !power.usb && !power.charging) {
       scr_power_off();
     }
 
-    // check if recording
-    if (!rec_running()) {
-      if (power.usb) {
-        // wait one second
-        sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_INTERRUPT, 60 * 1000);
-
-        // handle unlock
-        if (event.type & SIG_KEYS) {
-          break;
-        }
-
-        continue;
-      } else {
-        // set rate
-        al_sensor_set_rate(AL_SENSOR_RATE_30S);
-
-        // sleep for one minute (no return)
-        al_sleep(true, 60 * 1000);
-
-        continue;
-      }
-    }
-
     // check if powered
     if (power.usb) {
       // wait some time
-      sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_INTERRUPT, 60 * 1000);
+      sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_SENSOR | SIG_INTERRUPT, 60 * 1000);
 
       // handle unlock
       if (event.type & SIG_KEYS) {
@@ -736,16 +709,11 @@ static void* scr_saver() {
       }
     } else {
       // set rate
-      al_sensor_set_rate(AL_SENSOR_RATE_5S);
+      al_sensor_set_rate(rec_running() ? AL_SENSOR_RATE_5S : AL_SENSOR_RATE_30S);
 
       // sleep for one minute (no return)
       al_sleep(true, 60 * 1000);
-
-      continue;
     }
-
-    // await next measurement or stop
-    sig_await(SIG_APPEND | SIG_STOP, 0);
   }
 
   // cleanup
@@ -984,9 +952,6 @@ static void* scr_view() {
 
       // set return
       scr_return_unlock = scr_view;
-
-      // set enter
-      scr_saver_enter = al_clock_get_epoch();
 
       return scr_saver;
     }
@@ -1754,9 +1719,6 @@ static void* scr_develop() {
       // set return
       scr_return_unlock = scr_develop;
 
-      // set enter
-      scr_saver_enter = al_clock_get_epoch();
-
       return scr_saver;
     }
 
@@ -2075,9 +2037,6 @@ static void* scr_menu() {
     if (event.type == SIG_TIMEOUT) {
       // set return
       scr_return_unlock = scr_menu;
-
-      // set enter
-      scr_saver_enter = al_clock_get_epoch();
 
       return scr_saver;
     }
