@@ -114,9 +114,11 @@ typedef struct {
   const char* edit__analyse;
   const char* edit__delete;
   const char* edit__export;
+  const char* edit__exporting;
   const char* edit__export_fail;
   const char* edit__export_done;
   const char* explore__empty;
+  const char* explore__create;
   const char* explore__open;
   const char* usb__disconnected;
   const char* usb__active;
@@ -167,9 +169,11 @@ static const scr_trans_t scr_trans_map[] = {
             .edit__analyse = "Analysieren",
             .edit__delete = "Löschen",
             .edit__export = "CSV Exportieren",
+            .edit__exporting = "Exportiere Daten...",
             .edit__export_fail = "Export fehlgeschlagen!",
             .edit__export_done = "Export erfolgreich!",
             .explore__empty = "Keine gespeicherte Messungen.",
+            .explore__create = "Neue Messung erstellen",
             .explore__open = "Öffnen",
             .usb__disconnected = "USB nicht angeschlossen!",
             .usb__active = "USB-Modus aktiv",
@@ -218,9 +222,11 @@ static const scr_trans_t scr_trans_map[] = {
             .edit__analyse = "Analyse",
             .edit__delete = "Delete",
             .edit__export = "Export CSV",
+            .edit__exporting = "Exporting data...",
             .edit__export_fail = "Export failed!",
             .edit__export_done = "Export done!",
             .explore__empty = "No saved measurements.",
+            .explore__create = "Create new measurement",
             .explore__open = "Open",
             .usb__disconnected = "USB not connected!",
             .usb__active = "USB Volume active",
@@ -1139,14 +1145,11 @@ static void* scr_create() {
 
     // confirm and perform data import
     if (import) {
-      // write message
-      gui_write(scr_trans()->create__importing);
-
       // set flag
       hmi_set_flag(HMI_FLAG_PROCESS);
 
       // perform import
-      gui_progress_start("Importing...");
+      gui_progress_start(scr_trans()->create__importing);
       dat_import(scr_file, 0, gui_progress_update);
       gui_cleanup(false);
 
@@ -1254,7 +1257,7 @@ static void* scr_edit() {
       hmi_set_flag(HMI_FLAG_PROCESS);
 
       // perform export
-      gui_progress_start("Exporting...");
+      gui_progress_start(scr_trans()->edit__exporting);
       bool ok = dat_export(scr_file, gui_progress_update);
       gui_cleanup(false);
 
@@ -1288,7 +1291,7 @@ static gui_list_item_t scr_explore_cb(int num, void* ctx) {
   // handle create
   if (num == 0) {
     return (gui_list_item_t){
-        .title = "Create Measurement",
+        .title = scr_trans()->explore__create,
         .info = "",
     };
   }
