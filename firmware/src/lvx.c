@@ -367,7 +367,7 @@ void lvx_bar_create(lvx_bar_t* bar, lv_obj_t* parent) {
 
   // add mark label
   bar->_mrk = lv_label_create(parent);
-  lv_obj_align(bar->_mrk, LV_ALIGN_TOP_LEFT, 100, 5);
+  lv_obj_align(bar->_mrk, LV_ALIGN_TOP_LEFT, 115, 5);
 
   // add value
   bar->_val = lv_label_create(parent);
