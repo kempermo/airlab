@@ -257,7 +257,7 @@ void al_sensor_set_rate(al_sensor_rate_t rate) {
   }
 
   // log state
-  naos_log("al-sns: mode=%d interval=%d", mode, interval);
+  naos_log("al-sns: config mode=%d interval=%d", mode, interval);
 
   // unlock mutex
   naos_unlock(al_sensor_mutex);
