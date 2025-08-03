@@ -5,6 +5,8 @@
 
 #include <al/epd.h>
 
+// Chip: SSD1680
+
 #define AL_EPD_4W false
 #define AL_EPD_DC GPIO_NUM_46
 #define AL_EPD_RST GPIO_NUM_41

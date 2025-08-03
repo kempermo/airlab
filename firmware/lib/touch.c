@@ -7,6 +7,8 @@
 
 #include "internal.h"
 
+// Chip: CY8CMBR3108
+
 #define AL_TOUCH_ADDR 0x37
 #define AL_TOUCH_INT GPIO_NUM_11
 #define AL_TOUCH_DEBUG false

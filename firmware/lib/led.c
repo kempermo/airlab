@@ -6,6 +6,8 @@
 
 #include "internal.h"
 
+// Chip: KTD2037
+
 #define AL_LED_ADDR 0x30
 #define AL_LED_LIMIT(val) (val < 0 ? 0 : val > 1 ? 1 : val)
 

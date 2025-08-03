@@ -6,6 +6,8 @@
 
 #include "internal.h"
 
+// Chip: BQ32000
+
 #define AL_CLOCK_ADDR 0x68
 
 typedef struct {
@@ -74,7 +76,7 @@ static struct {
     };
     uint8_t r6;
   };
-} al_clock_bq32000;
+} al_clock_memory;
 
 static void al_clock_read(uint8_t reg, uint8_t *buf, size_t read) {
   // write and read device
@@ -89,16 +91,16 @@ static void al_clock_write(uint8_t reg, uint8_t val) {
 
 static al_clock_state_t al_clock_get() {
   // read RTC fully
-  al_clock_read(0x00, (uint8_t *)&al_clock_bq32000, sizeof(al_clock_bq32000));
+  al_clock_read(0x00, (uint8_t *)&al_clock_memory, sizeof(al_clock_memory));
 
   // convert BCD to DEC
-  uint8_t seconds = al_clock_bq32000.seconds + (al_clock_bq32000.ten_seconds * 10);
-  uint8_t minutes = al_clock_bq32000.minutes + (al_clock_bq32000.ten_minutes * 10);
-  uint8_t hours = al_clock_bq32000.hours + (al_clock_bq32000.ten_hours * 10);
-  uint8_t weekday = al_clock_bq32000.weekday;
-  uint8_t date = al_clock_bq32000.days + (al_clock_bq32000.ten_days * 10);
-  uint8_t month = al_clock_bq32000.months + (al_clock_bq32000.ten_months * 10);
-  uint8_t year = al_clock_bq32000.years + (al_clock_bq32000.ten_years * 10);
+  uint8_t seconds = al_clock_memory.seconds + (al_clock_memory.ten_seconds * 10);
+  uint8_t minutes = al_clock_memory.minutes + (al_clock_memory.ten_minutes * 10);
+  uint8_t hours = al_clock_memory.hours + (al_clock_memory.ten_hours * 10);
+  uint8_t weekday = al_clock_memory.weekday;
+  uint8_t date = al_clock_memory.days + (al_clock_memory.ten_days * 10);
+  uint8_t month = al_clock_memory.months + (al_clock_memory.ten_months * 10);
+  uint8_t year = al_clock_memory.years + (al_clock_memory.ten_years * 10);
 
   // handle overflow
   if (seconds >= 60) {
@@ -146,28 +148,28 @@ static void al_clock_set(al_clock_state_t state) {
            state.month, state.year);
 
   // convert DEC to BCD
-  al_clock_bq32000.seconds = state.seconds % 10;
-  al_clock_bq32000.ten_seconds = state.seconds / 10;
-  al_clock_bq32000.minutes = state.minutes % 10;
-  al_clock_bq32000.ten_minutes = state.minutes / 10;
-  al_clock_bq32000.hours = state.hours % 10;
-  al_clock_bq32000.ten_hours = state.hours / 10;
-  al_clock_bq32000.weekday = state.weekday;
-  al_clock_bq32000.days = state.day % 10;
-  al_clock_bq32000.ten_days = state.day / 10;
-  al_clock_bq32000.months = state.month % 10;
-  al_clock_bq32000.ten_months = state.month / 10;
-  al_clock_bq32000.years = state.year % 10;
-  al_clock_bq32000.ten_years = state.year / 10;
+  al_clock_memory.seconds = state.seconds % 10;
+  al_clock_memory.ten_seconds = state.seconds / 10;
+  al_clock_memory.minutes = state.minutes % 10;
+  al_clock_memory.ten_minutes = state.minutes / 10;
+  al_clock_memory.hours = state.hours % 10;
+  al_clock_memory.ten_hours = state.hours / 10;
+  al_clock_memory.weekday = state.weekday;
+  al_clock_memory.days = state.day % 10;
+  al_clock_memory.ten_days = state.day / 10;
+  al_clock_memory.months = state.month % 10;
+  al_clock_memory.ten_months = state.month / 10;
+  al_clock_memory.years = state.year % 10;
+  al_clock_memory.ten_years = state.year / 10;
 
   // write RTC fully
-  al_clock_write(0x00, al_clock_bq32000.r0);
-  al_clock_write(0x01, al_clock_bq32000.r1);
-  al_clock_write(0x02, al_clock_bq32000.r2);
-  al_clock_write(0x03, al_clock_bq32000.r3);
-  al_clock_write(0x04, al_clock_bq32000.r4);
-  al_clock_write(0x05, al_clock_bq32000.r5);
-  al_clock_write(0x06, al_clock_bq32000.r6);
+  al_clock_write(0x00, al_clock_memory.r0);
+  al_clock_write(0x01, al_clock_memory.r1);
+  al_clock_write(0x02, al_clock_memory.r2);
+  al_clock_write(0x03, al_clock_memory.r3);
+  al_clock_write(0x04, al_clock_memory.r4);
+  al_clock_write(0x05, al_clock_memory.r5);
+  al_clock_write(0x06, al_clock_memory.r6);
 }
 
 void al_clock_init() {

@@ -1,5 +1,7 @@
 #include <driver/rmt_tx.h>
 
+// Component: PKMCS0909E
+
 static rmt_channel_handle_t al_buzzer_channel;
 static rmt_encoder_handle_t al_buzzer_encoder;
 

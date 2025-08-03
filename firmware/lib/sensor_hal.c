@@ -2,6 +2,8 @@
 
 #include "sensor_hal.h"
 
+// Chips: SCD41, SGP41, LPS22HB
+
 #define AL_SENSOR_HAL_SCD41 0x62
 #define AL_SENSOR_HAL_SGP41 0x59
 #define AL_SENSOR_HAL_LPS22 0x5C

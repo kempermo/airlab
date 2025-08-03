@@ -10,6 +10,8 @@
 
 #include "internal.h"
 
+// Chips: BQ25601, STM6601GU2BDM6F
+
 #define AL_POWER_ADDR 0x6B
 #define AL_POWER_HOLD GPIO_NUM_21
 #define AL_POWER_LOW GPIO_NUM_14
@@ -97,7 +99,7 @@ static struct {
     };
     uint8_t raw;
   } regA;
-} al_power_bq25601;
+} al_power_memory;
 
 static bool al_power_read(uint8_t reg, uint8_t *buf, size_t len) {
   // read data
@@ -149,32 +151,32 @@ void al_power_check() {
   }
 
   // read config
-  if (!al_power_read(0x00, &al_power_bq25601.reg0.raw, 3)) {
+  if (!al_power_read(0x00, &al_power_memory.reg0.raw, 3)) {
     naos_unlock(al_power_mutex);
     return;
   }
-  bool fast_charge = al_power_bq25601.reg0.iindpm > 0x4;  // 500mA
+  bool fast_charge = al_power_memory.reg0.iindpm > 0x4;  // 500mA
   if (AL_POWER_DEBUG) {
-    naos_log("al-pwr: config fast_charge=%d iindpm=%d ichg=%d", fast_charge, al_power_bq25601.reg0.iindpm,
-             al_power_bq25601.reg2.ichg);
+    naos_log("al-pwr: config fast_charge=%d iindpm=%d ichg=%d", fast_charge, al_power_memory.reg0.iindpm,
+             al_power_memory.reg2.ichg);
   }
 
   // read status
-  if (!al_power_read(0x08, &al_power_bq25601.reg8.raw, 3)) {
+  if (!al_power_read(0x08, &al_power_memory.reg8.raw, 3)) {
     naos_unlock(al_power_mutex);
     return;
   }
-  bool charging = al_power_bq25601.reg8.chrg_stat != 0;
-  bool power_good = al_power_bq25601.reg8.pg_stat == 1;
-  bool any_fault = al_power_bq25601.reg9.raw != 0;
-  bool usb_pwr = al_power_bq25601.regA.vbus_gd == 1;
+  bool charging = al_power_memory.reg8.chrg_stat != 0;
+  bool power_good = al_power_memory.reg8.pg_stat == 1;
+  bool any_fault = al_power_memory.reg9.raw != 0;
+  bool usb_pwr = al_power_memory.regA.vbus_gd == 1;
   if (AL_POWER_DEBUG) {
     naos_log("al-pwr: status charging=%d power_good=%d any_fault=%d usb_pwr=%d", charging, power_good, any_fault,
              usb_pwr);
     if (any_fault) {
-      naos_log("al-pwr: faults ntc=%d bat=%d chrg=%d boost=%d wd=%d", al_power_bq25601.reg9.ntc_fault,
-               al_power_bq25601.reg9.bat_fault, al_power_bq25601.reg9.chrg_fault, al_power_bq25601.reg9.boost_fault,
-               al_power_bq25601.reg9.wd_fault);
+      naos_log("al-pwr: faults ntc=%d bat=%d chrg=%d boost=%d wd=%d", al_power_memory.reg9.ntc_fault,
+               al_power_memory.reg9.bat_fault, al_power_memory.reg9.chrg_fault, al_power_memory.reg9.boost_fault,
+               al_power_memory.reg9.wd_fault);
     }
   }
 
@@ -192,13 +194,13 @@ void al_power_check() {
 
   // update max current setting to 900mA
   if (al_power_state.charging && al_power_state.fast != fast_charge) {
-    al_power_bq25601.reg0.iindpm = al_power_state.fast ? 0x8 : 0x4;
-    al_power_write(0x00, al_power_bq25601.reg0.raw, true);
+    al_power_memory.reg0.iindpm = al_power_state.fast ? 0x8 : 0x4;
+    al_power_write(0x00, al_power_memory.reg0.raw, true);
   }
 
   // reset watchdog
-  al_power_bq25601.reg1.wdt_rst = 1;
-  al_power_write(0x01, al_power_bq25601.reg1.raw, true);
+  al_power_memory.reg1.wdt_rst = 1;
+  al_power_write(0x01, al_power_memory.reg1.raw, true);
 
   // determine if state changed
   bool changed = state.usb != al_power_state.usb || state.charging != al_power_state.charging;
@@ -240,9 +242,9 @@ void al_power_init() {
   esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_12, ADC_WIDTH_BIT_12, 1100, &al_power_calib);
 
   // increase watchdog timeout
-  al_power_read(0x05, &al_power_bq25601.reg5.raw, 1);
-  al_power_bq25601.reg5.watchdog = 0b10;  // 80 seconds
-  al_power_write(0x05, al_power_bq25601.reg5.raw, false);
+  al_power_read(0x05, &al_power_memory.reg5.raw, 1);
+  al_power_memory.reg5.watchdog = 0b10;  // 80 seconds
+  al_power_write(0x05, al_power_memory.reg5.raw, false);
 
   // mask interrupts
   al_power_write(0x0A, 0b11, false);

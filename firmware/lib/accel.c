@@ -6,6 +6,8 @@
 
 #include "internal.h"
 
+// Chip: FXLS8974CF
+
 #define AL_ACCEL_ADDR 0x18
 #define AL_ACCEL_DEBUG false
 
