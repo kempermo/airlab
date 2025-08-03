@@ -1,3 +1,4 @@
+#include <math.h>
 #include <naos.h>
 #include <naos/sys.h>
 
@@ -18,6 +19,7 @@ static al_sensor_hook_t al_sensor_hook;
 AL_KEEP static al_sensor_hal_state_t al_sensor_state = {0};
 AL_KEEP static GasIndexAlgorithmParams al_sensor_voc_params = {0};
 AL_KEEP static GasIndexAlgorithmParams al_sensor_nox_params = {0};
+AL_KEEP static int64_t al_sensor_switch_time = 0;
 
 static al_sensor_hal_err_t al_sensor_transfer(uint8_t target, uint8_t *wd, size_t wl, uint8_t *rd, size_t rl) {
   // perform transfer
@@ -31,11 +33,33 @@ static al_sensor_hal_err_t al_sensor_transfer(uint8_t target, uint8_t *wd, size_
   return AL_SENSOR_HAL_OK;
 }
 
+static float al_sensor_comp_rh(float rh, float t_raw, float t_comp) {
+  // Tetens formula for saturation vapor pressure
+  float es_raw = 6.112f * expf((17.62f * t_raw) / (243.12f + t_raw));
+  float es_comp = 6.112f * expf((17.62f * t_comp) / (243.12f + t_comp));
+  float ah = rh * es_raw / 100.0f;  // absolute humidity proxy
+  return (ah / es_comp) * 100.0f;   // recomputed RH at compensated T
+}
+
 static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
   // calculate ppm, °C, % rH
   float co2 = (float)data.co2;
   float tmp = -45.f + 175.f * ((float)data.tmp / (float)(UINT16_MAX));
   float hum = 100.f * ((float)data.hum / (float)(UINT16_MAX));
+
+  // apply mode switch temperature compensation
+  if (al_sensor_state.mode != AL_SENSOR_HAL_MANUAL) {
+    // we use the formula "tmp − max(3 * exp(−0.015 * seconds), 0)" to compensate
+    // the temperature for the first couple of minutes after a mode switch
+    float seconds = (float)(al_clock_get_epoch() - al_sensor_switch_time) / 1000.f;
+    float tmp_comp = tmp - fmaxf(3.f * expf(-0.015f * seconds), 0.f);
+    float hum_comp = al_sensor_comp_rh(hum, tmp, tmp_comp);
+    if (AL_SENSOR_DEBUG) {
+      naos_log("al-sns: comp tmp=%.2f -> %.2f, hum=%.2f -> %.2f (seconds=%.1f)", tmp, tmp_comp, hum, hum_comp, seconds);
+    }
+    tmp = tmp_comp;
+    hum = hum_comp;
+  }
 
   // perform gas index calculation
   int32_t voc_index = 0;
@@ -149,6 +173,9 @@ static void al_sensor_monitor() {
   naos_lock(al_sensor_mutex);
   al_store_set_base(al_store_get_base() + diff, false);
   naos_unlock(al_sensor_mutex);
+
+  // adjust switch time
+  al_sensor_switch_time += diff;
 }
 
 void al_sensor_init(bool reset) {
@@ -187,6 +214,9 @@ void al_sensor_init(bool reset) {
       naos_log("al-sns: HAL error=%d", err);
       ESP_ERROR_CHECK(ESP_FAIL);
     }
+
+    // set switch time
+    al_sensor_switch_time = al_clock_get_epoch();
 
     // initialize gas index parameters
     GasIndexAlgorithm_init_with_sampling_interval(&al_sensor_voc_params, GasIndexAlgorithm_ALGORITHM_TYPE_VOC, 5.f);
@@ -255,6 +285,9 @@ void al_sensor_set_rate(al_sensor_rate_t rate) {
     naos_log("al-sns: HAL error=%d", err);
     ESP_ERROR_CHECK(ESP_FAIL);
   }
+
+  // set switch time
+  al_sensor_switch_time = al_clock_get_epoch();
 
   // log state
   naos_log("al-sns: config mode=%d interval=%d", mode, interval);
