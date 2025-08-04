@@ -800,7 +800,7 @@ static void* scr_saver() {
 
 static void* scr_view() {
   // prepare variables
-  static int8_t mode = 0;  // co2, tmp, hum, voc, nox, prs
+  static al_sample_field_t field = 0;
   static bool precision = false;
 
   // allocate sample buffer
@@ -964,10 +964,10 @@ static void* scr_view() {
         bar.mark = marks[index] > 0 ? lvx_fmt("(M%d)", marks[index]) : "";
       }
     }
-    if (mode == AL_SAMPLE_TMP) {
-      bar.value = lvx_fmt(scr_temp_format(), scr_temp_convert(al_sample_read(current, mode)));
+    if (field == AL_SAMPLE_TMP) {
+      bar.value = lvx_fmt(scr_temp_format(), scr_temp_convert(al_sample_read(current, field)));
     } else {
-      bar.value = lvx_fmt(scr_field_fmt[mode], al_sample_read(current, mode));
+      bar.value = lvx_fmt(scr_field_fmt[field], al_sample_read(current, field));
     }
     lvx_bar_update(&bar);
 
@@ -982,10 +982,10 @@ static void* scr_view() {
     }
 
     // collect values
-    float values[LVX_CHART_SIZE];
-    for (size_t i = 0; i < LVX_CHART_SIZE; i++) {
+    float values[LVX_CHART_SIZE] = {0};
+    for (size_t i = 0; i < num; i++) {
       al_sample_t sample = samples[i];
-      values[i] = al_sample_read(sample, mode);
+      values[i] = al_sample_read(sample, field);
       if (values[i] > range) {
         range = values[i];
       }
@@ -1114,15 +1114,15 @@ static void* scr_view() {
 
     // change mode on up/down
     if (event.type == SIG_UP) {
-      mode++;
-      if (mode > 5) {
-        mode = 0;
+      field++;
+      if (field > AL_SAMPLE_PRS) {
+        field = 0;
       }
       continue;
     } else if (event.type == SIG_DOWN) {
-      mode--;
-      if (mode < 0) {
-        mode = 5;
+      field--;
+      if (field < 0) {
+        field = AL_SAMPLE_PRS;
       }
       continue;
     }
