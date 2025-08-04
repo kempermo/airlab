@@ -971,14 +971,21 @@ static void* scr_view() {
     }
     lvx_bar_update(&bar);
 
+    // check fahrenheit
+    bool fahrenheit = naos_get_b("fahrenheit");
+
     // prepare range
-    float range = 100;  // tmp, hum, nox
-    if (mode == 0) {
-      range = 3000;  // co2
-    } else if (mode == 3) {
-      range = 500;  // voc
-    } else if (mode == 5) {
-      range = 1500;  // prs
+    float range = 100;  // hum
+    if (field == AL_SAMPLE_CO2) {
+      range = 3000;
+    } else if (field == AL_SAMPLE_TMP) {
+      range = fahrenheit ? 120 : 50;
+    } else if (field == AL_SAMPLE_VOC) {
+      range = 500;
+    } else if (field == AL_SAMPLE_NOX) {
+      range = 50;
+    } else if (field == AL_SAMPLE_PRS) {
+      range = 1500;
     }
 
     // collect values
@@ -986,6 +993,9 @@ static void* scr_view() {
     for (size_t i = 0; i < num; i++) {
       al_sample_t sample = samples[i];
       values[i] = al_sample_read(sample, field);
+      if (field == AL_SAMPLE_TMP && fahrenheit) {
+        values[i] = scr_temp_convert(values[i]);
+      }
       if (values[i] > range) {
         range = values[i];
       }
