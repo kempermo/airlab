@@ -29,7 +29,7 @@ static int32_t dat_counter = 0;
 static dat_file_t *dat_files;
 static size_t dat_files_length = 0;
 
-static void dat_read_file(const char *dir, const char *name, void *buf, size_t offset, size_t length) {
+static bool dat_read_file(const char *dir, const char *name, void *buf, size_t offset, size_t length) {
   // prepare path
   char path[32] = {0};
   strcat(path, AL_STORAGE_ROOT "/");
@@ -45,6 +45,9 @@ static void dat_read_file(const char *dir, const char *name, void *buf, size_t o
   // open file
   FILE *file = fopen(path, "r");
   if (file == NULL) {
+    if (errno == ENOENT) {
+      return false;
+    }
     ESP_ERROR_CHECK(errno);
   }
 
@@ -64,6 +67,8 @@ static void dat_read_file(const char *dir, const char *name, void *buf, size_t o
 
   // close file
   fclose(file);
+
+  return true;
 }
 
 static void dat_write_file(const char *dir, const char *name, void *buf, size_t offset, size_t length, bool truncate) {
@@ -168,6 +173,11 @@ void dat_init() {
       naos_log("dat: found '%s'", entry->d_name);
     }
 
+    // ignore non regular files
+    if (entry->d_type != DT_REG) {
+      continue;
+    }
+
     // handle specials
     if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
       continue;
@@ -198,7 +208,9 @@ void dat_init() {
 
     // read head
     dat_head_t head = {0};
-    dat_read_file(DAT_DATA_DIR, entry->d_name, &head, 0, sizeof(head));
+    if (!dat_read_file(DAT_DATA_DIR, entry->d_name, &head, 0, sizeof(head))) {
+      continue;
+    }
 
     // prepare file
     dat_file_t file = {.head = head};
@@ -207,8 +219,10 @@ void dat_init() {
     // read last sample and set stop if available
     if (file.size > 0) {
       al_sample_t sample;
-      dat_read_file(DAT_DATA_DIR, entry->d_name, &sample, sizeof(dat_head_t) + (file.size - 1) * sizeof(al_sample_t),
-                    sizeof(al_sample_t));
+      if (!dat_read_file(DAT_DATA_DIR, entry->d_name, &sample,
+                         sizeof(dat_head_t) + (file.size - 1) * sizeof(al_sample_t), sizeof(al_sample_t))) {
+        ESP_ERROR_CHECK(ESP_FAIL);
+      }
       file.stop = sample.off;
     }
 
@@ -394,7 +408,9 @@ void dat_load(uint16_t num, al_sample_t *samples, size_t count, size_t start) {
   snprintf(name, sizeof(name), DAT_NAME_FMT, num);
 
   // read samples
-  dat_read_file(DAT_DATA_DIR, name, samples, offset, length);
+  if (!dat_read_file(DAT_DATA_DIR, name, samples, offset, length)) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
 }
 
 void dat_delete(uint16_t num) {
