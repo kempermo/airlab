@@ -803,7 +803,7 @@ static void* scr_saver() {
 
 static void* scr_view() {
   // prepare variables
-  static al_sample_field_t field = 0;
+  static int8_t field = 0;
   static bool precision = false;
 
   // allocate sample buffer
