@@ -16,6 +16,7 @@
 #include <al/sensor.h>
 #include <al/storage.h>
 #include <al/store.h>
+#include <al/buzzer.h>
 
 #include "gui.h"
 #include "gfx.h"
@@ -1879,7 +1880,7 @@ static void* scr_develop() {
   // prepare labels
   const char* labels[] = {
       "System Info",  "Sensor Data",   "Light Sleep",  "Deep Sleep", "Power Reset",  "Power Off", "Shipping Mode",
-      "Screen Saver", "Clear Display", "Test Bubbles", "Touch Info", "Compensation", NULL,
+      "Screen Saver", "Clear Display", "Test Bubbles", "Touch Info", "Compensation", "Buzzer",    NULL,
   };
 
   for (;;) {
@@ -2035,6 +2036,68 @@ static void* scr_develop() {
           }
           al_sensor_set_rate(rate);
         }
+      }
+    }
+
+    // handle buzzer
+    if (selected == 12) {
+      // begin draw
+      gfx_begin(false, false);
+
+      // add row
+      lv_obj_t* row = lv_obj_create(lv_scr_act());
+      lv_obj_set_size(row, 200, 100);
+      lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+      lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+      lv_obj_align(row, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_set_style_pad_row(row, 5, LV_PART_MAIN);
+      lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
+
+      // prepare wheels
+      lvx_wheel_t hertz = {.value = 440, .min = 0, .step = 5, .max = 8000, .format = "%04d", .fixed = true};
+      lvx_wheel_t duration = {.value = 100, .min = 0, .step = 100, .max = 5000, .format = "%04d", .fixed = true};
+      lvx_wheel_create(&hertz, row);
+      lvx_wheel_create(&duration, row);
+
+      // add button
+      lvx_sign_t back = {
+          .title = "B",
+          .text = "Exit",
+          .align = LV_ALIGN_BOTTOM_LEFT,
+      };
+      lvx_sign_t next = {
+          .title = "A",
+          .text = "Play",
+          .align = LV_ALIGN_BOTTOM_RIGHT,
+      };
+      lvx_sign_create(&back, lv_scr_act());
+      lvx_sign_create(&next, lv_scr_act());
+
+      // end draw
+      gfx_end(false, false);
+
+      for (;;) {
+        // await event
+        sig_event_t event = sig_await(SIG_KEYS | SIG_SCROLL, SCR_ACTION_TIMEOUT);
+
+        // forward arrows
+        if ((event.type & (SIG_ARROWS | SIG_SCROLL)) != 0) {
+          lvx_handle(event, true);
+          continue;
+        }
+
+        // handle enter
+        if (event.type == SIG_ENTER) {
+          // play beep
+          al_buzzer_beep(hertz.value, duration.value, true);
+
+          continue;
+        }
+
+        // cleanup
+        gui_cleanup(false);
+
+        break;
       }
     }
   }
