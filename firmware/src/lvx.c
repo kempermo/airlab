@@ -8,6 +8,9 @@
 #include <al/clock.h>
 
 #include "lvx.h"
+
+#include <naos/ble.h>
+
 #include "gfx.h"
 #include "fnt.h"
 #include "img.h"
@@ -315,11 +318,13 @@ void lvx_status_create(lvx_status_t* status, lv_obj_t* parent) {
   status->pwr = lv_img_create(status->row);
   status->rec = lv_img_create(status->row);
   status->net = lv_img_create(status->row);
+  status->ble = lv_img_create(status->row);
 
   // set images
   lv_img_set_src(status->pwr, &img_powered);
   lv_img_set_src(status->rec, &img_record);
   lv_img_set_src(status->net, &img_connected);
+  lv_img_set_src(status->ble, &img_ble_conn);
 }
 
 void lvx_status_update(lvx_status_t* status) {
@@ -351,6 +356,13 @@ void lvx_status_update(lvx_status_t* status) {
     lv_obj_clear_flag(status->net, LV_OBJ_FLAG_HIDDEN);
   } else {
     lv_obj_add_flag(status->net, LV_OBJ_FLAG_HIDDEN);
+  }
+
+  // update BLE connection
+  if (naos_ble_connections() > 0) {
+    lv_obj_clear_flag(status->ble, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(status->ble, LV_OBJ_FLAG_HIDDEN);
   }
 }
 

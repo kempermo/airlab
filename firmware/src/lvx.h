@@ -50,6 +50,7 @@ typedef struct {
   lv_obj_t *pwr;
   lv_obj_t *rec;
   lv_obj_t *net;
+  lv_obj_t *ble;
 } lvx_status_t;
 
 void lvx_status_create(lvx_status_t *status, lv_obj_t *parent);
