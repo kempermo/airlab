@@ -50,6 +50,8 @@ set(SOURCE_FILES
         src/gfx.h
         src/gui.c
         src/gui.h
+        src/hid.c
+        src/hid.h
         src/hmi.c
         src/hmi.h
         src/img.c
