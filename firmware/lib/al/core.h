@@ -5,6 +5,11 @@
 #include <stdint.h>
 
 /**
+ * The USB VBUS monitoring pin.
+ */
+#define AL_USB_MON 18
+
+/**
  * The available triggers that can wake the device.
  */
 typedef enum {

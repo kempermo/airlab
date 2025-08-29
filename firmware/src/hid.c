@@ -3,7 +3,8 @@
 #include <tinyusb.h>
 #include <tinyusb_default_config.h>
 #include <class/hid/hid_device.h>
-#include <driver/gpio.h>
+
+#include <al/core.h>
 
 #include "sig.h"
 
@@ -68,7 +69,7 @@ void hid_run() {
   usb_cfg.descriptor.string_count = sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]);
   usb_cfg.descriptor.full_speed_config = hid_configuration_descriptor;
   usb_cfg.phy.self_powered = true;
-  usb_cfg.phy.vbus_monitor_io = GPIO_NUM_18;
+  usb_cfg.phy.vbus_monitor_io = AL_USB_MON;
   ESP_ERROR_CHECK(tinyusb_driver_install(&usb_cfg));
 
   // await mount
