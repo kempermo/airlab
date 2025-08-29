@@ -10,6 +10,8 @@
 // data stored in RTC slow memory
 #define AL_KEEP RTC_DATA_ATTR
 
+// R3-: only accelerometer
+// R4+: accelerometer and charger
 #define AL_INT_IN GPIO_NUM_16
 
 #define AL_BUTTONS_A GPIO_NUM_12
