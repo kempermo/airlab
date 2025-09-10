@@ -11,8 +11,7 @@ void al_buzzer_click();
  *
  * @param hz The frequency of the tone to play.
  * @param ms The duration of the tone to play.
- * @param wait If true, waits for the tone to finish before returning.
  */
-void al_buzzer_beep(int hz, int ms, bool wait);
+void al_buzzer_beep(int hz, int ms);
 
 #endif  // AL_BUZZER_H

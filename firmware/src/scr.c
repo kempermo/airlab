@@ -2056,7 +2056,7 @@ static void* scr_develop() {
       lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
 
       // prepare wheels
-      lvx_wheel_t hertz = {.value = 440, .min = 0, .step = 5, .max = 8000, .format = "%04d", .fixed = true};
+      lvx_wheel_t hertz = {.value = 2000, .min = 0, .step = 50, .max = 8000, .format = "%04d", .fixed = true};
       lvx_wheel_t duration = {.value = 100, .min = 0, .step = 100, .max = 5000, .format = "%04d", .fixed = true};
       lvx_wheel_create(&hertz, row);
       lvx_wheel_create(&duration, row);
@@ -2080,7 +2080,7 @@ static void* scr_develop() {
 
       for (;;) {
         // await event
-        sig_event_t event = sig_await(SIG_KEYS | SIG_SCROLL, SCR_ACTION_TIMEOUT);
+        sig_event_t event = sig_await(SIG_KEYS | SIG_SCROLL, 0);
 
         // forward arrows
         if ((event.type & (SIG_ARROWS | SIG_SCROLL)) != 0) {
@@ -2091,7 +2091,7 @@ static void* scr_develop() {
         // handle enter
         if (event.type == SIG_ENTER) {
           // play beep
-          al_buzzer_beep(hertz.value, duration.value, true);
+          al_buzzer_beep(hertz.value, duration.value);
 
           continue;
         }

@@ -1,6 +1,7 @@
 #include <naos.h>
 #include <naos/sys.h>
-#include <driver/rmt_tx.h>
+#include <driver/ledc.h>
+#include <rom/ets_sys.h>
 
 #define BUZZER_DEBUG false
 
@@ -8,27 +9,59 @@
 
 static naos_mutex_t al_buzzer_mutex;
 static bool al_buzzer_beeping = false;
-static rmt_channel_handle_t al_buzzer_channel;
-static rmt_encoder_handle_t al_buzzer_encoder;
+
+static void al_buzzer_tone(int hz, int us) {
+  // start beep
+  ESP_ERROR_CHECK(ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0, hz));
+  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 512));
+  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 512));
+  ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
+  ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));
+
+  // wait some time
+  ets_delay_us(us);
+
+  // stop beep
+  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0));
+  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 1024));
+  ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
+  ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));
+}
 
 void al_buzzer_init() {
   // check state
   al_buzzer_mutex = naos_mutex();
 
-  // setup buzzer
-  rmt_tx_channel_config_t rmt_cfg = {
-      .gpio_num = GPIO_NUM_5,
-      .clk_src = RMT_CLK_SRC_DEFAULT,
-      .resolution_hz = 1000 * 1000,  // 1 us
-      .mem_block_symbols = 48,
-      .trans_queue_depth = 16,
+  // setup timer
+  ledc_timer_config_t ledc_timer = {
+      .freq_hz = 440,
+      .duty_resolution = LEDC_TIMER_10_BIT,
+      .speed_mode = LEDC_LOW_SPEED_MODE,
+      .timer_num = LEDC_TIMER_0,
+      .clk_cfg = LEDC_AUTO_CLK,
   };
-  ESP_ERROR_CHECK(rmt_new_tx_channel(&rmt_cfg, &al_buzzer_channel));
-  ESP_ERROR_CHECK(rmt_enable(al_buzzer_channel));
+  ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
 
-  // setup buzzer encoder
-  rmt_copy_encoder_config_t enc_cfg = {};
-  ESP_ERROR_CHECK(rmt_new_copy_encoder(&enc_cfg, &al_buzzer_encoder));
+  // setup channels
+  ledc_channel_config_t ch1 = {
+      .channel = LEDC_CHANNEL_0,
+      .duty = 0,
+      .gpio_num = GPIO_NUM_5,
+      .speed_mode = LEDC_LOW_SPEED_MODE,
+      .hpoint = 0,
+      .timer_sel = LEDC_TIMER_0,
+  };
+  ESP_ERROR_CHECK(ledc_channel_config(&ch1));
+  ledc_channel_config_t ch2 = {
+      .channel = LEDC_CHANNEL_1,
+      .duty = 0,
+      .gpio_num = GPIO_NUM_46,
+      .speed_mode = LEDC_LOW_SPEED_MODE,
+      .hpoint = 0,
+      .timer_sel = LEDC_TIMER_0,
+      .flags.output_invert = true,
+  };
+  ESP_ERROR_CHECK(ledc_channel_config(&ch2));
 }
 
 void al_buzzer_click() {
@@ -40,23 +73,11 @@ void al_buzzer_click() {
     return;
   }
 
-  // prepare buzz
-  rmt_symbol_word_t item = {
-      .level0 = 1,
-      .duration0 = 125,  // us
-      .level1 = 0,
-      .duration1 = 1,
-  };
-
-  // perform buzz
-  rmt_transmit_config_t cfg = {
-      .flags.eot_level = 0,
-      .flags.queue_nonblocking = 1,
-  };
-  ESP_ERROR_CHECK(rmt_transmit(al_buzzer_channel, al_buzzer_encoder, &item, sizeof(item), &cfg));
+  // make tone
+  al_buzzer_tone(8000, 125);
 }
 
-void al_buzzer_beep(int hz, int ms, bool wait) {
+void al_buzzer_beep(int hz, int ms) {
   // check arguments
   if (hz == 0 || ms == 0) {
     return;
@@ -71,32 +92,8 @@ void al_buzzer_beep(int hz, int ms, bool wait) {
     return;
   }
 
-  // calculate parameters
-  int period_us = 1000000 / hz;
-  int cycles = (ms * 1000) / period_us;
-  if (BUZZER_DEBUG) {
-    naos_log("al-bzr: beep %dHz for %dms (%d cycles, period %dus)", hz, ms, cycles, period_us);
-  }
-
-  // generate waveform
-  rmt_symbol_word_t waveform[cycles];
-  for (int i = 0; i < cycles; i++) {
-    waveform[i] = (rmt_symbol_word_t){
-        .level0 = 1,
-        .duration0 = period_us / 2,
-        .level1 = 0,
-        .duration1 = period_us / 2,
-    };
-  }
-
-  // perform tone
-  rmt_transmit_config_t cfg = {
-      .flags.eot_level = 0,
-  };
-  ESP_ERROR_CHECK(rmt_transmit(al_buzzer_channel, al_buzzer_encoder, waveform, sizeof(waveform), &cfg));
-  if (wait) {
-    ESP_ERROR_CHECK(rmt_tx_wait_all_done(al_buzzer_channel, -1));
-  }
+  // make tone
+  al_buzzer_tone(hz, ms * 1000);
   if (BUZZER_DEBUG) {
     naos_log("al-bzr: done");
   }
