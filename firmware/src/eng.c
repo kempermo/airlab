@@ -1,0 +1,355 @@
+#include <naos/sys.h>
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+#include <driver/gpio.h>
+#include <driver/uart.h>
+#include <wasm_export.h>
+#include <bh_platform.h>
+#include <lvgl.h>
+
+#include <al/core.h>
+
+#include "fnt.h"
+#include "gfx.h"
+#include "gui.h"
+#include "internal.h"
+#include "sig.h"
+
+static void *eng_app;
+static size_t eng_app_len;
+static lv_obj_t *eng_canvas;
+
+/* memory helper */
+
+static void *eng_malloc(unsigned size) {
+  // perform alloc
+  return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+}
+
+static void *eng_realloc(void *ptr, unsigned size) {
+  // perform realloc
+  return heap_caps_realloc(ptr, size, MALLOC_CAP_SPIRAM);
+}
+
+static void eng_free(void *ptr) {
+  // perform free
+  free(ptr);
+}
+
+/* utility helpers */
+
+static lv_color_t eng_color(int c) { return c == 1 ? lv_color_black() : lv_color_white(); }
+
+static const lv_font_t *eng_font(int f) {
+  switch (f) {
+    case 16:
+      return &fnt_16;
+    case 24:
+      return &fnt_24;
+    default:
+      return &fnt_8;
+  }
+}
+
+/* native functions */
+
+typedef enum {
+  ENG_WF_SKIP_FRAME,
+  ENG_WF_WAIT_FRAME,
+  ENG_WF_INVERT,
+  ENG_WF_REFRESH,
+} eng_wait_flags_t;
+
+static int eng_yield(wasm_exec_env_t _, int timeout, int flags) {
+  printf("eng_yield\n");
+
+  // unlock graphics
+  gfx_end(flags & ENG_WF_SKIP_FRAME, flags & ENG_WF_WAIT_FRAME);
+
+  // prepare state
+  int state = 0;
+
+  // capture events until deadline
+  for (;;) {
+    // await event or deadline
+    sig_event_t event = sig_await(SIG_KEYS, timeout);
+
+    // handle events
+    switch (event.type) {
+      case SIG_ENTER:
+        state |= 1;
+        break;
+      case SIG_ESCAPE:
+        state |= 2;
+        break;
+      case SIG_UP:
+        state |= 4;
+        break;
+      case SIG_DOWN:
+        state |= 8;
+        break;
+      case SIG_LEFT:
+        state |= 16;
+        break;
+      case SIG_RIGHT:
+        state |= 32;
+        break;
+      default:
+        break;
+    }
+  }
+
+  // lock graphics
+  gfx_begin(flags & ENG_WF_REFRESH, flags & ENG_WF_INVERT);
+
+  return state;
+}
+
+static void eng_clear(wasm_exec_env_t _, int c) {
+  printf("eng_clear: c=%d\n", c);
+
+  // clear canvas
+  lv_canvas_fill_bg(eng_canvas, eng_color(c), LV_OPA_COVER);
+}
+
+static void eng_rect(wasm_exec_env_t _, int x, int y, int w, int h, int c, int b) {
+  printf("eng_rect: x=%d, y=%d, w=%d, h=%d, c=%d, b=%d\n", x, y, w, h, c, b);
+
+  // draw rectangle
+  lv_draw_rect_dsc_t rect_dsc;
+  lv_draw_rect_dsc_init(&rect_dsc);
+  rect_dsc.bg_color = eng_color(c);
+  rect_dsc.bg_opa = b > 0 ? LV_OPA_TRANSP : LV_OPA_COVER;
+  rect_dsc.border_color = eng_color(c);
+  rect_dsc.border_width = b;
+  lv_canvas_draw_rect(eng_canvas, x, y, w, h, &rect_dsc);
+}
+
+static void eng_write(wasm_exec_env_t _, int x, int y, int f, int c, uint8 *buf, int buf_len) {
+  // do boundary check
+  printf("eng_write: x=%d, y=%d, f=%d, c=%d, s='%s'\n", x, y, f, c, (char *)buf);
+
+  // write text
+  lv_draw_label_dsc_t label_dsc;
+  lv_draw_label_dsc_init(&label_dsc);
+  label_dsc.color = eng_color(c);
+  label_dsc.font = eng_font(f);
+  lv_canvas_draw_text(eng_canvas, x, y, 296 - x, &label_dsc, (char *)buf);
+}
+
+typedef enum {
+  ENG_GPIO_CONFIG,
+  ENG_GPIO_WRITE,
+  ENG_GPIO_READ,
+} eng_gpio_cmd_t;
+
+typedef enum {
+  ENG_GPIO_A = (1 << 0),
+  ENG_GPIO_B = (1 << 1),
+  ENG_GPIO_HIGH = (1 << 2),   // or low
+  ENG_GPIO_INPUT = (1 << 3),  // or output
+  ENG_GPIO_PULL_UP = (1 << 4),
+  ENG_GPIO_PULL_DOWN = (1 << 5),
+} eng_gpio_flags_t;
+
+static int eng_gpio(wasm_exec_env_t _, int cmd, int flags) {
+  printf("eng_gpio: cmd=%d, flags=0x%X\n", cmd, flags);
+
+  // determine GPIO num
+  gpio_num_t num = 0;
+  if (flags & ENG_GPIO_A) {
+    num = AL_GPIO_A;
+  } else if (flags & ENG_GPIO_B) {
+    num = AL_GPIO_B;
+  } else {
+    return -1;
+  }
+
+  // handle commands
+  switch (cmd) {
+    case ENG_GPIO_CONFIG: {
+      // configure GPIO
+      gpio_config_t io_conf = {
+          .pin_bit_mask = BIT64(num),
+          .mode = flags & ENG_GPIO_INPUT ? GPIO_MODE_INPUT : GPIO_MODE_OUTPUT,
+          .pull_up_en = flags & ENG_GPIO_PULL_UP ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
+          .pull_down_en = flags & ENG_GPIO_PULL_DOWN ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE,
+          .intr_type = GPIO_INTR_DISABLE,
+      };
+      esp_err_t err = gpio_config(&io_conf);
+
+      return err == ESP_OK ? 0 : -1;
+    }
+    case ENG_GPIO_WRITE: {
+      // set GPIO level
+      esp_err_t err = gpio_set_level(num, (cmd & ENG_GPIO_HIGH) ? 1 : 0);
+
+      return err == ESP_OK ? 0 : -1;
+    }
+    case ENG_GPIO_READ: {
+      // get GPIO level
+      int level = gpio_get_level(num);
+
+      return level;
+    }
+    default:
+      return -1;
+  }
+}
+
+static int eng_i2c(wasm_exec_env_t _, int addr, uint8 *tx, int tx_len, uint8 *rx, int rx_len, int timeout) {
+  // perform transfer
+  esp_err_t err = al_i2c_transfer(addr, tx, tx_len, rx, rx_len, timeout);
+
+  return err == ESP_OK ? 0 : -1;
+}
+
+// https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/export_native_api.md
+static NativeSymbol native_symbols[] = {
+    {"al_yield", eng_yield, "(ii)i", NULL},  {"al_clear", eng_clear, "(i)", NULL},
+    {"al_rect", eng_rect, "(iiiiii)", NULL}, {"al_write", eng_write, "(iiii*~)", NULL},
+    {"al_gpio", eng_gpio, "(ii)i", NULL},    {"al_i2c", eng_i2c, "(i*i*i*i)i", NULL},
+};
+
+void *eng_run_task(void *) {
+  char error_buf[128];
+  uint32_t stack_size = 8 * 1024, heap_size = 32 * 1024;
+
+  // prepare runtime init args
+  RuntimeInitArgs init_args = {0};
+
+  // configure memory allocator
+  init_args.mem_alloc_type = Alloc_With_Allocator;
+  init_args.mem_alloc_option.allocator.malloc_func = (void *)eng_malloc;
+  init_args.mem_alloc_option.allocator.realloc_func = (void *)eng_realloc;
+  init_args.mem_alloc_option.allocator.free_func = (void *)eng_free;
+
+  // register native symbols
+  init_args.native_module_name = "env";
+  init_args.native_symbols = native_symbols;
+  init_args.n_native_symbols = sizeof(native_symbols) / sizeof(NativeSymbol);
+
+  // initialize runtime
+  if (!wasm_runtime_full_init(&init_args)) {
+    printf("eng: init runtime failed\n");
+    return NULL;
+  }
+
+  // set log level
+  wasm_runtime_set_log_level(WASM_LOG_LEVEL_VERBOSE);
+
+  // load application
+  wasm_module_t module = wasm_runtime_load(eng_app, eng_app_len, error_buf, sizeof(error_buf));
+  if (!module) {
+    printf("eng: loading WASM module failed: %s\n", error_buf);
+    goto fail;
+  }
+
+  // instantiate module
+  wasm_module_inst_t module_inst;
+  memset(&module_inst, 0, sizeof(wasm_module_inst_t));
+  module_inst = wasm_runtime_instantiate(module, stack_size, heap_size, error_buf, sizeof(error_buf));
+  if (!module_inst) {
+    printf("eng: instantiating WASM module failed: %s\n", error_buf);
+    goto fail;
+  }
+
+  // create execution environment
+  wasm_exec_env_t exec_env;
+  memset(&exec_env, 0, sizeof(wasm_exec_env_t));
+  exec_env = wasm_runtime_create_exec_env(module_inst, stack_size);
+  if (!exec_env) {
+    printf("eng: creating WASM execution environment failed\n");
+    goto fail;
+  }
+
+  // find _start function
+  wasm_function_inst_t func = wasm_runtime_lookup_function(module_inst, "_start");
+  if (!func) {
+    printf("eng: looking up _start function failed\n");
+    goto fail;
+  }
+
+  // call _start function
+  bool ok = wasm_runtime_call_wasm(exec_env, func, 0, NULL);
+  if (!ok) {
+    printf("eng: calling _start function failed: %s\n", wasm_runtime_get_exception(module_inst));
+    goto fail;
+  }
+
+fail:
+  // destroy environment
+  if (exec_env) {
+    wasm_runtime_destroy_exec_env(exec_env);
+  }
+
+  // deinstantiate module
+  if (module_inst) {
+    wasm_runtime_deinstantiate(module_inst);
+  }
+
+  // unload module
+  if (module) {
+    wasm_runtime_unload(module);
+  }
+
+  // destroy runtime
+  wasm_runtime_destroy();
+
+  return NULL;
+}
+
+void eng_run(void *app, size_t app_len) {
+  // set app
+  eng_app = app;
+  eng_app_len = app_len;
+
+  // clear screen
+  gui_cleanup(false);
+
+  // allocate frame buffer
+  lv_color_t *frame_buffer = al_calloc(1, LV_CANVAS_BUF_SIZE_TRUE_COLOR(296, 128));
+
+  // create canvas
+  eng_canvas = lv_canvas_create(lv_scr_act());
+  lv_canvas_set_buffer(eng_canvas, frame_buffer, 296, 128, LV_IMG_CF_TRUE_COLOR);
+  lv_obj_align(eng_canvas, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_canvas_fill_bg(eng_canvas, lv_color_white(), LV_OPA_COVER);
+
+  // prepare thread attributes
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+  pthread_attr_setstacksize(&attr, 5120);
+
+  // lock graphics
+  gfx_begin(false, false);
+
+  // create thread
+  pthread_t t;
+  int res = pthread_create(&t, &attr, eng_run_task, NULL);
+  if (res != 0) {
+    printf("eng: pthread_create failed: %d\n", res);
+    return;
+  }
+
+  // join thread
+  res = pthread_join(t, NULL);
+  if (res != 0) {
+    printf("eng: pthread_join failed: %d\n", res);
+    return;
+  }
+
+  // unlock graphics
+  gfx_end(false, false);
+
+  // clear screen
+  gui_cleanup(false);
+
+  // free buffer
+  free(frame_buffer);
+
+  // log
+  printf("eng: app finished\n");
+}

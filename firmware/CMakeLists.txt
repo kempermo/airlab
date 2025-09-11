@@ -44,6 +44,8 @@ set(SOURCE_FILES
         src/dat.c
         src/dat.h
         src/dev.h
+        src/eng.c
+        src/eng.h
         src/fnt.h
         src/fnt.c
         src/gfx.c

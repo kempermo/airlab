@@ -34,7 +34,8 @@
     "CONFIG_LV_FONT_DEFAULT_UNSCII_8": "y",
     "CONFIG_ULP_COPROC_ENABLED": "y",
     "CONFIG_ULP_COPROC_TYPE_RISCV": "y",
-    "CONFIG_ULP_COPROC_RESERVE_MEM": "5124"
+    "CONFIG_ULP_COPROC_RESERVE_MEM": "5124",
+    "CONFIG_WAMR_ENABLE_LIB_PTHREAD": "n"
   },
   "components": {
     "lib": {
@@ -61,6 +62,10 @@
     "littlefs": {
       "registry": "joltwallet/littlefs",
       "version": "1.20.1"
+    },
+    "wasm": {
+      "registry": "espressif/wasm-micro-runtime",
+      "version": "2.4.0~1"
     }
   }
 }

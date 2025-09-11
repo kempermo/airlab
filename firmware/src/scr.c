@@ -32,6 +32,7 @@
 #include "hmi.h"
 #include "dat.h"
 #include "hid.h"
+#include "eng.h"
 
 #define SCR_MSG_TIMEOUT 2000
 #define SCR_IDLE_TIMEOUT 30000
@@ -2063,9 +2064,9 @@ static void* scr_develop() {
 
   // prepare labels
   const char* labels[] = {
-      "System Info", "Sensor Data",   "Device Check", "Sleep Mode",    "Power Reset",
-      "Power Off",   "Shipping Mode", "Screen Saver", "Clear Display", "Test Bubbles",
-      "Touch Info",  "Compensation",  "Buzzer",       "Gamepad",       NULL,
+      "System Info",   "Sensor Data",  "Device Check",  "Sleep Mode",   "Power Reset", "Power Off",
+      "Shipping Mode", "Screen Saver", "Clear Display", "Test Bubbles", "Touch Info",  "Compensation",
+      "Buzzer",        "Gamepad",      "Engine",        NULL,
   };
 
   for (;;) {
@@ -2301,6 +2302,27 @@ static void* scr_develop() {
 
       // cleanup
       gui_cleanup(false);
+    }
+
+    // handle engine
+    if (selected == 14) {
+      // write message
+      gui_write("Loading app...", false);
+
+      // load app
+      size_t app_len = 0;
+      void* app = al_storage_load(AL_STORAGE_INT, "engine", "app.wasm", &app_len);
+      if (!app) {
+        gui_cleanup(false);
+        gui_message("App not found!", 2000);
+        continue;
+      }
+
+      // run app
+      eng_run(app, app_len);
+
+      // cleanup
+      free(app);
     }
   }
 }
