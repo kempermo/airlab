@@ -79,7 +79,7 @@ static const char* scr_temp_format() {
   return "%.1f °C";
 }
 
-static void scr_power_off(bool low_power) {
+static void scr_power_off(bool low_power, bool msg) {
   // set off flag
   hmi_set_flag(HMI_FLAG_OFF);
 
@@ -87,7 +87,9 @@ static void scr_power_off(bool low_power) {
   gui_cleanup(true);
 
   // write message
-  gui_write(low_power ? "Low Battery\n\nCharge via USB-C and press <A>." : "Powered Off\n\nPress <A> to start.", true);
+  if (msg) {
+    gui_write(low_power ? "Low Battery\n\nCharge via USB-C and press <A>." : "Powered Off\n\nPress <A> to start.", true);
+  }
 
   // clear returns
   scr_return_timeout = NULL;
@@ -778,7 +780,7 @@ static void* scr_saver() {
 
     // power off if battery is low and not charging
     if (power.battery < 0.10 && !power.usb && !power.charging) {
-      scr_power_off(true);
+      scr_power_off(true, true);
     }
 
     // check if powered or connected via BLE
@@ -1927,7 +1929,7 @@ static void* scr_settings() {
     }
 
     // turn off
-    scr_power_off(false);
+    scr_power_off(false, true);
 
     return scr_settings;
   }
@@ -2036,7 +2038,7 @@ static void* scr_develop() {
 
     // handle power off
     if (selected == 5) {
-      scr_power_off(false);
+      scr_power_off(false, false);
     }
 
     // handle ship mode
