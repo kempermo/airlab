@@ -1,3 +1,4 @@
+#include <sys/stat.h>
 #include <errno.h>
 #include <naos.h>
 #include <esp_littlefs.h>
@@ -300,6 +301,11 @@ void al_storage_write(al_storage_type_t type, const char *dir, const char *name,
   strcat(path, type == AL_STORAGE_INT ? AL_STORAGE_INTERNAL : AL_STORAGE_EXTERNAL);
   strcat(path, "/");
   strcat(path, dir);
+
+  // ensure directory
+  mkdir(path, 0777);
+
+  // finish path
   strcat(path, "/");
   strcat(path, name);
 

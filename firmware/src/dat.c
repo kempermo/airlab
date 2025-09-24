@@ -49,16 +49,18 @@ void dat_init() {
   // allocate files
   dat_files = al_calloc(DAT_FILES, sizeof(dat_file_t));
 
-  // ensure directory
-  mkdir(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR, 0777);
-
   // clear list
   dat_files_length = 0;
 
   // open directory
   DIR *dir = opendir(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR);
-  if (dir == NULL) {
+  if (dir == NULL && errno != ENOENT) {
     ESP_ERROR_CHECK(errno);
+  }
+
+  // stop if no directory
+  if (dir == NULL) {
+    return;
   }
 
   // read directory
@@ -424,9 +426,6 @@ bool dat_import(uint16_t num, int start, dat_progress_t progress) {
 }
 
 bool dat_export(uint16_t num, dat_progress_t progress) {
-  // ensure directory
-  mkdir(AL_STORAGE_EXTERNAL "/" DAT_EXPORT_DIR, 0777);
-
   // find file
   dat_file_t *file = dat_find(num, NULL);
   if (file == NULL) {
@@ -527,9 +526,6 @@ void dat_disable_usb() {
 }
 
 void dat_dump(const char *name, const void *data, size_t size) {
-  // ensure directory
-  mkdir(AL_STORAGE_EXTERNAL "/" DAT_DUMP_DIR, 0777);
-
   // truncate and write file
   al_storage_write(AL_STORAGE_EXT, DAT_DUMP_DIR, name, (void *)data, 0, size, true);
 }
