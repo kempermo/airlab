@@ -59,6 +59,7 @@ void al_storage_reset();
 /**
  * Read from a file in storage.
  *
+ * @param type The storage type.
  * @param dir The directory.
  * @param name The file name.
  * @param buf The buffer to read into.
@@ -66,11 +67,13 @@ void al_storage_reset();
  * @param length The number of bytes to read.
  * @return True if the file was read successfully, false if the file does not exist.
  */
-bool al_storage_read(const char *dir, const char *name, void *buf, size_t offset, size_t length);
+bool al_storage_read(al_storage_type_t type, const char *dir, const char *name, void *buf, size_t offset,
+                     size_t length);
 
 /**
  * Write to a file in storage.
  *
+ * @param type The storage type.
  * @param dir The directory.
  * @param name The file name.
  * @param buf The buffer to write from.
@@ -78,14 +81,16 @@ bool al_storage_read(const char *dir, const char *name, void *buf, size_t offset
  * @param length The number of bytes to write.
  * @param truncate Whether to truncate the file before writing.
  */
-void al_storage_write(const char *dir, const char *name, void *buf, size_t offset, size_t length, bool truncate);
+void al_storage_write(al_storage_type_t type, const char *dir, const char *name, void *buf, size_t offset,
+                      size_t length, bool truncate);
 
 /**
  * Deletes a file from storage.
  *
+ * @param type The storage type.
  * @param dir The directory.
  * @param name The file name.
  */
-void al_storage_delete(const char *dir, const char *name);
+void al_storage_delete(al_storage_type_t type, const char *dir, const char *name);
 
 #endif  // AL_STORAGE_H

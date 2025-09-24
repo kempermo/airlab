@@ -108,7 +108,7 @@ void dat_init() {
 
     // read head
     dat_head_t head = {0};
-    if (!al_storage_read(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR, entry->d_name, &head, 0, sizeof(head))) {
+    if (!al_storage_read(AL_STORAGE_INT, DAT_DATA_DIR, entry->d_name, &head, 0, sizeof(head))) {
       continue;
     }
 
@@ -119,7 +119,7 @@ void dat_init() {
     // read last sample and set stop if available
     if (file.size > 0) {
       al_sample_t sample;
-      if (!al_storage_read(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR, entry->d_name, &sample,
+      if (!al_storage_read(AL_STORAGE_INT, DAT_DATA_DIR, entry->d_name, &sample,
                            sizeof(dat_head_t) + (file.size - 1) * sizeof(al_sample_t), sizeof(al_sample_t))) {
         ESP_ERROR_CHECK(ESP_FAIL);
       }
@@ -207,7 +207,7 @@ uint16_t dat_create(int64_t start) {
   snprintf(name, sizeof(name), DAT_NAME_FMT, head.num);
 
   // write file
-  al_storage_write(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR, name, &head, 0, sizeof(head), true);
+  al_storage_write(AL_STORAGE_INT, DAT_DATA_DIR, name, &head, 0, sizeof(head), true);
 
   // prepare file
   dat_file_t file = {.head = head};
@@ -246,7 +246,7 @@ void dat_mark(uint16_t num, int32_t offset) {
   snprintf(name, sizeof(name), DAT_NAME_FMT, num);
 
   // update head
-  al_storage_write(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR, name, &file->head, 0, sizeof(dat_head_t), false);
+  al_storage_write(AL_STORAGE_INT, DAT_DATA_DIR, name, &file->head, 0, sizeof(dat_head_t), false);
 }
 
 void dat_append(uint16_t num, al_sample_t *samples, size_t count) {
@@ -273,13 +273,13 @@ void dat_append(uint16_t num, al_sample_t *samples, size_t count) {
   snprintf(name, sizeof(name), DAT_NAME_FMT, num);
 
   // append samples
-  al_storage_write(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR, name, samples, offset, length, false);
+  al_storage_write(AL_STORAGE_INT, DAT_DATA_DIR, name, samples, offset, length, false);
 
   // update head
   file->size += count;
 
   // update head
-  al_storage_write(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR, name, &file->head, 0, sizeof(dat_head_t), false);
+  al_storage_write(AL_STORAGE_INT, DAT_DATA_DIR, name, &file->head, 0, sizeof(dat_head_t), false);
 
   // update file
   file->stop = samples[count - 1].off;
@@ -308,7 +308,7 @@ void dat_load(uint16_t num, al_sample_t *samples, size_t count, size_t start) {
   snprintf(name, sizeof(name), DAT_NAME_FMT, num);
 
   // read samples
-  if (!al_storage_read(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR, name, samples, offset, length)) {
+  if (!al_storage_read(AL_STORAGE_INT, DAT_DATA_DIR, name, samples, offset, length)) {
     ESP_ERROR_CHECK(ESP_FAIL);
   }
 }
@@ -325,7 +325,7 @@ void dat_delete(uint16_t num) {
   snprintf(name, sizeof(name), DAT_NAME_FMT, num);
 
   // delete file
-  al_storage_delete(AL_STORAGE_INTERNAL "/" DAT_DATA_DIR, name);
+  al_storage_delete(AL_STORAGE_INT, DAT_DATA_DIR, name);
 
   // remove file from list
   dat_files_length--;
@@ -448,7 +448,7 @@ bool dat_export(uint16_t num, dat_progress_t progress) {
 
   // write header
   const char *header = "time,co2,tmp,hum,voc,nox,prs\n";
-  al_storage_write(AL_STORAGE_EXTERNAL "/" DAT_EXPORT_DIR, name, (void *)header, 0, strlen(header), true);
+  al_storage_write(AL_STORAGE_EXT, DAT_EXPORT_DIR, name, (void *)header, 0, strlen(header), true);
 
   // prepare pos
   size_t file_pos = strlen(header);
@@ -485,7 +485,7 @@ bool dat_export(uint16_t num, dat_progress_t progress) {
 
       // flush buffer if full
       if (buf_pos > DAT_EXPORT_BUF - 128) {
-        al_storage_write(AL_STORAGE_EXTERNAL "/" DAT_EXPORT_DIR, name, buffer, file_pos, buf_pos, false);
+        al_storage_write(AL_STORAGE_EXT, DAT_EXPORT_DIR, name, buffer, file_pos, buf_pos, false);
         file_pos += buf_pos;
         buf_pos = 0;
       }
@@ -499,7 +499,7 @@ bool dat_export(uint16_t num, dat_progress_t progress) {
 
   // flush buffer
   if (buf_pos > 0) {
-    al_storage_write(AL_STORAGE_EXTERNAL "/" DAT_EXPORT_DIR, name, buffer, file_pos, buf_pos, false);
+    al_storage_write(AL_STORAGE_EXT, DAT_EXPORT_DIR, name, buffer, file_pos, buf_pos, false);
   }
 
   // free buffer
@@ -531,5 +531,5 @@ void dat_dump(const char *name, const void *data, size_t size) {
   mkdir(AL_STORAGE_EXTERNAL "/" DAT_DUMP_DIR, 0777);
 
   // truncate and write file
-  al_storage_write(AL_STORAGE_EXTERNAL "/" DAT_DUMP_DIR, name, (void *)data, 0, size, true);
+  al_storage_write(AL_STORAGE_EXT, DAT_DUMP_DIR, name, (void *)data, 0, size, true);
 }
