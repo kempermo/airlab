@@ -33,6 +33,7 @@
 #include "dat.h"
 #include "hid.h"
 
+#define SCR_MSG_TIMEOUT 2000
 #define SCR_ACTION_TIMEOUT 10000
 #define SCR_IDLE_TIMEOUT 30000
 #define SCR_MIN_RESOLUTION 5000
@@ -1116,7 +1117,7 @@ static void* scr_view() {
           rec_stop();
 
           // show message
-          gui_message(lvx_fmt(scr_trans()->exit__stopped, scr_file_name(file)), 2000);
+          gui_message(lvx_fmt(scr_trans()->exit__stopped, scr_file_name(file)), SCR_MSG_TIMEOUT);
 
           // set action
           scr_action = STM_COMP_MEASUREMENT;
@@ -1147,7 +1148,7 @@ static void* scr_view() {
       // cancel advanced mode if too less
       if (source_count < LVX_CHART_SIZE) {
         gui_cleanup(false);
-        gui_message(scr_trans()->view__not_enough, 2000);
+        gui_message(scr_trans()->view__not_enough, SCR_MSG_TIMEOUT);
         return scr_view;
       }
 
@@ -1197,7 +1198,7 @@ static void* scr_create() {
 
   // handle no space
   if (!samples) {
-    gui_message(scr_trans()->create__full, 2000);
+    gui_message(scr_trans()->create__full, SCR_MSG_TIMEOUT);
     return scr_explore;
   }
 
@@ -1281,7 +1282,7 @@ static void* scr_create() {
       hmi_clear_flag(HMI_FLAG_PROCESS);
 
       // write message
-      gui_message(scr_trans()->create__imported, 2000);
+      gui_message(scr_trans()->create__imported, SCR_MSG_TIMEOUT);
     }
 
     // start recording
@@ -1368,7 +1369,7 @@ static void* scr_edit() {
       // delete file
       uint16_t num = file->head.num;
       dat_delete(file->head.num);
-      gui_message(lvx_fmt(scr_trans()->delete__deleted, num), 2000);
+      gui_message(lvx_fmt(scr_trans()->delete__deleted, num), SCR_MSG_TIMEOUT);
 
       // set action
       scr_action = STM_DEL_MEASUREMENT;
@@ -1391,9 +1392,9 @@ static void* scr_edit() {
 
       // export file
       if (!ok) {
-        gui_message(scr_trans()->edit__export_fail, 2000);
+        gui_message(scr_trans()->edit__export_fail, SCR_MSG_TIMEOUT);
       } else {
-        gui_message(scr_trans()->edit__export_done, 2000);
+        gui_message(scr_trans()->edit__export_done, SCR_MSG_TIMEOUT);
       }
 
       return scr_edit;
@@ -1471,7 +1472,7 @@ static void* scr_usb() {
   // check recording
   if (rec_running()) {
     // show message
-    gui_message(scr_trans()->recording, 2000);
+    gui_message(scr_trans()->recording, SCR_MSG_TIMEOUT);
 
     return scr_menu;
   }
@@ -1479,7 +1480,7 @@ static void* scr_usb() {
   // check connection
   if (!al_power_get().usb) {
     // show message
-    gui_message(scr_trans()->usb__disconnected, 2000);
+    gui_message(scr_trans()->usb__disconnected, SCR_MSG_TIMEOUT);
 
     return scr_menu;
   }
@@ -1523,7 +1524,7 @@ static void* scr_usb() {
 
   // show message on eject
   if (event.type == SIG_EJECT) {
-    gui_message(scr_trans()->usb__eject, 2000);
+    gui_message(scr_trans()->usb__eject, SCR_MSG_TIMEOUT);
   }
 
   return scr_menu;
@@ -1707,7 +1708,7 @@ static void* scr_config() {
       case 1: {
         // check recording
         if (rec_running()) {
-          gui_message(scr_trans()->recording, 2000);
+          gui_message(scr_trans()->recording, SCR_MSG_TIMEOUT);
           return scr_config;
         }
 
@@ -1720,7 +1721,7 @@ static void* scr_config() {
       case 2: {
         // check recording
         if (rec_running()) {
-          gui_message(scr_trans()->recording, 2000);
+          gui_message(scr_trans()->recording, SCR_MSG_TIMEOUT);
           return scr_config;
         }
 
@@ -1792,7 +1793,7 @@ static void* scr_config() {
       case 12: {
         // check recording
         if (rec_running()) {
-          gui_message(scr_trans()->recording, 2000);
+          gui_message(scr_trans()->recording, SCR_MSG_TIMEOUT);
           return scr_config;
         }
 
@@ -1808,7 +1809,7 @@ static void* scr_config() {
         naos_reset();
 
         // show message
-        gui_message(scr_trans()->reset__reset, 2000);
+        gui_message(scr_trans()->reset__reset, SCR_MSG_TIMEOUT);
 
         // restart device
         esp_restart();
@@ -2026,7 +2027,7 @@ static void* scr_settings() {
   if (event.type == SIG_LEFT) {
     // check recording
     if (rec_running()) {
-      gui_message(scr_trans()->recording, 2000);
+      gui_message(scr_trans()->recording, SCR_MSG_TIMEOUT);
       return scr_settings;
     }
 
