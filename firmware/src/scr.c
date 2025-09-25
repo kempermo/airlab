@@ -129,6 +129,7 @@ typedef struct {
   const char* change;
   const char* save;
   const char* cancel;
+  const char* execute;
   const char* measurement;
   const char* recording;
   const char* exit__stop;
@@ -161,17 +162,17 @@ typedef struct {
   const char* reset__confirm;
   const char* reset__reset;
   const char* settings__title;
-  const char* settings__date_time;
   const char* settings__about;
-  const char* settings__language;
   const char* settings__config;
   const char* settings__off;
-  const char* settings__reset;
   const char* about__device_name;
   const char* about__serial_number;
   const char* about__firmware_version;
   const char* about__internal_storage;
   const char* about__external_storage;
+  const char* config__language;
+  const char* config__date;
+  const char* config__time;
   const char* config__sleep_rate;
   const char* config__record_rate;
   const char* config__long_interval;
@@ -180,6 +181,7 @@ typedef struct {
   const char* config__power_light;
   const char* config__wifi_network;
   const char* config__studio;
+  const char* config__reset;
   const char* menu__no_data;
   const char* intro__hello1;
   const char* intro__hello2;
@@ -201,6 +203,7 @@ static const scr_trans_t scr_trans_map[] = {
             .change = "Ändern",
             .save = "Speichern",
             .cancel = "Abbrechen",
+            .execute = "Ausführen",
             .measurement = "Messung %u",
             .recording = "Messung läuft!",
             .exit__stop = "Messung beenden",
@@ -233,17 +236,17 @@ static const scr_trans_t scr_trans_map[] = {
             .reset__confirm = "Air Lab zurücksetzen?",
             .reset__reset = "Air Lab\nerfolgreich zurückgesetzt!",
             .settings__title = "Einstellungen",
-            .settings__date_time = "Datum & Zeit",
             .settings__about = "Über",
-            .settings__language = "Sprache",
             .settings__config = "Konfiguration",
             .settings__off = "Ausschalten",
-            .settings__reset = "Zurücksetzen",
             .about__device_name = "Gerätename",
             .about__serial_number = "Seriennummer",
             .about__firmware_version = "FW Version",
             .about__internal_storage = "Int. Speicher",
             .about__external_storage = "Ext. Speicher",
+            .config__language = "Sprache",
+            .config__date = "Datum",
+            .config__time = "Uhrzeit",
             .config__sleep_rate = "Schlaf Messrate",
             .config__record_rate = "Aufnahme Messrate",
             .config__long_interval = "Langzeit Intervall",
@@ -252,6 +255,7 @@ static const scr_trans_t scr_trans_map[] = {
             .config__power_light = "Betriebsanzeige",
             .config__wifi_network = "WiFi Netzwerk",
             .config__studio = "Verwende Air Lab Studio\num diesen Wert zu ändern.",
+            .config__reset = "Zurücksetzen",
             .menu__no_data = "Keine Daten",
             .intro__hello1 = "Hi! Ich bin Professor Robin,\nWissenschaftsleiter am Air Lab.",
             .intro__hello2 = "Da bin ich eben kurz eingenickt.\nSag mal wie spät ist es?",
@@ -271,6 +275,7 @@ static const scr_trans_t scr_trans_map[] = {
             .change = "Change",
             .save = "Save",
             .cancel = "Cancel",
+            .execute = "Execute",
             .measurement = "Measurement %u",
             .recording = "Measurement running!",
             .exit__stop = "Stop measurement",
@@ -304,16 +309,16 @@ static const scr_trans_t scr_trans_map[] = {
             .reset__reset = "Air Lab\nsuccessfully reset!",
             .settings__title = "Settings",
             .settings__about = "About",
-            .settings__date_time = "Date & Time",
-            .settings__language = "Language",
             .settings__config = "Configuration",
             .settings__off = "Power Off",
-            .settings__reset = "Full Reset",
             .about__device_name = "Device Name",
             .about__serial_number = "Serial Number",
             .about__firmware_version = "FW Version",
             .about__internal_storage = "Int. Storage",
             .about__external_storage = "Ext. Storage",
+            .config__language = "Language",
+            .config__date = "Date",
+            .config__time = "Time",
             .config__sleep_rate = "Sleep Sample Rate",
             .config__record_rate = "Record Sample Rate",
             .config__long_interval = "Long-term Interval",
@@ -322,6 +327,7 @@ static const scr_trans_t scr_trans_map[] = {
             .config__power_light = "Power Light",
             .config__wifi_network = "WiFi Network",
             .config__studio = "Use Air Lab Studio\nto change this value.",
+            .config__reset = "Full Reset",
             .menu__no_data = "No Data",
             .intro__hello1 = "Hi! I'm Professor Robin,\nhead of sciences at Air Lab.",
             .intro__hello2 = "I dozed off for a bit...\nCan you tell me the time?",
@@ -1577,62 +1583,88 @@ static gui_list_item_t scr_config_cb(int num, void* ctx) {
   switch (num) {
     case 0: {
       return (gui_list_item_t){
-          .title = t->settings__language,
+          .title = t->config__language,
           .info = strcmp(naos_get_s("language"), "en") == 0 ? "English" : "Deutsch",
       };
     }
     case 1: {
+      // get date
+      uint16_t year, month, day;
+      al_clock_get_date(&year, &month, &day);
+
+      return (gui_list_item_t){
+          .title = t->config__date,
+          .info = lvx_fmt("%d/%d/%d", day, month, year),
+      };
+    }
+    case 2: {
+      // get time
+      uint16_t hour, minute, seconds;
+      al_clock_get_time(&hour, &minute, &seconds);
+
+      return (gui_list_item_t){
+          .title = t->config__time,
+          .info = lvx_fmt("%02d:%02d", hour, minute),
+      };
+    }
+    case 3: {
       return (gui_list_item_t){
           .title = t->config__sleep_rate,
           .info = lvx_fmt("%lds", naos_get_l("sleep-rate")),
       };
     }
-    case 2: {
+    case 4: {
       return (gui_list_item_t){
           .title = t->config__record_rate,
           .info = lvx_fmt("%lds", naos_get_l("record-rate")),
       };
     }
-    case 3: {
+    case 5: {
       return (gui_list_item_t){
           .title = t->config__long_interval,
           .info = lvx_fmt("%lds", naos_get_l("long-interval")),
       };
     }
-    case 4: {
+    case 6: {
       return (gui_list_item_t){
           .title = t->config__temp_unit,
           .info = naos_get_b("fahrenheit") ? "°F" : "°C",
       };
     }
-    case 5: {
+    case 7: {
       return (gui_list_item_t){
           .title = t->config__developer,
           .info = naos_get_b("developer") ? t->on : t->off,
       };
     }
-    case 6: {
+    case 8: {
       return (gui_list_item_t){
           .title = t->config__power_light,
           .info = naos_get_b("power-light") ? t->on : t->off,
       };
     }
-    case 7: {
+    case 9: {
       return (gui_list_item_t){
           .title = t->config__wifi_network,
           .info = lvx_truncate(naos_get_s("wifi-ssid"), 20),
       };
     }
-    case 8: {
+    case 10: {
       return (gui_list_item_t){
           .title = "MQTT Broker",
           .info = lvx_truncate(naos_get_s("mqtt-host"), 20),
       };
     }
-    case 9: {
+    case 11: {
       return (gui_list_item_t){
           .title = "Home Assistant",
           .info = naos_get_b("mqtt-ha") ? t->on : t->off,
+      };
+    }
+    case 12: {
+      return (gui_list_item_t){
+          .title = t->config__reset,
+          .info = t->execute,
       };
     }
     default:
@@ -1651,7 +1683,7 @@ static void* scr_config() {
 
   for (;;) {
     // select parameter
-    int choice = gui_list(10, selected, &offset, t->change, t->back, scr_config_cb, NULL, SCR_ACTION_TIMEOUT);
+    int choice = gui_list(13, selected, &offset, t->change, t->back, scr_config_cb, NULL, SCR_ACTION_TIMEOUT);
     if (choice < 0) {
       return scr_settings;
     }
@@ -1673,6 +1705,32 @@ static void* scr_config() {
       }
 
       case 1: {
+        // check recording
+        if (rec_running()) {
+          gui_message(scr_trans()->recording, 2000);
+          return scr_config;
+        }
+
+        // change date
+        scr_date();
+
+        break;
+      }
+
+      case 2: {
+        // check recording
+        if (rec_running()) {
+          gui_message(scr_trans()->recording, 2000);
+          return scr_config;
+        }
+
+        // change time
+        scr_time();
+
+        break;
+      }
+
+      case 3: {
         // cycle through sensor rates
         int32_t value = naos_get_l("sleep-rate");
         if (value == 5) {
@@ -1686,7 +1744,7 @@ static void* scr_config() {
         break;
       }
 
-      case 2: {
+      case 4: {
         // cycle through sensor rates
         int32_t value = naos_get_l("record-rate");
         if (value == 5) {
@@ -1700,7 +1758,7 @@ static void* scr_config() {
         break;
       }
 
-      case 3: {
+      case 5: {
         // use wheel to change long interval
         int32_t value = naos_get_l("long-interval");
         if (gui_wheel(t->config__long_interval, &value, 30, 10, 900, t->save, t->cancel, "%lds", SCR_ACTION_TIMEOUT)) {
@@ -1710,23 +1768,50 @@ static void* scr_config() {
         break;
       }
 
-      case 4: {
+      case 6: {
         // toggle fahrenheit temperature setting
         naos_set_b("fahrenheit", !naos_get_b("fahrenheit"));
 
         break;
       }
 
-      case 5: {
+      case 7: {
         // toggle developer mode
         naos_set_b("developer", !naos_get_b("developer"));
 
         break;
       }
 
-      case 6: {
+      case 8: {
         // toggle power light
         naos_set_b("power-light", !naos_get_b("power-light"));
+
+        break;
+      }
+
+      case 12: {
+        // check recording
+        if (rec_running()) {
+          gui_message(scr_trans()->recording, 2000);
+          return scr_config;
+        }
+
+        // confirm reset
+        if (!gui_confirm(scr_trans()->reset__confirm, scr_trans()->yes, scr_trans()->no, true, SCR_ACTION_TIMEOUT)) {
+          return scr_config;
+        }
+
+        // reset data
+        dat_reset();
+
+        // reset settings
+        naos_reset();
+
+        // show message
+        gui_message(scr_trans()->reset__reset, 2000);
+
+        // restart device
+        esp_restart();
 
         break;
       }
@@ -1901,17 +1986,10 @@ static void* scr_settings() {
   lv_obj_align(title, LV_ALIGN_TOP_LEFT, 5, 5);
 
   // add signs
-  lvx_sign_t datetime = {
-      .title = "↑",
-      .text = scr_trans()->settings__date_time,
-      .align = LV_ALIGN_BOTTOM_LEFT,
-      .offset = -50,
-  };
   lvx_sign_t about = {
       .title = "A",
       .text = scr_trans()->settings__about,
-      .align = LV_ALIGN_BOTTOM_LEFT,
-      .offset = -25,
+      .align = LV_ALIGN_BOTTOM_RIGHT,
   };
   lvx_sign_t back = {
       .title = "B",
@@ -1919,25 +1997,18 @@ static void* scr_settings() {
       .align = LV_ALIGN_BOTTOM_LEFT,
   };
   lvx_sign_t config = {
-      .title = "↓",
-      .text = scr_trans()->settings__config,
-      .align = LV_ALIGN_BOTTOM_RIGHT,
-      .offset = -50,
+      .title = "<",
+      .text = scr_trans()->settings__off,
+      .align = LV_ALIGN_BOTTOM_LEFT,
+      .offset = -25,
   };
   lvx_sign_t off = {
       .title = ">",
-      .text = scr_trans()->settings__off,
+      .text = scr_trans()->settings__config,
       .align = LV_ALIGN_BOTTOM_RIGHT,
       .offset = -25,
   };
-  lvx_sign_t reset = {
-      .title = "<",
-      .text = scr_trans()->settings__reset,
-      .align = LV_ALIGN_BOTTOM_RIGHT,
-  };
-  lvx_sign_create(&datetime, lv_scr_act());
   lvx_sign_create(&about, lv_scr_act());
-  lvx_sign_create(&reset, lv_scr_act());
   lvx_sign_create(&back, lv_scr_act());
   lvx_sign_create(&off, lv_scr_act());
   lvx_sign_create(&config, lv_scr_act());
@@ -1951,52 +2022,8 @@ static void* scr_settings() {
   // cleanup
   gui_cleanup(false);
 
-  // handle reset
-  if (event.type == SIG_LEFT) {
-    // check recording
-    if (rec_running()) {
-      gui_message(scr_trans()->recording, 2000);
-      return scr_settings;
-    }
-
-    // confirm reset
-    if (!gui_confirm(scr_trans()->reset__confirm, scr_trans()->yes, scr_trans()->no, true, SCR_ACTION_TIMEOUT)) {
-      return scr_settings;
-    }
-
-    // reset data
-    dat_reset();
-
-    // reset settings
-    naos_reset();
-
-    // show message
-    gui_message(scr_trans()->reset__reset, 2000);
-
-    // restart device
-    esp_restart();
-
-    return scr_settings;
-  }
-
-  // handle date/time
-  if (event.type == SIG_UP) {
-    // check recording
-    if (rec_running()) {
-      gui_message(scr_trans()->recording, 2000);
-      return scr_settings;
-    }
-
-    // run date/time screens
-    if (scr_date()) {
-      scr_time();
-    }
-
-    return scr_settings;
-  }
-
   // handle power off
-  if (event.type == SIG_RIGHT) {
+  if (event.type == SIG_LEFT) {
     // check recording
     if (rec_running()) {
       gui_message(scr_trans()->recording, 2000);
@@ -2009,15 +2036,12 @@ static void* scr_settings() {
     return scr_settings;
   }
 
-  // handle about
-  if (event.type == SIG_ENTER) {
-    return scr_about;
-  }
-
   // handle event
   switch (event.type) {
-    case SIG_DOWN:
+    case SIG_RIGHT:
       return scr_config;
+    case SIG_ENTER:
+      return scr_about;
     case SIG_ESCAPE:
     case SIG_TIMEOUT:
       // set action
