@@ -1966,7 +1966,7 @@ static void* scr_about() {
 
   for (;;) {
     // select parameter
-    int choice = gui_list(5, selected, &offset, t->change, t->back, scr_about_cb, NULL, SCR_ACTION_TIMEOUT);
+    int choice = gui_list(5, selected, &offset, NULL, t->back, scr_about_cb, NULL, SCR_ACTION_TIMEOUT);
     if (choice < 0) {
       return scr_settings;
     }

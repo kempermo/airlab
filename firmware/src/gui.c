@@ -219,12 +219,14 @@ int gui_list(int total, int selected, int* offset, const char* select, const cha
       .align = LV_ALIGN_BOTTOM_LEFT,
   };
   lvx_sign_create(&back, lv_scr_act());
-  lvx_sign_t open = {
-      .title = "A",
-      .text = select,
-      .align = LV_ALIGN_BOTTOM_RIGHT,
-  };
-  lvx_sign_create(&open, lv_scr_act());
+  if (select != NULL) {
+    lvx_sign_t open = {
+        .title = "A",
+        .text = select,
+        .align = LV_ALIGN_BOTTOM_RIGHT,
+    };
+    lvx_sign_create(&open, lv_scr_act());
+  }
 
   // add info
   lv_obj_t* info = lv_label_create(lv_scr_act());
