@@ -25,6 +25,7 @@ typedef enum {
 } com_cmd_t;
 
 static bool com_mqtt_ha = false;
+static bool com_did_start = false;
 
 static naos_msg_reply_t com_cmd_sensor_read(naos_msg_t msg) {
   // command structure:
@@ -178,7 +179,7 @@ static void com_ha_config_sensor(const char *hat, const char *did, const char *f
 
 static void com_task() {
   // wait some time
-  naos_delay(5000);
+  naos_delay(2000);
 
   // TODO: Also require bonding for more security?
 
@@ -188,6 +189,9 @@ static void com_task() {
   });
   naos_wifi_init();
   naos_mqtt_init(1);
+
+  // set flag
+  com_did_start = true;
 
   for (;;) {
     // await sample
@@ -237,6 +241,10 @@ void com_init() {
   // run tasks
   naos_run("com", 4096, 1, com_task);
   naos_repeat("com-discovery", 10000, com_online);
+}
+
+bool com_started() {
+  return com_did_start;
 }
 
 void com_online() {

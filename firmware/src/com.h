@@ -2,6 +2,7 @@
 #define COM_H
 
 void com_init();
+bool com_started();
 void com_online();
 
 #endif  // COM_H

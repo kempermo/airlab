@@ -19,6 +19,7 @@
 #include <al/buzzer.h>
 #include <al/led.h>
 
+#include "com.h"
 #include "gui.h"
 #include "gfx.h"
 #include "sig.h"
@@ -1514,7 +1515,10 @@ static void* scr_usb() {
 }
 
 static void* scr_ble() {
-  // TODO: We need to make sure coms are started.
+  // wait for com to start
+  while (!com_started()) {
+    naos_delay(100);
+  }
 
   // set modal flag
   hmi_set_flag(HMI_FLAG_MODAL);
