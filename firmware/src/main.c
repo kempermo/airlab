@@ -87,7 +87,7 @@ void app_main() {
   naos_init(&config);
   naos_cpu_init();
   naos_serial_init_stdio();
-  naos_serial_init_usb();
+  naos_serial_init_secio();
   naos_start();
 
   // derive device name from ID if not set
