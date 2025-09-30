@@ -92,20 +92,75 @@ static bool eng_get_bit(const uint8_t *buf, size_t pos) {
   return buf[byte] & (1 << bit) ? 1 : 0;
 }
 
-/* native functions */
+/* primary operations */
+
+static void eng_op_clear(wasm_exec_env_t _, int c) {
+  printf("eng_clear: c=%d\n", c);
+
+  // clear canvas
+  lv_canvas_fill_bg(eng_canvas, eng_color(c), LV_OPA_COVER);
+}
+
+static void eng_op_rect(wasm_exec_env_t _, int x, int y, int w, int h, int c, int b) {
+  printf("eng_rect: x=%d, y=%d, w=%d, h=%d, c=%d, b=%d\n", x, y, w, h, c, b);
+
+  // draw rectangle
+  lv_draw_rect_dsc_t rect_dsc;
+  lv_draw_rect_dsc_init(&rect_dsc);
+  rect_dsc.bg_color = eng_color(c);
+  rect_dsc.bg_opa = b > 0 ? LV_OPA_TRANSP : LV_OPA_COVER;
+  rect_dsc.border_color = eng_color(c);
+  rect_dsc.border_width = b;
+  lv_canvas_draw_rect(eng_canvas, x, y, w, h, &rect_dsc);
+}
+
+static void eng_op_write(wasm_exec_env_t _, int x, int y, int f, int c, uint8 *buf, int buf_len) {
+  printf("eng_write: x=%d, y=%d, f=%d, c=%d, s='%s'\n", x, y, f, c, (char *)buf);
+
+  // write text
+  lv_draw_label_dsc_t label_dsc;
+  lv_draw_label_dsc_init(&label_dsc);
+  label_dsc.color = eng_color(c);
+  label_dsc.font = eng_font(f);
+  lv_canvas_draw_text(eng_canvas, x, y, 296 - x, &label_dsc, (char *)buf);
+}
+
+static void eng_op_draw(wasm_exec_env_t _, int x, int y, int w, int h, uint8 *i, uint8 *m) {
+  printf("eng_draw: x=%d, y=%d, w=%d, h=%d\n", x, y, w, h);
+
+  // do boundary check
+  if (w <= 0 || h <= 0) {
+    return;
+  }
+
+  // set pixels
+  for (int yy = 0; yy < h; yy++) {
+    for (int xx = 0; xx < w; xx++) {
+      int xxx = x + xx;
+      int yyy = y + yy;
+      if (xxx < 0 || xxx >= 296 || yyy < 0 || yyy >= 128) {
+        continue;
+      }
+      int idx = yy * w + xx;
+      if (m == NULL || eng_get_bit(m, idx) != 0) {
+        lv_canvas_set_px(eng_canvas, x + xx, y + yy, eng_color(eng_get_bit(i, idx) ? 1 : 0));
+      }
+    }
+  }
+}
 
 typedef enum {
-  ENG_WF_SKIP_FRAME,
-  ENG_WF_WAIT_FRAME,
-  ENG_WF_INVERT,
-  ENG_WF_REFRESH,
-} eng_wait_flags_t;
+  ENG_YF_SKIP_FRAME,
+  ENG_YF_WAIT_FRAME,
+  ENG_YF_INVERT,
+  ENG_YF_REFRESH,
+} eng_yield_flags_t;
 
-static int eng_yield(wasm_exec_env_t _, int timeout, int flags) {
+static int eng_op_yield(wasm_exec_env_t _, int timeout, int flags) {
   printf("eng_yield\n");
 
   // unlock graphics
-  gfx_end(flags & ENG_WF_SKIP_FRAME, flags & ENG_WF_WAIT_FRAME);
+  gfx_end(flags & ENG_YF_SKIP_FRAME, flags & ENG_YF_WAIT_FRAME);
 
   // await event or deadline
   sig_event_t event = sig_await(SIG_KEYS, timeout);
@@ -139,65 +194,12 @@ static int eng_yield(wasm_exec_env_t _, int timeout, int flags) {
   }
 
   // lock graphics
-  gfx_begin(flags & ENG_WF_REFRESH, flags & ENG_WF_INVERT);
+  gfx_begin(flags & ENG_YF_REFRESH, flags & ENG_YF_INVERT);
 
   return ret;
 }
 
-static void eng_clear(wasm_exec_env_t _, int c) {
-  printf("eng_clear: c=%d\n", c);
-
-  // clear canvas
-  lv_canvas_fill_bg(eng_canvas, eng_color(c), LV_OPA_COVER);
-}
-
-static void eng_rect(wasm_exec_env_t _, int x, int y, int w, int h, int c, int b) {
-  printf("eng_rect: x=%d, y=%d, w=%d, h=%d, c=%d, b=%d\n", x, y, w, h, c, b);
-
-  // draw rectangle
-  lv_draw_rect_dsc_t rect_dsc;
-  lv_draw_rect_dsc_init(&rect_dsc);
-  rect_dsc.bg_color = eng_color(c);
-  rect_dsc.bg_opa = b > 0 ? LV_OPA_TRANSP : LV_OPA_COVER;
-  rect_dsc.border_color = eng_color(c);
-  rect_dsc.border_width = b;
-  lv_canvas_draw_rect(eng_canvas, x, y, w, h, &rect_dsc);
-}
-
-static void eng_write(wasm_exec_env_t _, int x, int y, int f, int c, uint8 *buf, int buf_len) {
-  printf("eng_write: x=%d, y=%d, f=%d, c=%d, s='%s'\n", x, y, f, c, (char *)buf);
-
-  // write text
-  lv_draw_label_dsc_t label_dsc;
-  lv_draw_label_dsc_init(&label_dsc);
-  label_dsc.color = eng_color(c);
-  label_dsc.font = eng_font(f);
-  lv_canvas_draw_text(eng_canvas, x, y, 296 - x, &label_dsc, (char *)buf);
-}
-
-static void eng_draw(wasm_exec_env_t _, int x, int y, int w, int h, uint8 *i, uint8 *m) {
-  printf("eng_draw: x=%d, y=%d, w=%d, h=%d\n", x, y, w, h);
-
-  // do boundary check
-  if (w <= 0 || h <= 0) {
-    return;
-  }
-
-  // set pixels
-  for (int yy = 0; yy < h; yy++) {
-    for (int xx = 0; xx < w; xx++) {
-      int xxx = x + xx;
-      int yyy = y + yy;
-      if (xxx < 0 || xxx >= 296 || yyy < 0 || yyy >= 128) {
-        continue;
-      }
-      int idx = yy * w + xx;
-      if (m == NULL || eng_get_bit(m, idx) != 0) {
-        lv_canvas_set_px(eng_canvas, x + xx, y + yy, eng_color(eng_get_bit(i, idx) ? 1 : 0));
-      }
-    }
-  }
-}
+/* IO operations */
 
 typedef enum {
   ENG_GPIO_CONFIG,
@@ -214,7 +216,7 @@ typedef enum {
   ENG_GPIO_PULL_DOWN = (1 << 5),
 } eng_gpio_flags_t;
 
-static int eng_gpio(wasm_exec_env_t _, int cmd, int flags) {
+static int eng_op_gpio(wasm_exec_env_t _, int cmd, int flags) {
   printf("eng_gpio: cmd=%d, flags=0x%X\n", cmd, flags);
 
   // determine GPIO num
@@ -259,19 +261,21 @@ static int eng_gpio(wasm_exec_env_t _, int cmd, int flags) {
   }
 }
 
-static int eng_i2c(wasm_exec_env_t _, int addr, uint8 *tx, int tx_len, uint8 *rx, int rx_len, int timeout) {
+static int eng_op_i2c(wasm_exec_env_t _, int addr, uint8 *tx, int tx_len, uint8 *rx, int rx_len, int timeout) {
   // perform transfer
   esp_err_t err = al_i2c_transfer(addr, tx, tx_len, rx, rx_len, timeout);
 
   return err == ESP_OK ? 0 : -1;
 }
 
+/* runtime */
+
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/export_native_api.md
 static NativeSymbol native_symbols[] = {
-    {"al_yield", eng_yield, "(ii)i", NULL},  {"al_clear", eng_clear, "(i)", NULL},
-    {"al_rect", eng_rect, "(iiiiii)", NULL}, {"al_write", eng_write, "(iiii*~)", NULL},
-    {"al_draw", eng_draw, "(iiii**)", NULL}, {"al_gpio", eng_gpio, "(ii)i", NULL},
-    {"al_i2c", eng_i2c, "(i*i*i*i)i", NULL},
+    {"al_yield", eng_op_yield, "(ii)i", NULL},  {"al_clear", eng_op_clear, "(i)", NULL},
+    {"al_rect", eng_op_rect, "(iiiiii)", NULL}, {"al_write", eng_op_write, "(iiii*~)", NULL},
+    {"al_draw", eng_op_draw, "(iiii**)", NULL}, {"al_gpio", eng_op_gpio, "(ii)i", NULL},
+    {"al_i2c", eng_op_i2c, "(i*i*i*i)i", NULL},
 };
 
 void *eng_run_task(void *) {
