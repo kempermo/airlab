@@ -136,25 +136,30 @@ static void eng_op_write(wasm_exec_env_t _, int x, int y, int f, int c, uint8 *t
   lv_canvas_draw_text(eng_canvas, x, y, 296 - x, &label_dsc, copy);
 }
 
-static void eng_op_draw(wasm_exec_env_t _, int x, int y, int w, int h, uint8 *i, uint8 *m) {
-  printf("eng_draw: x=%d, y=%d, w=%d, h=%d\n", x, y, w, h);
+static void eng_op_draw(wasm_exec_env_t _, int x, int y, int w, int h, int s, uint8 *i, uint8 *m) {
+  printf("eng_draw: x=%d, y=%d, w=%d, h=%d, s=%d\n", x, y, w, h, s);
 
-  // do boundary check
-  if (w <= 0 || h <= 0) {
+  if (w <= 0 || h <= 0 || s <= 0) {
     return;
   }
 
-  // set pixels
   for (int yy = 0; yy < h; yy++) {
     for (int xx = 0; xx < w; xx++) {
-      int xxx = x + xx;
-      int yyy = y + yy;
-      if (xxx < 0 || xxx >= 296 || yyy < 0 || yyy >= 128) {
-        continue;
-      }
       int idx = yy * w + xx;
       if (m == NULL || eng_get_bit(m, idx) != 0) {
-        lv_canvas_set_px(eng_canvas, x + xx, y + yy, eng_color(eng_get_bit(i, idx) ? 1 : 0));
+        lv_color_t c = eng_color(eng_get_bit(i, idx) ? 1 : 0);
+
+        // expand pixel into s×s block
+        for (int sy = 0; sy < s; sy++) {
+          for (int sx = 0; sx < s; sx++) {
+            int xxx = x + xx * s + sx;
+            int yyy = y + yy * s + sy;
+            if (xxx < 0 || xxx >= 296 || yyy < 0 || yyy >= 128) {
+              continue;
+            }
+            lv_canvas_set_px(eng_canvas, xxx, yyy, c);
+          }
+        }
       }
     }
   }
@@ -268,10 +273,8 @@ static void eng_op_sprite_draw(wasm_exec_env_t _, int sprite, int x, int y, int 
   uint8 *img = data + 4;
   uint8 *msk = img + ((w * h + 7) / 8);
 
-  // TODO: Apply scale.
-
   // draw sprite
-  eng_op_draw(_, x, y, w, h, img, msk);
+  eng_op_draw(_, x, y, w, h, s, img, msk);
 }
 
 static int eng_op_sprite_read(wasm_exec_env_t _, int sprite, int x, int y) {
@@ -387,7 +390,7 @@ static NativeSymbol native_symbols[] = {
     {"al_clear", eng_op_clear, "(i)", NULL},
     {"al_rect", eng_op_rect, "(iiiiii)", NULL},
     {"al_write", eng_op_write, "(iiii*~)", NULL},
-    {"al_draw", eng_op_draw, "(iiii**)", NULL},
+    {"al_draw", eng_op_draw, "(iiiii**)", NULL},
     {"al_gpio", eng_op_gpio, "(ii)i", NULL},
     {"al_i2c", eng_op_i2c, "(i*i*i*i)i", NULL},
     {"al_sprite_resolve", eng_op_sprite_resolve, "(*~)i", NULL},
