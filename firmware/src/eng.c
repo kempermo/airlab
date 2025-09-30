@@ -37,15 +37,18 @@ static lv_obj_t *eng_canvas;
 
 /* bundle helpers */
 
-static eng_bundle_section_t *eng_bundle_locate(eng_bundle_type_t type, const char *name) {
+static int eng_bundle_locate(eng_bundle_type_t type, const char *name, eng_bundle_section_t **out) {
   // find matching section
   for (int i = 0; i < eng_bundle_sections_num; i++) {
     if (eng_bundle_sections[i].type == type && strcmp(eng_bundle_sections[i].name, name) == 0) {
-      return &eng_bundle_sections[i];
+      if (out != NULL) {
+        *out = &eng_bundle_sections[i];
+      }
+      return i;
     }
   }
 
-  return NULL;
+  return -1;
 }
 
 /* memory helpers */
@@ -114,15 +117,23 @@ static void eng_op_rect(wasm_exec_env_t _, int x, int y, int w, int h, int c, in
   lv_canvas_draw_rect(eng_canvas, x, y, w, h, &rect_dsc);
 }
 
-static void eng_op_write(wasm_exec_env_t _, int x, int y, int f, int c, uint8 *buf, int buf_len) {
-  printf("eng_write: x=%d, y=%d, f=%d, c=%d, s='%s'\n", x, y, f, c, (char *)buf);
+static void eng_op_write(wasm_exec_env_t _, int x, int y, int f, int c, uint8 *text, int text_len) {
+  // copy text
+  char copy[128];
+  if (text_len >= sizeof(copy)) {
+    text_len = sizeof(copy) - 1;
+  }
+  memcpy(copy, text, text_len);
+  copy[text_len] = 0;
+
+  printf("eng_write: x=%d, y=%d, f=%d, c=%d, s='%s'\n", x, y, f, c, copy);
 
   // write text
   lv_draw_label_dsc_t label_dsc;
   lv_draw_label_dsc_init(&label_dsc);
   label_dsc.color = eng_color(c);
   label_dsc.font = eng_font(f);
-  lv_canvas_draw_text(eng_canvas, x, y, 296 - x, &label_dsc, (char *)buf);
+  lv_canvas_draw_text(eng_canvas, x, y, 296 - x, &label_dsc, copy);
 }
 
 static void eng_op_draw(wasm_exec_env_t _, int x, int y, int w, int h, uint8 *i, uint8 *m) {
@@ -199,6 +210,106 @@ static int eng_op_yield(wasm_exec_env_t _, int timeout, int flags) {
   return ret;
 }
 
+/* sprite functions */
+
+static int eng_op_sprite_resolve(wasm_exec_env_t _, uint8 *name, int name_len) {
+  // copy name
+  char copy[64];
+  if (name_len >= sizeof(copy)) {
+    name_len = sizeof(copy) - 1;
+  }
+  memcpy(copy, name, name_len);
+  copy[name_len] = 0;
+
+  printf("eng_op_sprite_resolve: name='%s'\n", copy);
+
+  // locate sprite
+  return eng_bundle_locate(ENG_BUNDLE_TYPE_SPRITE, copy, NULL);
+}
+
+static int eng_op_sprite_width(wasm_exec_env_t _, int sprite) {
+  printf("eng_op_sprite_width: sprite=%d\n", sprite);
+
+  // check sprite
+  if (sprite < 0 || sprite >= eng_bundle_sections_num || eng_bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
+    return -1;
+  }
+
+  // get width
+  uint8 *data = eng_bundle_sections[sprite].data;
+  return data[0] | (data[1] << 8);
+}
+
+static int eng_op_sprite_height(wasm_exec_env_t _, int sprite) {
+  printf("eng_op_sprite_height: sprite=%d\n", sprite);
+
+  // check sprite
+  if (sprite < 0 || sprite >= eng_bundle_sections_num || eng_bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
+    return -1;
+  }
+
+  // get height
+  uint8 *data = eng_bundle_sections[sprite].data;
+  return data[2] | (data[3] << 8);
+}
+
+static void eng_op_sprite_draw(wasm_exec_env_t _, int sprite, int x, int y, int s) {
+  printf("eng_op_sprite_draw: sprite=%d, x=%d, y=%d, s=%d\n", sprite, x, y, s);
+
+  // check sprite
+  if (sprite < 0 || sprite >= eng_bundle_sections_num || eng_bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
+    return;
+  }
+
+  // get data
+  uint8 *data = eng_bundle_sections[sprite].data;
+  int w = data[0] | (data[1] << 8);
+  int h = data[2] | (data[3] << 8);
+  uint8 *img = data + 4;
+  uint8 *msk = img + ((w * h + 7) / 8);
+
+  // TODO: Apply scale.
+
+  // draw sprite
+  eng_op_draw(_, x, y, w, h, img, msk);
+}
+
+static int eng_op_sprite_read(wasm_exec_env_t _, int sprite, int x, int y) {
+  printf("eng_op_sprite_read: sprite=%d, x=%d, y=%d\n", sprite, x, y);
+
+  // check sprite
+  if (sprite < 0 || sprite >= eng_bundle_sections_num || eng_bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
+    return -1;
+  }
+
+  // get size
+  uint8 *data = eng_bundle_sections[sprite].data;
+  int w = data[0] | (data[1] << 8);
+  int h = data[2] | (data[3] << 8);
+  uint8 *img = data + 4;
+  uint8 *msk = img + ((w * h + 7) / 8);
+
+  // check parameters
+  if (x < 0 || y < 0 || x >= w || y >= h) {
+    return -1;
+  }
+
+  // compute index
+  int idx = y * w + x;
+
+  // test mask
+  if (eng_get_bit(msk, idx) == 0) {
+    return -1;
+  }
+
+  // test image
+  if (eng_get_bit(img, idx) != 0) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 /* IO operations */
 
 typedef enum {
@@ -272,10 +383,18 @@ static int eng_op_i2c(wasm_exec_env_t _, int addr, uint8 *tx, int tx_len, uint8 
 
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/export_native_api.md
 static NativeSymbol native_symbols[] = {
-    {"al_yield", eng_op_yield, "(ii)i", NULL},  {"al_clear", eng_op_clear, "(i)", NULL},
-    {"al_rect", eng_op_rect, "(iiiiii)", NULL}, {"al_write", eng_op_write, "(iiii*~)", NULL},
-    {"al_draw", eng_op_draw, "(iiii**)", NULL}, {"al_gpio", eng_op_gpio, "(ii)i", NULL},
+    {"al_yield", eng_op_yield, "(ii)i", NULL},
+    {"al_clear", eng_op_clear, "(i)", NULL},
+    {"al_rect", eng_op_rect, "(iiiiii)", NULL},
+    {"al_write", eng_op_write, "(iiii*~)", NULL},
+    {"al_draw", eng_op_draw, "(iiii**)", NULL},
+    {"al_gpio", eng_op_gpio, "(ii)i", NULL},
     {"al_i2c", eng_op_i2c, "(i*i*i*i)i", NULL},
+    {"al_sprite_resolve", eng_op_sprite_resolve, "(*~)i", NULL},
+    {"al_sprite_width", eng_op_sprite_width, "(i)i", NULL},
+    {"al_sprite_height", eng_op_sprite_height, "(i)i", NULL},
+    {"al_sprite_draw", eng_op_sprite_draw, "(iiii)", NULL},
+    {"al_sprite_read", eng_op_sprite_read, "(iii)i", NULL},
 };
 
 void *eng_run_task(void *) {
@@ -306,7 +425,11 @@ void *eng_run_task(void *) {
   wasm_runtime_set_log_level(WASM_LOG_LEVEL_VERBOSE);
 
   // locate main binary
-  eng_bundle_section_t *main = eng_bundle_locate(ENG_BUNDLE_TYPE_BINARY, "main");
+  eng_bundle_section_t *main;
+  if (eng_bundle_locate(ENG_BUNDLE_TYPE_BINARY, "main", &main) < 0) {
+    printf("eng: locating main binary failed\n");
+    return NULL;
+  }
 
   // load application
   wasm_module_t module = wasm_runtime_load(main->data, main->len, error_buf, sizeof(error_buf));
@@ -437,7 +560,7 @@ void eng_run(void *bundle_buf, size_t bundle_len) {
   }
 
   // check main binary
-  if (eng_bundle_locate(ENG_BUNDLE_TYPE_BINARY, "main") == NULL) {
+  if (eng_bundle_locate(ENG_BUNDLE_TYPE_BINARY, "main", NULL) < 0) {
     printf("eng: can't find main binary\n");
     free(eng_bundle_sections);
     eng_bundle_sections = NULL;
