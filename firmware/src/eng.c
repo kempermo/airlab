@@ -7,6 +7,9 @@
 #include <wasm_export.h>
 #include <bh_platform.h>
 #include <lvgl.h>
+#include <esp_http_client.h>
+#include <esp_log.h>
+#include <naos.h>
 
 #include <al/core.h>
 
@@ -414,6 +417,197 @@ static int eng_op_i2c(wasm_exec_env_t _, int addr, uint8 *tx, int tx_len, uint8 
   return err == ESP_OK ? 0 : -1;
 }
 
+/* HTTP operations */
+
+static esp_http_client_config_t eng_http_cfg = {0};
+static esp_http_client_handle_t eng_http_client = {0};
+
+enum {
+  // request
+  ENG_HTTP_URL,       // string
+  ENG_HTTP_METHOD,    // string
+  ENG_HTTP_USERNAME,  // string
+  ENG_HTTP_PASSWORD,  // string
+  ENG_HTTP_HEADER,    // string, string
+  ENG_HTTP_TIMEOUT,   // int (ms)
+  // CERT, TLS
+
+  // response
+  ENG_HTTP_STATUS,  // int
+  ENG_HTTP_LENGTH,  // int
+  ENG_HTTP_ERRNO,   // int
+};
+
+esp_err_t eng_http_handler(esp_http_client_event_t *evt) {
+  // get value
+  naos_value_t *val = evt->user_data;
+
+  // track length
+  static size_t len;
+
+  // handle vents
+  switch (evt->event_id) {
+    case HTTP_EVENT_ERROR:
+    case HTTP_EVENT_ON_CONNECTED:
+    case HTTP_EVENT_HEADER_SENT:
+    case HTTP_EVENT_ON_HEADER:
+      break;
+    case HTTP_EVENT_ON_DATA:
+      // clean the buffer on first call
+      if (len == 0) {
+        memset(val->buf, 0, val->len);
+      }
+
+      // determine chunk
+      size_t chunk = evt->data_len;
+      if (chunk > (val->len - len)) {
+        chunk = val->len - len;
+      }
+
+      // copy chunk
+      if (chunk) {
+        memcpy(val->buf + len, evt->data, chunk);
+      }
+
+      // increment
+      len += chunk;
+
+      break;
+    case HTTP_EVENT_ON_FINISH:
+    case HTTP_EVENT_DISCONNECTED:
+      len = 0;
+      break;
+    case HTTP_EVENT_REDIRECT:
+      break;
+  }
+
+  return ESP_OK;
+}
+
+static void eng_op_http_new() {
+  // destroy previous client
+  if (eng_http_client) {
+    ESP_ERROR_CHECK(esp_http_client_cleanup(eng_http_client));
+  }
+
+  // initialize config
+  memset(&eng_http_cfg, 0, sizeof(esp_http_client_config_t));
+  eng_http_cfg.url = "http://networkedartifacts.com";
+  eng_http_cfg.max_redirection_count = 3;
+  eng_http_cfg.max_authorization_retries = -1;
+  eng_http_cfg.buffer_size = 1024;
+  eng_http_cfg.buffer_size_tx = 1024;
+  eng_http_cfg.event_handler = eng_http_handler;
+  eng_http_cfg.transport_type = HTTP_TRANSPORT_OVER_TCP;
+
+  // create client
+  eng_http_client = esp_http_client_init(&eng_http_cfg);
+  if (!eng_http_client) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
+}
+
+static int eng_op_http_set(wasm_exec_env_t _, int field, int num, uint8 *str, int str_len, uint8 *str2, int str2_len) {
+  // copy strings
+  char str_copy[128];
+  char str2_copy[128];
+  if (str_len >= sizeof(str_copy)) {
+    str_len = sizeof(str_copy) - 1;
+  }
+  if (str2_len >= sizeof(str2_copy)) {
+    str2_len = sizeof(str2_copy) - 1;
+  }
+  memcpy(str_copy, str, str_len);
+  memcpy(str2_copy, str2, str2_len);
+  str_copy[str_len] = 0;
+  str2_copy[str2_len] = 0;
+
+  // log
+  printf("eng_op_http_set: field=%d, num=%d, str='%s'\n", field, num, str_copy);
+
+  // handle fields
+  switch (field) {
+    case ENG_HTTP_URL:
+      esp_http_client_set_url(eng_http_client, str_copy);  // makes copy
+      break;
+    case ENG_HTTP_METHOD:
+      if (strcmp(str_copy, "GET") == 0) {
+        esp_http_client_set_method(eng_http_client, HTTP_METHOD_GET);
+      } else if (strcmp(str_copy, "POST") == 0) {
+        esp_http_client_set_method(eng_http_client, HTTP_METHOD_POST);
+      } else if (strcmp(str_copy, "PUT") == 0) {
+        esp_http_client_set_method(eng_http_client, HTTP_METHOD_PUT);
+      } else if (strcmp(str_copy, "PATH") == 0) {
+        esp_http_client_set_method(eng_http_client, HTTP_METHOD_PATCH);
+      } else if (strcmp(str_copy, "DELETE") == 0) {
+        esp_http_client_set_method(eng_http_client, HTTP_METHOD_DELETE);
+      } else {
+        return -1;
+      }
+      break;
+    case ENG_HTTP_USERNAME:
+      esp_http_client_set_username(eng_http_client, str_copy);  // makes copy
+      break;
+    case ENG_HTTP_PASSWORD:
+      esp_http_client_set_password(eng_http_client, str_copy);  // makes copy
+      break;
+    case ENG_HTTP_HEADER:
+      esp_http_client_set_header(eng_http_client, str_copy, str2_copy);  // makes copy
+      break;
+    case ENG_HTTP_TIMEOUT:
+      esp_http_client_set_timeout_ms(eng_http_client, num);
+      break;
+    default:
+      return -1;
+  }
+
+  return 0;
+}
+
+static int eng_op_http_run(wasm_exec_env_t _, uint8 *req, int req_len, uint8 *res, int res_len) {
+  printf("eng_op_http_run: req_len=%d, res_len=%d\n", req_len, res_len);
+
+  // set request data
+  if (req && req_len > 0) {
+    esp_http_client_set_post_field(eng_http_client, (const char *)req, req_len);
+  } else {
+    esp_http_client_set_post_field(eng_http_client, NULL, 0);
+  }
+
+  // set response buffer
+  if (res && res_len > 0) {
+    naos_value_t val = {.buf = res, .len = res_len};
+    esp_http_client_set_user_data(eng_http_client, &val);
+  } else {
+    esp_http_client_set_user_data(eng_http_client, NULL);
+  }
+
+  // perform request
+  esp_err_t err = esp_http_client_perform(eng_http_client);
+
+  return err;
+}
+
+static int eng_op_http_get(wasm_exec_env_t _, int field) {
+  // log
+  printf("eng_op_http_get: field=%d\n", field);
+
+  // handle fields
+  switch (field) {
+    case ENG_HTTP_STATUS: {
+      return esp_http_client_get_status_code(eng_http_client);
+    }
+    case ENG_HTTP_LENGTH: {
+      return (int)esp_http_client_get_content_length(eng_http_client);
+    }
+    case ENG_HTTP_ERRNO: {
+      return esp_http_client_get_errno(eng_http_client);
+    }
+    default:
+      return -1;
+  }
+}
+
 /* runtime */
 
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/export_native_api.md
@@ -431,6 +625,10 @@ static NativeSymbol eng_operations[] = {
     {"al_sprite_height", eng_op_sprite_height, "(i)i", NULL},
     {"al_sprite_draw", eng_op_sprite_draw, "(iiii)", NULL},
     {"al_sprite_read", eng_op_sprite_read, "(iii)i", NULL},
+    {"al_http_new", eng_op_http_new, "()", NULL},
+    {"al_http_set", eng_op_http_set, "(ii*~*~)i", NULL},
+    {"al_http_run", eng_op_http_run, "(*~*~)i", NULL},
+    {"al_http_get", eng_op_http_get, "(i)i", NULL},
 };
 
 void *eng_run_task(void *) {
