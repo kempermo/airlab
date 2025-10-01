@@ -10,9 +10,6 @@ int main() {
   // clear screen
   al_clear(0);
 
-  // write text
-  al_write(10, 10, 16, 1, "GPIO Test");
-
   bool gpio_a = false;
 
   // draw borders for GPIO indicators
@@ -24,8 +21,8 @@ int main() {
     bool gpio_b = al_gpio(AL_GPIO_READ, AL_GPIO_B) == 1;
 
     // show rectangles based on levels
-    al_rect(103 + 2, 49 + 2, 20, 20, gpio_a ? 1 : 0, 0);
-    al_rect(163 + 2, 49 + 2, 20, 20, gpio_b ? 1 : 0, 0);
+    al_rect(103 + 3, 49 + 3, 24, 24, gpio_a ? 1 : 0, 0);
+    al_rect(163 + 3, 49 + 3, 24, 24, gpio_b ? 1 : 0, 0);
 
     // await event
     al_yield_result_t res = al_yield(500, 0);

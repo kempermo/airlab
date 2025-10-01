@@ -4,11 +4,18 @@
 
 IMPORT("al_clear") extern void al_clear(int c);
 
-IMPORT("al_write")
-extern void _al_write(int x, int y, int f, int c, const void *s, int sl);
+typedef enum {
+  AL_WRITE_ALIGN_CENTER = (1 << 0),
+  AL_WRITE_ALIGN_RIGHT = (1 << 1),
+} al_write_flags_t;
 
-void al_write(int x, int y, int f, int c, const char *s) {
-  _al_write(x, y, f, c, s, strlen(s));
+IMPORT("al_write")
+extern void _al_write(int x, int y, int s, int f, int c, const void *sp, int sl,
+                      int flags);
+
+void al_write(int x, int y, int s, int f, int c, const char *str,
+              al_write_flags_t flags) {
+  _al_write(x, y, s, f, c, str, strlen(str), flags);
 }
 
 IMPORT("al_rect") extern void al_rect(int x, int y, int w, int h, int c, int b);
@@ -58,3 +65,7 @@ IMPORT("al_gpio") extern int _al_gpio(int cmd, int flags);
 int al_gpio(al_gpio_cmd_t cmd, al_gpio_flags_t flags) {
   return _al_gpio(cmd, flags);
 }
+
+IMPORT("al_i2c")
+extern int al_i2c(int addr, const void *w, int wl, void *r, int rl,
+                  int timeout);

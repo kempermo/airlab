@@ -5,7 +5,7 @@ int main() {
   al_clear(0);
 
   // write text
-  al_write(10, 10, 16, 1, "Hello, World!");
+  al_write(0, 56, 0, 16, 1, "Hello, World!", AL_WRITE_ALIGN_CENTER);
 
   // wait for an event
   al_yield(0, 0);
