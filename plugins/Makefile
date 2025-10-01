@@ -1,4 +1,4 @@
-.PHONY: hello gpio sen55
+.PHONY: hello gpio sen55 http
 
 COMPILE := zig cc -target wasm32-wasi -Wl,-z,stack-size=65536 -Wl,--initial-memory=262144 -Wl,--max-memory=262144 -Os
 
@@ -13,6 +13,10 @@ gpio:
 sen55:
 	$(COMPILE) -o ./sen55/main.wasm ./sen55/main.c
 	alpctl bundle ./sen55 plugin.alp
+
+http:
+	$(COMPILE) -o ./http/main.wasm ./http/main.c
+	alpctl bundle ./http plugin.alp
 
 upload:
 	alpctl upload plugin.alp

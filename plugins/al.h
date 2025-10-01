@@ -62,3 +62,33 @@ int al_gpio(al_gpio_cmd_t cmd, al_gpio_flags_t flags) { return _al_gpio(cmd, fla
 
 IMPORT("al_i2c")
 extern int al_i2c(int addr, const void *w, int wl, void *r, int rl, int timeout);
+
+/* HTTP */
+
+enum {
+  // request
+  ENG_HTTP_URL,       // string
+  ENG_HTTP_METHOD,    // string
+  ENG_HTTP_USERNAME,  // string
+  ENG_HTTP_PASSWORD,  // string
+  ENG_HTTP_HEADER,    // string, string
+  ENG_HTTP_TIMEOUT,   // int (ms)
+
+  // response
+  ENG_HTTP_STATUS,  // int
+  ENG_HTTP_LENGTH,  // int
+  ENG_HTTP_ERRNO,   // int
+};
+
+IMPORT("al_http_new") extern void al_http_new();
+
+IMPORT("al_http_set")
+extern int _al_http_set(int field, int num, void *str1, int str1_len, void *str2, int str2_len);
+int al_http_set(int field, int num, const char *str1, const char *str2) {
+  return _al_http_set(field, num, (void *)str1, str1 ? strlen(str1) : 0, (void *)str2, str2 ? strlen(str2) : 0);
+}
+
+IMPORT("al_http_run")
+extern int al_http_run(void *req, int req_len, void *res, int res_len);
+
+IMPORT("al_http_get") extern int al_http_get(int field);
