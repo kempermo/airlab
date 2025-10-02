@@ -1,8 +1,15 @@
 #include <string.h>
 
+#define AL_W 296
+#define AL_H 128
+
 #define IMPORT(fn) __attribute__((import_module("env"), import_name(fn)))
 
 IMPORT("al_clear") extern void al_clear(int c);
+
+IMPORT("al_line") extern void al_line(int x1, int y1, int x2, int y2, int c, int b);
+
+IMPORT("al_rect") extern void al_rect(int x, int y, int w, int h, int c, int b);
 
 typedef enum {
   AL_WRITE_ALIGN_CENTER = (1 << 0),
@@ -15,8 +22,6 @@ extern void _al_write(int x, int y, int s, int f, int c, const void *sp, int sl,
 void al_write(int x, int y, int s, int f, int c, const char *str, al_write_flags_t flags) {
   _al_write(x, y, s, f, c, str, strlen(str), flags);
 }
-
-IMPORT("al_rect") extern void al_rect(int x, int y, int w, int h, int c, int b);
 
 typedef enum {
   AL_YIELD_SKIP_FRAME = (1 << 0),

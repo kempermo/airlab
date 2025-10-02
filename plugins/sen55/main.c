@@ -81,7 +81,7 @@ int main() {
     uint16_t pmx = sen55_br[3];
 
     // format data
-    char buffer[128];
+    char buffer[AL_H];
     snprintf(buffer, sizeof(buffer), "PM1.0: %u\nPM2.5: %u\nPM4.0: %u\nPM10: %u\n", pm1, pm2, pm4, pmx);
 
     // display data

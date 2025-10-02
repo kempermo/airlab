@@ -1,0 +1,2 @@
+name: Graphics Example
+binary: ./main.wasm
