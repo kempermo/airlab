@@ -109,6 +109,20 @@ static void eng_op_clear(wasm_exec_env_t _, int c) {
   lv_canvas_fill_bg(eng_canvas, eng_color(c), LV_OPA_COVER);
 }
 
+static void eng_op_line(wasm_exec_env_t _, int x1, int y1, int x2, int y2, int c, int b) {
+  printf("eng_line: x1=%d, y1=%d, x2=%d, y2=%d, c=%d, b=%d\n", x1, y1, x2, y2, c, b);
+
+  // prepare descriptor
+  lv_draw_line_dsc_t line_dsc;
+  lv_draw_line_dsc_init(&line_dsc);
+  line_dsc.color = eng_color(c);
+  line_dsc.width = b;
+
+  // draw line
+  lv_point_t points[2] = {{x1, y1}, {x2, y2}};
+  lv_canvas_draw_line(eng_canvas, points, 2, &line_dsc);
+}
+
 static void eng_op_rect(wasm_exec_env_t _, int x, int y, int w, int h, int c, int b) {
   printf("eng_rect: x=%d, y=%d, w=%d, h=%d, c=%d, b=%d\n", x, y, w, h, c, b);
 
@@ -615,6 +629,7 @@ static NativeSymbol eng_operations[] = {
     {"al_yield", eng_op_yield, "(ii)i", NULL},
     {"al_millis", eng_op_millis, "()I", NULL},
     {"al_clear", eng_op_clear, "(i)", NULL},
+    {"al_line", eng_op_line, "(iiiiii)", NULL},
     {"al_rect", eng_op_rect, "(iiiiii)", NULL},
     {"al_write", eng_op_write, "(iiiii*~i)", NULL},
     {"al_draw", eng_op_draw, "(iiiii**)", NULL},
