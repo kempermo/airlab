@@ -1,4 +1,4 @@
-.PHONY: gfx hello gpio sen55 http
+.PHONY: gfx hello gpio sen55 http weather
 
 COMPILE := zig cc -target wasm32-wasi -Wl,-z,stack-size=65536 -Wl,--initial-memory=262144 -Wl,--max-memory=262144 -Os
 
@@ -25,6 +25,11 @@ sen55:
 http:
 	$(COMPILE) -o ./http/main.wasm ./http/main.c
 	alpctl bundle ./http plugin.alp
+	alpctl upload plugin.alp
+
+weather:
+	$(COMPILE) -o ./weather/main.wasm ./weather/main.c
+	alpctl bundle ./weather plugin.alp
 	alpctl upload plugin.alp
 
 fmt:
