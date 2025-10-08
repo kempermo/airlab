@@ -10,22 +10,24 @@ _Using its high-quality sensors, Air Lab measures CO2, temperature, relative hum
 
 ## Getting Started
 
-**Welcome to the Air Lab open-source repository!** At Networked Artifacts we firmly believe that open-source software is essential to delivering a product that remains accessible and customizable forever. Thus, we encourage you to join the development, report bugs, or fork the repository and customize it to your needs. And when you do, make sure to post your project using GitHub discussions!
+**Welcome to the Air Lab open-source repository!** At Networked Artifacts, we firmly believe that open-source software is essential to delivering a product that remains accessible and customizable forever. Thus, we encourage you to join the development, report bugs, or fork the repository and customize it to your needs. And when you do, make sure to post your project using GitHub discussions!
 
 ## Structure
 
-The repository contains the official device firmware, board support library, documentation and auxiliary tools to work with Air Lab devices.
+The repository contains the official device firmware, the board support library, technical documentation, and handy tools to work with Air Lab devices.
 
-- `alctl`: A command line helper utility for interfacing with the Air Lab.
-- `firmware`: The official device firmware.
+- [`alctl`](https://github.com/networkedartifacts/airlab/tree/main/alctt): A command-line helper utility for interfacing with the Air Lab.
+- [`firmware`](https://github.com/networkedartifacts/airlab/tree/main/firmware): The official device firmware.
 
 Please consult the READMEs in the respective directories for further information.
 
 ## Resources
 
-Please consult the following resources for further information on the product:
+Please consult the following resources for further information:
 
-- https://networkedartifacts.com/airlab
+- Website: https://networkedartifacts.com/airlab
+- Manual: https://networkedartifacts.com/manuals/airlab
+- Studio: https://studio.networkedartifacts.com
 
 ## Licenses
 
@@ -33,4 +35,4 @@ The source code and materials in this repository are open source and licensed un
 
 Please note that certain graphics, names, and logos included in this repository are Networked Artifacts Inc. trademarks or copyrighted materials. These assets are not covered by the Apache 2.0 license and may not be used in derivative products without prior written permission. See ASSETS-EULA.md for terms governing the use of included graphics and branding assets.
 
-In case of uncertainty about the license please contact us directly using https://networkedartifacts.com/contact.
+In case of uncertainty about the license, please contact us directly using https://networkedartifacts.com/contact.
