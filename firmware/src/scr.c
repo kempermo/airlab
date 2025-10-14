@@ -103,6 +103,27 @@ static void scr_power_off(bool low_power, bool msg) {
   al_power_off();
 }
 
+static void scr_start_engine() {
+  // write message
+  gui_cleanup(false);
+  gui_write("Loading app...", false);
+
+  // load app
+  size_t app_len = 0;
+  void* app = al_storage_load(AL_STORAGE_INT, "engine", "app.wasm", &app_len);
+  if (!app) {
+    gui_cleanup(false);
+    gui_message("App not found!", 2000);
+    return;
+  }
+
+  // run app
+  eng_run(app, app_len);
+
+  // clean up
+  free(app);
+}
+
 /* Translations */
 
 typedef enum {
@@ -805,10 +826,18 @@ static void* scr_saver() {
     // check if powered or connected via BLE
     if (power.has_usb || naos_ble_connections() > 0) {
       // wait some time
-      sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_SENSOR | SIG_INTERRUPT, 60 * 1000);
+      sig_event_t event = sig_await(SIG_KEYS | SIG_TIMEOUT | SIG_SENSOR | SIG_INTERRUPT | SIG_LAUNCH, 60 * 1000);
+
+      // start engine on launch
+      if (event.type == SIG_LAUNCH) {
+        // run engine
+        scr_start_engine();
+
+        return scr_menu;
+      }
 
       // handle unlock
-      if (event.type & SIG_KEYS) {
+      if (event.type & (SIG_KEYS | SIG_LAUNCH)) {
         break;
       }
     } else {
@@ -2306,23 +2335,8 @@ static void* scr_develop() {
 
     // handle engine
     if (selected == 14) {
-      // write message
-      gui_write("Loading app...", false);
-
-      // load app
-      size_t app_len = 0;
-      void* app = al_storage_load(AL_STORAGE_INT, "engine", "app.wasm", &app_len);
-      if (!app) {
-        gui_cleanup(false);
-        gui_message("App not found!", 2000);
-        continue;
-      }
-
-      // run app
-      eng_run(app, app_len);
-
-      // cleanup
-      free(app);
+      // run engine
+      scr_start_engine();
     }
   }
 }
@@ -2539,17 +2553,17 @@ static void* scr_menu() {
     fun = false;
 
     // await event
-    sig_event_t event = sig_await(SIG_SENSOR | SIG_INTERRUPT | SIG_KEYS, 0);
+    sig_event_t event = sig_await(SIG_SENSOR | SIG_INTERRUPT | SIG_LAUNCH | SIG_KEYS, 0);
 
     // handle deadline
     if (event.type & (SIG_SENSOR | SIG_INTERRUPT) && naos_millis() > deadline) {
       event.type = SIG_TIMEOUT;
-    } else if ((event.type & SIG_KEYS) != 0) {
+    } else if (event.type & (SIG_KEYS | SIG_LAUNCH)) {
       deadline = naos_millis() + SCR_IDLE_TIMEOUT;
     }
 
-    // clear statement and action on any key
-    if (statement != NULL && (event.type & SIG_KEYS) != 0) {
+    // clear statement and action on any key or launch
+    if (statement != NULL && event.type & (SIG_KEYS | SIG_LAUNCH)) {
       statement = NULL;
       scr_action = 0;
       continue;
@@ -2563,6 +2577,14 @@ static void* scr_menu() {
       }
 
       continue;
+    }
+
+    // start engine on launch
+    if (event.type == SIG_LAUNCH) {
+      // run engine
+      scr_start_engine();
+
+      return scr_menu;
     }
 
     // change mode on up/down

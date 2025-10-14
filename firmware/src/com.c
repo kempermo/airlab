@@ -15,6 +15,7 @@
 #include <al/storage.h>
 
 #include "com.h"
+#include "sig.h"
 
 #define ENDPOINT 0xA1
 
@@ -22,6 +23,7 @@
 
 typedef enum {
   COM_CMD_SENSOR_READ = 0x01,
+  COM_CMD_SIGNAL_LAUNCH = 0x02,
 } com_cmd_t;
 
 static bool com_mqtt_ha = false;
@@ -89,6 +91,23 @@ static naos_msg_reply_t com_cmd_sensor_read(naos_msg_t msg) {
   return NAOS_MSG_ACK;
 }
 
+static naos_msg_reply_t com_cmd_signal_launch(naos_msg_t msg) {
+  // command structure:
+  // NONE
+
+  // check length
+  if (msg.len != 0) {
+    return NAOS_MSG_INVALID;
+  }
+
+  // signal launch
+  sig_dispatch((sig_event_t){
+      .type = SIG_LAUNCH,
+  });
+
+  return NAOS_MSG_ACK;
+}
+
 static naos_msg_reply_t com_handle(naos_msg_t msg) {
   // message structure:
   // CMD (1) | *
@@ -115,6 +134,9 @@ static naos_msg_reply_t com_handle(naos_msg_t msg) {
   switch (cmd) {
     case COM_CMD_SENSOR_READ:
       reply = com_cmd_sensor_read(msg);
+      break;
+    case COM_CMD_SIGNAL_LAUNCH:
+      reply = com_cmd_signal_launch(msg);
       break;
     default:
       reply = NAOS_MSG_UNKNOWN;
