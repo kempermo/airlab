@@ -14,4 +14,6 @@ void hmi_init();
 void hmi_set_flag(hmi_flag_t flag);
 void hmi_clear_flag(hmi_flag_t flag);
 
+void hmi_set_button_repeat(uint16_t ms);
+
 #endif  // HMI_H

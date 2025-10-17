@@ -14,7 +14,7 @@
 #include "hmi.h"
 #include "sig.h"
 
-#define HMI_REPEAT 750
+#define HMI_BUTTON_REPEAT 750
 #define HMI_DEBUG false
 
 #define HMI_LED_SLOW 5, 0.1f
@@ -29,6 +29,7 @@ static bool hmi_power_light = true;
 static naos_mutex_t hmi_mutex;
 static float hmi_touch_scroll = 0;
 static float hmi_touch_scroll_fast = 0;
+static uint16_t hmi_button_repeat = HMI_BUTTON_REPEAT;
 static uint8_t hmi_button_state = 0;
 static int64_t hmi_button_times[8] = {0};
 static int8_t hmi_button_counts[8] = {0};
@@ -167,14 +168,14 @@ static void hmi_button_check() {
       }
     } else {
       // check repeat
-      if (hmi_button_times[i] != 0 && now - hmi_button_times[i] > HMI_REPEAT) {
+      if (hmi_button_times[i] != 0 && now - hmi_button_times[i] > hmi_button_repeat) {
         // log repeat
         if (HMI_DEBUG) {
           naos_log("btn: repeated %d", i);
         }
 
         // subtract time
-        hmi_button_times[i] += HMI_REPEAT;
+        hmi_button_times[i] += hmi_button_repeat;
 
         // increment
         hmi_button_counts[i]++;
@@ -306,4 +307,13 @@ void hmi_clear_flag(hmi_flag_t flag) {
     hmi_flags[flag]--;
   }
   naos_unlock(hmi_mutex);
+}
+
+void hmi_set_button_repeat(uint16_t ms) {
+  // set repeat delay
+  if (ms == 0) {
+    hmi_button_repeat = HMI_BUTTON_REPEAT;
+  } else {
+    hmi_button_repeat = ms;
+  }
 }
