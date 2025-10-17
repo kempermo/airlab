@@ -32,20 +32,22 @@ typedef struct {
   uint8 *data;
 } eng_bundle_section_t;
 
-static void *eng_bundle_buf;
-static size_t eng_bundle_len;
-static uint16 eng_bundle_sections_num;
-static eng_bundle_section_t *eng_bundle_sections;
-static lv_obj_t *eng_canvas;
+typedef struct {
+  void *bundle_buf;
+  size_t bundle_len;
+  uint16 bundle_sections_num;
+  eng_bundle_section_t *bundle_sections;
+  lv_obj_t *canvas;
+} eng_context_t;
 
 /* bundle helpers */
 
-static int eng_bundle_locate(eng_bundle_type_t type, const char *name, eng_bundle_section_t **out) {
+static int eng_bundle_locate(eng_context_t *ctx, eng_bundle_type_t type, const char *name, eng_bundle_section_t **out) {
   // find matching section
-  for (int i = 0; i < eng_bundle_sections_num; i++) {
-    if (eng_bundle_sections[i].type == type && strcmp(eng_bundle_sections[i].name, name) == 0) {
+  for (int i = 0; i < ctx->bundle_sections_num; i++) {
+    if (ctx->bundle_sections[i].type == type && strcmp(ctx->bundle_sections[i].name, name) == 0) {
       if (out != NULL) {
-        *out = &eng_bundle_sections[i];
+        *out = &ctx->bundle_sections[i];
       }
       return i;
     }
@@ -115,15 +117,21 @@ static char *eng_mkstr(const uint8 *buf, int len) {
 
 /* primary operations */
 
-static void eng_op_clear(wasm_exec_env_t _, int c) {
+static void eng_op_clear(wasm_exec_env_t env, int c) {
   printf("eng_clear: c=%d\n", c);
 
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
+
   // clear canvas
-  lv_canvas_fill_bg(eng_canvas, eng_color(c), LV_OPA_COVER);
+  lv_canvas_fill_bg(ctx->canvas, eng_color(c), LV_OPA_COVER);
 }
 
-static void eng_op_line(wasm_exec_env_t _, int x1, int y1, int x2, int y2, int c, int b) {
+static void eng_op_line(wasm_exec_env_t env, int x1, int y1, int x2, int y2, int c, int b) {
   printf("eng_line: x1=%d, y1=%d, x2=%d, y2=%d, c=%d, b=%d\n", x1, y1, x2, y2, c, b);
+
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
 
   // prepare descriptor
   lv_draw_line_dsc_t line_dsc;
@@ -133,11 +141,14 @@ static void eng_op_line(wasm_exec_env_t _, int x1, int y1, int x2, int y2, int c
 
   // draw line
   lv_point_t points[2] = {{x1, y1}, {x2, y2}};
-  lv_canvas_draw_line(eng_canvas, points, 2, &line_dsc);
+  lv_canvas_draw_line(ctx->canvas, points, 2, &line_dsc);
 }
 
-static void eng_op_rect(wasm_exec_env_t _, int x, int y, int w, int h, int c, int b) {
+static void eng_op_rect(wasm_exec_env_t env, int x, int y, int w, int h, int c, int b) {
   printf("eng_rect: x=%d, y=%d, w=%d, h=%d, c=%d, b=%d\n", x, y, w, h, c, b);
+
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
 
   // draw rectangle
   lv_draw_rect_dsc_t rect_dsc;
@@ -146,7 +157,7 @@ static void eng_op_rect(wasm_exec_env_t _, int x, int y, int w, int h, int c, in
   rect_dsc.bg_opa = b > 0 ? LV_OPA_TRANSP : LV_OPA_COVER;
   rect_dsc.border_color = eng_color(c);
   rect_dsc.border_width = b;
-  lv_canvas_draw_rect(eng_canvas, x, y, w, h, &rect_dsc);
+  lv_canvas_draw_rect(ctx->canvas, x, y, w, h, &rect_dsc);
 }
 
 typedef enum {
@@ -154,7 +165,7 @@ typedef enum {
   ENG_WRITE_ALIGN_RIGHT = (1 << 1),
 } eng_write_flags_t;
 
-static void eng_op_write(wasm_exec_env_t _, int x, int y, int s, int f, int c, uint8 *text, int text_len, int flags) {
+static void eng_op_write(wasm_exec_env_t env, int x, int y, int s, int f, int c, uint8 *text, int text_len, int flags) {
   // copy text
   char copy[128];
   if (text_len >= sizeof(copy)) {
@@ -164,6 +175,9 @@ static void eng_op_write(wasm_exec_env_t _, int x, int y, int s, int f, int c, u
   copy[text_len] = 0;
 
   printf("eng_write: x=%d, y=%d, s=%d, f=%d, c=%d, s='%s' flags=%d\n", x, y, s, f, c, copy, flags);
+
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
 
   // calculate text width
   int w = lv_txt_get_width(copy, text_len, eng_font(f), 0, LV_TEXT_FLAG_NONE);
@@ -190,15 +204,18 @@ static void eng_op_write(wasm_exec_env_t _, int x, int y, int s, int f, int c, u
   label_dsc.flag = LV_TEXT_FLAG_FIT;
 
   // draw text
-  lv_canvas_draw_text(eng_canvas, x, y, w, &label_dsc, copy);
+  lv_canvas_draw_text(ctx->canvas, x, y, w, &label_dsc, copy);
 }
 
-static void eng_op_draw(wasm_exec_env_t _, int x, int y, int w, int h, int s, uint8 *i, uint8 *m) {
+static void eng_op_draw(wasm_exec_env_t env, int x, int y, int w, int h, int s, uint8 *i, uint8 *m) {
   printf("eng_draw: x=%d, y=%d, w=%d, h=%d, s=%d\n", x, y, w, h, s);
 
   if (w <= 0 || h <= 0 || s <= 0) {
     return;
   }
+
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
 
   // prepare sprite
   lvx_sprite_t sprite = {
@@ -217,7 +234,7 @@ static void eng_op_draw(wasm_exec_env_t _, int x, int y, int w, int h, int s, ui
   lv_draw_img_dsc_init(&img_draw);
 
   // draw image
-  lv_canvas_draw_img(eng_canvas, x, y, &img, &img_draw);
+  lv_canvas_draw_img(ctx->canvas, x, y, &img, &img_draw);
 }
 
 typedef enum {
@@ -287,7 +304,7 @@ static int64_t eng_op_millis(wasm_exec_env_t _) {
 
 /* sprite functions */
 
-static int eng_op_sprite_resolve(wasm_exec_env_t _, uint8 *name, int name_len) {
+static int eng_op_sprite_resolve(wasm_exec_env_t env, uint8 *name, int name_len) {
   // copy name
   char copy[64];
   if (name_len >= sizeof(copy)) {
@@ -298,65 +315,80 @@ static int eng_op_sprite_resolve(wasm_exec_env_t _, uint8 *name, int name_len) {
 
   printf("eng_op_sprite_resolve: name='%s'\n", copy);
 
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
+
   // locate sprite
-  return eng_bundle_locate(ENG_BUNDLE_TYPE_SPRITE, copy, NULL);
+  return eng_bundle_locate(ctx, ENG_BUNDLE_TYPE_SPRITE, copy, NULL);
 }
 
-static int eng_op_sprite_width(wasm_exec_env_t _, int sprite) {
+static int eng_op_sprite_width(wasm_exec_env_t env, int sprite) {
   printf("eng_op_sprite_width: sprite=%d\n", sprite);
 
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
+
   // check sprite
-  if (sprite < 0 || sprite >= eng_bundle_sections_num || eng_bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
+  if (sprite < 0 || sprite >= ctx->bundle_sections_num || ctx->bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
     return -1;
   }
 
   // get width
-  uint8 *data = eng_bundle_sections[sprite].data;
+  uint8 *data = ctx->bundle_sections[sprite].data;
   return data[0] | (data[1] << 8);
 }
 
-static int eng_op_sprite_height(wasm_exec_env_t _, int sprite) {
+static int eng_op_sprite_height(wasm_exec_env_t env, int sprite) {
   printf("eng_op_sprite_height: sprite=%d\n", sprite);
 
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
+
   // check sprite
-  if (sprite < 0 || sprite >= eng_bundle_sections_num || eng_bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
+  if (sprite < 0 || sprite >= ctx->bundle_sections_num || ctx->bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
     return -1;
   }
 
   // get height
-  uint8 *data = eng_bundle_sections[sprite].data;
+  uint8 *data = ctx->bundle_sections[sprite].data;
   return data[2] | (data[3] << 8);
 }
 
-static void eng_op_sprite_draw(wasm_exec_env_t e, int sprite, int x, int y, int s) {
+static void eng_op_sprite_draw(wasm_exec_env_t env, int sprite, int x, int y, int s) {
   printf("eng_op_sprite_draw: sprite=%d, x=%d, y=%d, s=%d\n", sprite, x, y, s);
 
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
+
   // check sprite
-  if (sprite < 0 || sprite >= eng_bundle_sections_num || eng_bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
+  if (sprite < 0 || sprite >= ctx->bundle_sections_num || ctx->bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
     return;
   }
 
   // get data
-  uint8 *data = eng_bundle_sections[sprite].data;
+  uint8 *data = ctx->bundle_sections[sprite].data;
   int w = data[0] | (data[1] << 8);
   int h = data[2] | (data[3] << 8);
   uint8 *img = data + 4;
   uint8 *msk = img + ((w * h + 7) / 8);
 
   // draw sprite
-  eng_op_draw(e, x, y, w, h, s, img, msk);
+  eng_op_draw(env, x, y, w, h, s, img, msk);
 }
 
-static int eng_op_sprite_read(wasm_exec_env_t _, int sprite, int x, int y) {
+static int eng_op_sprite_read(wasm_exec_env_t env, int sprite, int x, int y) {
   printf("eng_op_sprite_read: sprite=%d, x=%d, y=%d\n", sprite, x, y);
 
+  // get context
+  eng_context_t *ctx = wasm_runtime_get_user_data(env);
+
   // check sprite
-  if (sprite < 0 || sprite >= eng_bundle_sections_num || eng_bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
+  if (sprite < 0 || sprite >= ctx->bundle_sections_num || ctx->bundle_sections[sprite].type != ENG_BUNDLE_TYPE_SPRITE) {
     return -1;
   }
 
   // get size
-  uint8 *data = eng_bundle_sections[sprite].data;
+  uint8 *data = ctx->bundle_sections[sprite].data;
   int w = data[0] | (data[1] << 8);
   int h = data[2] | (data[3] << 8);
   uint8 *img = data + 4;
@@ -662,7 +694,11 @@ static NativeSymbol eng_operations[] = {
     {"al_http_get", eng_op_http_get, "(i)i", NULL},
 };
 
-static void *eng_run_task(void *) {
+static void *eng_run_task(void *arg) {
+  // get context
+  eng_context_t *ctx = arg;
+
+  // prepare variables
   char error_buf[128];
   uint32_t stack_size = 8 * 1024, heap_size = 32 * 1024;
 
@@ -687,11 +723,11 @@ static void *eng_run_task(void *) {
   }
 
   // set log level
-  wasm_runtime_set_log_level(WASM_LOG_LEVEL_VERBOSE);
+  wasm_runtime_set_log_level(WASM_LOG_LEVEL_WARNING);
 
   // locate main binary
   eng_bundle_section_t *main;
-  if (eng_bundle_locate(ENG_BUNDLE_TYPE_BINARY, "main", &main) < 0) {
+  if (eng_bundle_locate(ctx, ENG_BUNDLE_TYPE_BINARY, "main", &main) < 0) {
     printf("eng: locating main binary failed\n");
     return NULL;
   }
@@ -720,6 +756,9 @@ static void *eng_run_task(void *) {
     printf("eng: creating WASM execution environment failed\n");
     goto fail;
   }
+
+  // set context
+  wasm_runtime_set_user_data(exec_env, ctx);
 
   // find _start function
   wasm_function_inst_t func = wasm_runtime_lookup_function(module_inst, "_start");
@@ -766,9 +805,11 @@ fail:
 }
 
 void eng_run(void *bundle_buf, size_t bundle_len) {
-  // set bundle
-  eng_bundle_buf = bundle_buf;
-  eng_bundle_len = bundle_len;
+  // prepare context
+  eng_context_t ctx = {
+      .bundle_buf = bundle_buf,
+      .bundle_len = bundle_len,
+  };
 
   // check bundle header
   uint8_t version = ((uint8 *)bundle_buf)[4];
@@ -779,15 +820,15 @@ void eng_run(void *bundle_buf, size_t bundle_len) {
 
   // parse bundle sections
   size_t offset = 7;
-  eng_bundle_sections_num = ((uint8 *)bundle_buf)[5] << 8 | ((uint8 *)bundle_buf)[6];
-  eng_bundle_sections = al_calloc(eng_bundle_sections_num, sizeof(eng_bundle_section_t));
-  for (int i = 0; i < eng_bundle_sections_num; i++) {
-    eng_bundle_section_t *section = &eng_bundle_sections[i];
+  ctx.bundle_sections_num = ((uint8 *)bundle_buf)[5] << 8 | ((uint8 *)bundle_buf)[6];
+  ctx.bundle_sections = al_calloc(ctx.bundle_sections_num, sizeof(eng_bundle_section_t));
+  for (int i = 0; i < ctx.bundle_sections_num; i++) {
+    eng_bundle_section_t *section = &ctx.bundle_sections[i];
     if (offset + 5 > bundle_len) {
       printf("eng: truncated bundle\n");
-      free(eng_bundle_sections);
-      eng_bundle_sections = NULL;
-      eng_bundle_sections_num = 0;
+      free(ctx.bundle_sections);
+      ctx.bundle_sections = NULL;
+      ctx.bundle_sections_num = 0;
       return;
     }
     section->type = ((uint8 *)bundle_buf)[offset];
@@ -798,9 +839,9 @@ void eng_run(void *bundle_buf, size_t bundle_len) {
     size_t name_len = strlen((char *)bundle_buf + offset);
     if (offset + name_len + 1 + section->len > bundle_len) {
       printf("eng: truncated bundle\n");
-      free(eng_bundle_sections);
-      eng_bundle_sections = NULL;
-      eng_bundle_sections_num = 0;
+      free(ctx.bundle_sections);
+      ctx.bundle_sections = NULL;
+      ctx.bundle_sections_num = 0;
       return;
     }
     section->name = "";
@@ -811,25 +852,25 @@ void eng_run(void *bundle_buf, size_t bundle_len) {
   }
 
   // set section data pointers
-  for (int i = 0; i < eng_bundle_sections_num; i++) {
-    eng_bundle_section_t *section = &eng_bundle_sections[i];
+  for (int i = 0; i < ctx.bundle_sections_num; i++) {
+    eng_bundle_section_t *section = &ctx.bundle_sections[i];
     section->data = (uint8 *)bundle_buf + offset;
     offset += section->len;
   }
 
   // print sections
-  printf("eng: bundle contains %d sections\n", eng_bundle_sections_num);
-  for (int i = 0; i < eng_bundle_sections_num; i++) {
-    eng_bundle_section_t *section = &eng_bundle_sections[i];
+  printf("eng: bundle contains %d sections\n", ctx.bundle_sections_num);
+  for (int i = 0; i < ctx.bundle_sections_num; i++) {
+    eng_bundle_section_t *section = &ctx.bundle_sections[i];
     printf("[%d]: type=%d name='%s' len=%zu\n", i, section->type, section->name, section->len);
   }
 
   // check main binary
-  if (eng_bundle_locate(ENG_BUNDLE_TYPE_BINARY, "main", NULL) < 0) {
+  if (eng_bundle_locate(&ctx, ENG_BUNDLE_TYPE_BINARY, "main", NULL) < 0) {
     printf("eng: can't find main binary\n");
-    free(eng_bundle_sections);
-    eng_bundle_sections = NULL;
-    eng_bundle_sections_num = 0;
+    free(ctx.bundle_sections);
+    ctx.bundle_sections = NULL;
+    ctx.bundle_sections_num = 0;
     return;
   }
 
@@ -840,10 +881,10 @@ void eng_run(void *bundle_buf, size_t bundle_len) {
   lv_color_t *frame_buffer = al_calloc(1, LV_CANVAS_BUF_SIZE_TRUE_COLOR(296, 128));
 
   // create canvas
-  eng_canvas = lv_canvas_create(lv_scr_act());
-  lv_canvas_set_buffer(eng_canvas, frame_buffer, 296, 128, LV_IMG_CF_TRUE_COLOR);
-  lv_obj_align(eng_canvas, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_canvas_fill_bg(eng_canvas, lv_color_white(), LV_OPA_COVER);
+  ctx.canvas = lv_canvas_create(lv_scr_act());
+  lv_canvas_set_buffer(ctx.canvas, frame_buffer, 296, 128, LV_IMG_CF_TRUE_COLOR);
+  lv_obj_align(ctx.canvas, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_canvas_fill_bg(ctx.canvas, lv_color_white(), LV_OPA_COVER);
 
   // prepare thread attributes
   pthread_attr_t attr;
@@ -853,7 +894,7 @@ void eng_run(void *bundle_buf, size_t bundle_len) {
 
   // create thread
   pthread_t t;
-  int res = pthread_create(&t, &attr, eng_run_task, NULL);
+  int res = pthread_create(&t, &attr, eng_run_task, &ctx);
   if (res != 0) {
     printf("eng: pthread_create failed: %d\n", res);
     return;
@@ -873,8 +914,8 @@ void eng_run(void *bundle_buf, size_t bundle_len) {
   free(frame_buffer);
 
   // free bundle
-  free(eng_bundle_sections);
-  eng_bundle_sections = NULL;
+  free(ctx.bundle_sections);
+  ctx.bundle_sections = NULL;
 
   // log
   printf("eng: app finished\n");
