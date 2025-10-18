@@ -1,5 +1,18 @@
 module tools
 
-go 1.22.2
+go 1.23
 
-require golang.org/x/image v0.20.0 // indirect
+require (
+	github.com/256dpi/naos v0.13.2-0.20251007143531-930be60fd8ea
+	github.com/samber/lo v1.47.0
+	golang.org/x/image v0.20.0
+	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/coder/websocket v1.8.12 // indirect
+	github.com/creack/goselect v0.1.2 // indirect
+	go.bug.st/serial v1.1.3 // indirect
+	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
+)
