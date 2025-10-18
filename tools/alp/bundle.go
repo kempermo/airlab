@@ -2,21 +2,18 @@ package alp
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 )
 
-type Manifest struct {
-	Name    string   `yaml:"name"`
-	Binary  string   `yaml:"binary"`
-	Sprites []string `yaml:"sprites"`
-}
+var enc = binary.BigEndian
 
 type BundleType byte
 
 const (
-	BundleTypeAttr   BundleType = 0x00
-	BundleTypeBinary BundleType = 0x01
-	BundleTypeSprite BundleType = 0x02
+	BundleTypeAttr   BundleType = 0
+	BundleTypeBinary BundleType = 1
+	BundleTypeSprite BundleType = 2
 )
 
 type BundleSection struct {
@@ -29,85 +26,101 @@ type Bundle struct {
 	Sections []BundleSection
 }
 
+func DecodeBundle(data []byte) (*Bundle, error) {
+	// check length
+	if len(data) < 10 {
+		return nil, fmt.Errorf("invalid bundle: too short")
+	}
+
+	// check magic
+	if string(data[0:4]) != "ALP\x00" {
+		return nil, fmt.Errorf("invalid bundle: bad magic")
+	}
+
+	// read sections
+	sections := int(enc.Uint16(data[8:10]))
+
+	// prepare bundle
+	b := &Bundle{}
+
+	// read section headers
+	offset := 10
+	var offsets []int
+	for i := 0; i < sections; i++ {
+		// check length
+		if offset+9 > len(data) {
+			return nil, fmt.Errorf("invalid bundle: section %d header too short", i)
+		}
+
+		// read section type
+		typ := BundleType(data[offset])
+		offset += 1
+
+		// read section offset
+		offsets = append(offsets, int(enc.Uint32(data[offset:offset+4])))
+		offset += 4
+
+		// read section size
+		size := enc.Uint32(data[offset : offset+4])
+		offset += 4
+
+		// read section name
+		nameLen := bytes.IndexByte(data[offset:], 0)
+		if offset+nameLen > len(data) {
+			return nil, fmt.Errorf("invalid bundle: section %d name too long", i)
+		}
+		name := string(data[offset : offset+nameLen])
+		offset += nameLen + 1
+
+		// add section
+		b.Sections = append(b.Sections, BundleSection{
+			Type: typ,
+			Name: name,
+			Data: make([]byte, size),
+		})
+	}
+
+	// read section data
+	for i, s := range b.Sections {
+		if offsets[i]+len(s.Data) > len(data) {
+			return nil, fmt.Errorf("invalid bundle: section %d data too long", i)
+		}
+		b.Sections[i].Data = data[offsets[i] : offsets[i]+len(s.Data)]
+	}
+
+	return b, nil
+}
+
 func (b *Bundle) Encode() []byte {
 	// prepare buffer
 	var out []byte
 
-	// write header
-	out = append(out, 'A', 'L', 'P', 0x00) // magic
-	out = append(out, 0x01)                // version
-
-	// number of section uint16
-	numSections := len(b.Sections)
-	out = append(out, byte(numSections>>8), byte(numSections)) // sections
-
-	// write section types and sizes
+	// calculate header size
+	headerLength := 10
 	for _, section := range b.Sections {
-		out = append(out, byte(section.Type))
-		size := uint32(len(section.Data))
-		out = append(out, byte(size>>24), byte(size>>16), byte(size>>8), byte(size))
-		out = append(out, []byte(section.Name)...)
-		out = append(out, 0)
+		headerLength += 1 + 4 + 4 + len(section.Name) + 1
 	}
 
-	// write sections
+	// write header
+	out = append(out, 'A', 'L', 'P', 0x00)
+	out = enc.AppendUint32(out, uint32(headerLength))
+	out = enc.AppendUint16(out, uint16(len(b.Sections)))
+
+	// write section headers
+	offset := headerLength
+	for _, section := range b.Sections {
+		out = append(out, byte(section.Type))
+		out = enc.AppendUint32(out, uint32(offset))
+		out = enc.AppendUint32(out, uint32(len(section.Data)))
+		out = append(out, []byte(section.Name)...)
+		out = append(out, 0)
+		offset += len(section.Data)
+	}
+
+	// write section data
 	for _, section := range b.Sections {
 		out = append(out, section.Data...)
 	}
 
 	return out
-}
-
-func (b *Bundle) Decode(data []byte) error {
-	// read header
-	if len(data) < 7 {
-		return fmt.Errorf("invalid bundle: too short")
-	}
-
-	// check magic
-	if string(data[0:4]) != "ALP\x00" {
-		return fmt.Errorf("invalid bundle: bad magic")
-	}
-
-	// check version
-	if data[4] != 0x01 {
-		return fmt.Errorf("invalid bundle: unsupported version")
-	}
-
-	// read sections
-	sections := (int(data[5]) << 8) | int(data[6])
-	offset := 7
-
-	// read sections types and sizes
-	var types []BundleType
-	var sizes []uint32
-	var names []string
-	for i := 0; i < sections; i++ {
-		types = append(types, BundleType(data[offset]))
-		sizes = append(sizes, (uint32(data[offset+1])<<24)|(uint32(data[offset+2])<<16)|(uint32(data[offset+3])<<8)|uint32(data[offset+4]))
-		offset += 5
-		nameLen := bytes.IndexByte(data[offset:], 0)
-		if offset+nameLen > len(data) {
-			return fmt.Errorf("invalid bundle: section %d name too long", i)
-		}
-		offset += nameLen
-		names = append(names, string(data[offset-nameLen:offset]))
-		offset++
-	}
-
-	// read sections
-	b.Sections = nil
-	for i := 0; i < sections; i++ {
-		if offset+int(sizes[i]) > len(data) {
-			return fmt.Errorf("invalid bundle: section %d too large", i)
-		}
-		b.Sections = append(b.Sections, BundleSection{
-			Type: types[i],
-			Name: names[i],
-			Data: data[offset : offset+int(sizes[i])],
-		})
-		offset += int(sizes[i])
-	}
-
-	return nil
 }

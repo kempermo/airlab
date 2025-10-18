@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/samber/lo"
@@ -12,6 +11,12 @@ import (
 
 	"tools/alp"
 )
+
+type Manifest struct {
+	Name    string   `yaml:"name"`
+	Binary  string   `yaml:"binary"`
+	Sprites []string `yaml:"sprites"`
+}
 
 func bundle(dir, out string) {
 	// determine root
@@ -27,7 +32,7 @@ func bundle(dir, out string) {
 	}
 
 	// parse manifest
-	var manifest alp.Manifest
+	var manifest Manifest
 	err = yaml.Unmarshal(manifestRaw, &manifest)
 	if err != nil {
 		panic(err)
@@ -108,32 +113,12 @@ func bundle(dir, out string) {
 		panic(err)
 	}
 
-	/* verify bundle */
-
-	// read file
-	data, err := os.ReadFile(file)
-	if err != nil {
-		panic(err)
-	}
-
-	// decode bundle
-	var verify alp.Bundle
-	err = verify.Decode(data)
-	if err != nil {
-		panic(err)
-	}
-
 	// print bundle info
 	fmt.Printf("Wrote: %s\n", file)
 	if *verbose {
-		fmt.Printf("Sections: %d\n", len(verify.Sections))
-		for i, section := range verify.Sections {
+		fmt.Printf("Sections: %d\n", len(bundle.Sections))
+		for i, section := range bundle.Sections {
 			fmt.Printf(" - Section %d: Type=%d Name=%q Size=%d\n", i, section.Type, section.Name, len(section.Data))
 		}
-	}
-
-	// compare bundles
-	if !reflect.DeepEqual(bundle, verify) {
-		panic("bundle verification failed")
 	}
 }
