@@ -1,36 +1,18 @@
-.PHONY: gfx hello gpio sen55 http weather
+.PHONY: gfx hello gpio sen55 http weather fmt
 
 COMPILE := zig cc -target wasm32-wasi -Wl,-z,stack-size=65536 -Wl,--initial-memory=262144 -Wl,--max-memory=262144 -Os
+UPLOAD ?= 0
 
-gfx:
-	$(COMPILE) -o ./gfx/main.wasm ./gfx/main.c
-	alpctl bundle ./gfx plugin.alp
-	alpctl upload plugin.alp
+define build_task
+$1:
+	$$(COMPILE) -o ./$1/main.wasm ./$1/main.c
+	alpctl bundle ./$1 ./$1/$1.alp
+	@if [ "$$(UPLOAD)" = "1" ]; then alpctl upload ./$1/$1.alp; fi
+endef
 
-hello:
-	$(COMPILE) -o ./hello/main.wasm ./hello/main.c
-	alpctl bundle ./hello plugin.alp
-	alpctl upload plugin.alp
+$(foreach t,gfx hello gpio sen55 http weather,$(eval $(call build_task,$t)))
 
-gpio:
-	$(COMPILE) -o ./gpio/main.wasm ./gpio/main.c
-	alpctl bundle ./gpio plugin.alp
-	alpctl upload plugin.alp
-
-sen55:
-	$(COMPILE) -o ./sen55/main.wasm ./sen55/main.c
-	alpctl bundle ./sen55 plugin.alp
-	alpctl upload plugin.alp
-
-http:
-	$(COMPILE) -o ./http/main.wasm ./http/main.c
-	alpctl bundle ./http plugin.alp
-	alpctl upload plugin.alp
-
-weather:
-	$(COMPILE) -o ./weather/main.wasm ./weather/main.c
-	alpctl bundle ./weather plugin.alp
-	alpctl upload plugin.alp
+all: gfx hello gpio sen55 http weather
 
 fmt:
 	clang-format -i al.h **/*.c -style="{BasedOnStyle: Google, ColumnLimit: 120, SortIncludes: false}"
