@@ -18,6 +18,10 @@
 #include "lvx.h"
 #include "sig.h"
 
+#define BE_U16(buf) (((uint16_t)(buf)[0] << 8) | (uint16_t)(buf)[1])
+#define BE_U32(buf) \
+  (((uint32_t)(buf)[0] << 24) | ((uint32_t)(buf)[1] << 16) | ((uint32_t)(buf)[2] << 8) | (uint32_t)(buf)[3])
+
 typedef enum {
   ENG_BUNDLE_TYPE_ATTR = 0x00,
   ENG_BUNDLE_TYPE_BINARY = 0x01,
@@ -27,14 +31,16 @@ typedef enum {
 typedef struct {
   eng_bundle_type_t type;
   const char *name;
+  size_t off;
   size_t len;
-  uint8 *data;
+  const uint8 *data;
 } eng_bundle_section_t;
 
 typedef struct {
   const uint8_t *buf;
   size_t len;
-  size_t offset;
+  size_t pos;
+  size_t header_len;
   uint16_t sections;
   uint16_t current;
 } eng_bundle_iter_t;
@@ -53,67 +59,62 @@ typedef struct {
 
 /* bundle helpers */
 
-// TODO: Bundle should have a full header length.
-// TODO: Bundle should already contain the byte buffer offset for sections.
-// TODO: Add various checksums?
-
-bool eng_bundle_iter_init(eng_bundle_iter_t *iter, const void *buf, size_t len) {
+bool eng_bundle_iter_init(eng_bundle_iter_t *i, const void *buf, size_t len) {
   // check bundle header
-  uint8_t version = ((uint8 *)buf)[4];
-  if (len < 7 || memcmp(buf, "ALP", 4) != 0 || version != 1) {
+  if (len < 10 || memcmp(buf, "ALP\0", 4) != 0) {
     return false;
   }
 
-  // get number of sections
-  uint16_t sections = ((uint8 *)buf)[5] << 8 | ((uint8 *)buf)[6];
+  // get header length and number of sections
+  uint32_t header_len = BE_U32(((uint8 *)buf) + 4);
+  uint16_t sections = BE_U16(((uint8 *)buf) + 8);
 
   // initialize iterator
-  *iter = (eng_bundle_iter_t){
+  *i = (eng_bundle_iter_t){
       .buf = buf,
       .len = len,
-      .offset = 7,
+      .header_len = header_len,
+      .pos = 10,
       .sections = sections,
   };
 
   return true;
 }
 
-bool eng_bundle_iter_next(eng_bundle_iter_t *iter, eng_bundle_section_t *out) {
+bool eng_bundle_iter_next(eng_bundle_iter_t *i, eng_bundle_section_t *s) {
   // check end of iteration
-  if (iter->current >= iter->sections || iter->offset >= iter->len) {
+  if (i->current >= i->sections || i->pos >= i->len) {
     return false;
   }
 
-  // get iterator state
-  const uint8_t *buf = iter->buf;
-  size_t off = iter->offset;
-
   // check section header
-  if (off + 5 > iter->len) {
+  if (i->pos + 9 > i->len) {
     return false;
   }
 
   // get type and length
-  out->type = buf[off++];
-  out->len = (buf[off] << 24) | (buf[off + 1] << 16) | (buf[off + 2] << 8) | buf[off + 3];
-  off += 4;
+  s->type = i->buf[i->pos++];
+  s->off = BE_U32(((uint8 *)i->buf) + i->pos);
+  i->pos += 4;
+  s->len = BE_U32(((uint8 *)i->buf) + i->pos);
+  i->pos += 4;
 
   // get name
-  size_t name_len = strlen((const char *)buf + off);
-  if (off + name_len + 1 + out->len > iter->len) {
+  size_t name_len = strlen((const char *)i->buf + i->pos);
+  if (i->pos + name_len + 1 + s->len > i->len) {
     return false;
   }
-  out->name = (const char *)buf + off;
-  off += name_len + 1;
+  s->name = (const char *)i->buf + i->pos;
+  i->pos += name_len + 1;
+
+  // set data pointer
+  s->data = i->buf + s->off;
 
   // update iterator
-  iter->offset = off;
-  iter->current++;
+  i->current++;
 
   return true;
 }
-
-static bool eng_bundle_peek(eng_plugin_info_t info, void *buf, size_t len) {}
 
 static bool eng_bundle_parse(eng_bundle_t *b, void *buf, size_t len) {
   // prepare bundle
@@ -125,33 +126,32 @@ static bool eng_bundle_parse(eng_bundle_t *b, void *buf, size_t len) {
   // prepare iterator
   eng_bundle_iter_t iter;
   if (!eng_bundle_iter_init(&iter, buf, len)) {
+    printf("eng_bundle_parse: iter init failed\n");
     return false;
   }
 
-  // parse sections
-  for (;;) {
-    eng_bundle_section_t section;
-    if (!eng_bundle_iter_next(&iter, &section)) {
-      break;
-    }
-  }
+  // allocate sections
+  b->sections = al_calloc(iter.sections, sizeof(eng_bundle_section_t));
+  b->sections_num = iter.sections;
 
-  // set section data pointers
-  for (int i = 0; i < b->sections_num; i++) {
-    eng_bundle_section_t *section = &b->sections[i];
-    section->data = (uint8 *)buf + iter.offset;
-    iter.offset += section->len;
+  // parse sections
+  for (int i = 0; i < iter.sections; i++) {
+    eng_bundle_section_t *s = &b->sections[i];
+    if (!eng_bundle_iter_next(&iter, s)) {
+      printf("eng_bundle_parse: iter next failed at %d\n", i);
+      return false;
+    }
   }
 
   return true;
 }
 
-static int eng_bundle_locate(eng_bundle_t *b, eng_bundle_type_t type, const char *name, eng_bundle_section_t **out) {
+static int eng_bundle_locate(eng_bundle_t *b, eng_bundle_type_t t, const char *name, eng_bundle_section_t **s) {
   // find matching section
   for (int i = 0; i < b->sections_num; i++) {
-    if (b->sections[i].type == type && strcmp(b->sections[i].name, name) == 0) {
-      if (out != NULL) {
-        *out = &b->sections[i];
+    if (b->sections[i].type == t && strcmp(b->sections[i].name, name) == 0) {
+      if (s != NULL) {
+        *s = &b->sections[i];
       }
       return i;
     }
