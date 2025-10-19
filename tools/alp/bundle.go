@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-var enc = binary.BigEndian
+var enc = binary.LittleEndian
 
 type BundleType byte
 
