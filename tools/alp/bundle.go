@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"hash/crc32"
 )
 
 var enc = binary.LittleEndian
@@ -65,6 +66,7 @@ func DecodeBundle(data []byte) (*Bundle, error) {
 	// read section headers
 	offset := 10
 	var offsets []int
+	var checksums []uint32
 	for i := 0; i < sections; i++ {
 		// check length
 		if offset+9 > len(data) {
@@ -81,6 +83,10 @@ func DecodeBundle(data []byte) (*Bundle, error) {
 
 		// read section size
 		size := enc.Uint32(data[offset : offset+4])
+		offset += 4
+
+		// read section checksum
+		checksums = append(checksums, enc.Uint32(data[offset:offset+4]))
 		offset += 4
 
 		// read section name
@@ -113,6 +119,11 @@ func DecodeBundle(data []byte) (*Bundle, error) {
 		}
 		b.Sections[i].Data = data[offsets[i] : offsets[i]+len(s.Data)]
 		offset += len(s.Data)
+		checksum := crc32.NewIEEE()
+		_, _ = checksum.Write(b.Sections[i].Data)
+		if checksum.Sum32() != checksums[i] {
+			return nil, fmt.Errorf("invalid bundle: section %d: checksum mismatch", i)
+		}
 	}
 
 	return b, nil
@@ -142,7 +153,7 @@ func (b *Bundle) Encode() []byte {
 	// calculate header size
 	headerLength := 10
 	for _, section := range b.Sections {
-		headerLength += 1 + 4 + 4 + len(section.Name) + 1
+		headerLength += 1 + 4 + 4 + 4 + len(section.Name) + 1
 	}
 
 	// write header
@@ -153,9 +164,12 @@ func (b *Bundle) Encode() []byte {
 	// write section headers
 	offset := headerLength
 	for _, section := range b.Sections {
+		checksum := crc32.NewIEEE()
+		_, _ = checksum.Write(section.Data)
 		out = append(out, byte(section.Type))
 		out = enc.AppendUint32(out, uint32(offset))
 		out = enc.AppendUint32(out, uint32(len(section.Data)))
+		out = enc.AppendUint32(out, checksum.Sum32())
 		out = append(out, []byte(section.Name)...)
 		out = append(out, 0)
 		offset += len(section.Data)
