@@ -1,4 +1,4 @@
-module tools
+module github.com/networkedartifacts/airlab/tools
 
 go 1.23
 
