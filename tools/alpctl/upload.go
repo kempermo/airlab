@@ -81,7 +81,7 @@ func upload(input, device string) {
 		if err != nil {
 			return err
 		}
-		return msg.WriteFile(s, "/int/engine/app.wasm", data, func(u uint32) {
+		return msg.WriteFile(s, "/int/engine/plugin.alp", data, func(u uint32) {
 			fmt.Printf("\033[A\033[2K\r")
 			fmt.Printf("==> Uploading: %.0f%%\n", float64(u)/float64(len(data))*100)
 		}, time.Minute)

@@ -30,11 +30,6 @@ static uint32_t eng_bundle_le32(const void *buf) {
   return val;
 }
 
-static size_t eng_bundle_strnlen(const char *s, size_t max_len) {
-  const char *end = memchr(s, 0, max_len);
-  return end ? (size_t)(end - s) : max_len;
-}
-
 static bool eng_bundle_iter_init(eng_bundle_iter_t *i, const void *buf, size_t len) {
   // check bundle header
   if (len < 10 || memcmp(buf, "ALP\0", 4) != 0) {
@@ -94,9 +89,9 @@ static bool eng_bundle_iter_next(eng_bundle_iter_t *i, eng_bundle_section_t *s) 
   return true;
 }
 
-eng_bundle_t *eng_bundle_load() {
+eng_bundle_t *eng_bundle_load(const char *name) {
   // get file size
-  int size = al_storage_stat(AL_STORAGE_INT, "engine", "app.wasm");
+  int size = al_storage_stat(AL_STORAGE_INT, "engine", name);
   if (size < 0) {
     naos_log("eng_bundle_load: failed to stat bundle file");
     return NULL;
@@ -104,7 +99,7 @@ eng_bundle_t *eng_bundle_load() {
 
   // reader bundle prefix
   uint8_t prefix[10];
-  if (!al_storage_read(AL_STORAGE_INT, "engine", "app.wasm", prefix, 0, sizeof(prefix))) {
+  if (!al_storage_read(AL_STORAGE_INT, "engine", name, prefix, 0, sizeof(prefix))) {
     naos_log("eng_bundle_load: failed to read bundle prefix");
     return NULL;
   }
@@ -123,7 +118,7 @@ eng_bundle_t *eng_bundle_load() {
 
   // read bundle header
   uint8_t *header = al_alloc(iter.header_len);
-  if (!al_storage_read(AL_STORAGE_INT, "engine", "app.wasm", header, 0, iter.header_len)) {
+  if (!al_storage_read(AL_STORAGE_INT, "engine", name, header, 0, iter.header_len)) {
     naos_log("eng_bundle_load: failed to read bundle header");
     free(header);
     return NULL;
@@ -140,6 +135,7 @@ eng_bundle_t *eng_bundle_load() {
 
   // prepare bundle
   *b = (eng_bundle_t){
+      .name = strdup(name),
       .header = header,
       .header_len = iter.header_len,
   };
@@ -191,7 +187,7 @@ void *eng_bundle_read(eng_bundle_t *b, eng_bundle_section_t *s) {
 
   // read data
   void *data = al_alloc(s->len);
-  if (!al_storage_read(AL_STORAGE_INT, "engine", "app.wasm", data, s->off, s->len)) {
+  if (!al_storage_read(AL_STORAGE_INT, "engine", b->name, data, s->off, s->len)) {
     naos_log("eng_bundle_read: failed to read section '%s'", s->name);
     free(data);
     return NULL;
@@ -247,6 +243,11 @@ void eng_bundle_free(eng_bundle_t *b) {
   // free buffer
   if (b->header) {
     free(b->header);
+  }
+
+  // free name
+  if (b->name) {
+    free(b->name);
   }
 
   // free bundle

@@ -4,7 +4,7 @@
 
 bool eng_run() {
   // load bundle
-  eng_bundle_t *bundle = eng_bundle_load();
+  eng_bundle_t *bundle = eng_bundle_load("plugin.alp");
   if (!bundle) {
     return false;
   }

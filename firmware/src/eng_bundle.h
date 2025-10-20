@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef enum {
   ENG_BUNDLE_TYPE_ATTR = 0x00,
@@ -20,13 +21,14 @@ typedef struct {
 } eng_bundle_section_t;
 
 typedef struct {
+  char *name;
   void *header;
   size_t header_len;
   eng_bundle_section_t *sections;
   uint16_t sections_num;
 } eng_bundle_t;
 
-eng_bundle_t *eng_bundle_load();
+eng_bundle_t *eng_bundle_load(const char *name);
 int eng_bundle_locate(eng_bundle_t *b, eng_bundle_type_t t, const char *name, eng_bundle_section_t **s);
 void *eng_bundle_read(eng_bundle_t *b, eng_bundle_section_t *s);
 void *eng_bundle_get(eng_bundle_t *b, eng_bundle_type_t t, const char *name, size_t *len);
