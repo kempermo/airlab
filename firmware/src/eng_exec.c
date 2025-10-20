@@ -88,6 +88,95 @@ static char *eng_exec_mkstr(const uint8 *buf, int len) {
 
 /* primary operations */
 
+static int eng_exec_op_config(wasm_exec_env_t _, int s, int a, int b, int c) {
+  // log
+  if (ENG_EXEC_DEBUG) {
+    naos_log("eng_exec_op_config: a=%d b=%d c=%d", a, b, c);
+  }
+
+  // handle configs
+  switch (s) {
+    case 0:  // button repeat
+      hmi_set_button_repeat(a);
+      return 0;
+    default:
+      return -1;
+  }
+}
+
+enum {
+  ENG_YIELD_SKIP_FRAME = (1 << 0),
+  ENG_YIELD_WAIT_FRAME = (1 << 1),
+  ENG_YIELD_INVERT = (1 << 2),
+  ENG_YIELD_REFRESH = (1 << 3),
+};
+
+enum {
+  ENG_YIELD_TIMEOUT = 0,
+  ENG_YIELD_ENTER = 1,
+  ENG_YIELD_ESCAPE = 2,
+  ENG_YIELD_UP = 3,
+  ENG_YIELD_DOWN = 4,
+  ENG_YIELD_LEFT = 5,
+  ENG_YIELD_RIGHT = 6,
+};
+
+static int eng_exec_op_yield(wasm_exec_env_t _, int timeout, int flags) {
+  // log
+  if (ENG_EXEC_DEBUG) {
+    naos_log("eng_exec_op_yield: timeout=%d flags=%d", timeout, flags);
+  }
+
+  // unlock graphics
+  gfx_end(flags & ENG_YIELD_SKIP_FRAME, flags & ENG_YIELD_WAIT_FRAME);
+
+  // await event or deadline
+  sig_event_t event = sig_await(SIG_KEYS, timeout);
+
+  // handle events
+  int ret = 0;
+  switch (event.type) {
+    case SIG_TIMEOUT:
+      ret = ENG_YIELD_TIMEOUT;
+      break;
+    case SIG_ENTER:
+      ret = ENG_YIELD_ENTER;
+      break;
+    case SIG_ESCAPE:
+      ret = ENG_YIELD_ESCAPE;
+      break;
+    case SIG_UP:
+      ret = ENG_YIELD_UP;
+      break;
+    case SIG_DOWN:
+      ret = ENG_YIELD_DOWN;
+      break;
+    case SIG_LEFT:
+      ret = ENG_YIELD_LEFT;
+      break;
+    case SIG_RIGHT:
+      ret = ENG_YIELD_RIGHT;
+      break;
+    default:
+      break;
+  }
+
+  // lock graphics
+  gfx_begin(flags & ENG_YIELD_REFRESH, flags & ENG_YIELD_INVERT);
+
+  return ret;
+}
+
+static int64_t eng_exec_op_millis(wasm_exec_env_t _) {
+  // log
+  if (ENG_EXEC_DEBUG) {
+    naos_log("eng_exec_op_millis");
+  }
+
+  // return time
+  return naos_millis();
+}
+
 static void eng_exec_op_clear(wasm_exec_env_t env, int c) {
   // log
   if (ENG_EXEC_DEBUG) {
@@ -227,93 +316,82 @@ static void eng_exec_op_draw(wasm_exec_env_t env, int x, int y, int w, int h, in
   lv_canvas_draw_img(ctx->canvas, x, y, &img, &img_draw);
 }
 
-static int eng_exec_op_config(wasm_exec_env_t _, int s, int a, int b, int c) {
+/* IO operations */
+
+enum {
+  ENG_GPIO_CONFIG,
+  ENG_GPIO_WRITE,
+  ENG_GPIO_READ,
+};
+
+enum {
+  ENG_GPIO_A = (1 << 0),
+  ENG_GPIO_B = (1 << 1),
+  ENG_GPIO_HIGH = (1 << 2),   // or low
+  ENG_GPIO_INPUT = (1 << 3),  // or output
+  ENG_GPIO_PULL_UP = (1 << 4),
+  ENG_GPIO_PULL_DOWN = (1 << 5),
+};
+
+static int eng_exec_op_gpio(wasm_exec_env_t _, int cmd, int flags) {
   // log
   if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_config: a=%d b=%d c=%d", a, b, c);
+    naos_log("eng_exec_op_gpio: cmd=%d flags=0x%X", cmd, flags);
   }
 
-  // handle configs
-  switch (s) {
-    case 0:  // button repeat
-      hmi_set_button_repeat(a);
-      return 0;
+  // determine GPIO num
+  gpio_num_t num = 0;
+  if (flags & ENG_GPIO_A) {
+    num = AL_GPIO_A;
+  } else if (flags & ENG_GPIO_B) {
+    num = AL_GPIO_B;
+  } else {
+    return -1;
+  }
+
+  // handle commands
+  switch (cmd) {
+    case ENG_GPIO_CONFIG: {
+      // configure GPIO
+      gpio_config_t io_conf = {
+        .pin_bit_mask = BIT64(num),
+        .mode = flags & ENG_GPIO_INPUT ? GPIO_MODE_INPUT : GPIO_MODE_OUTPUT,
+        .pull_up_en = flags & ENG_GPIO_PULL_UP ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
+        .pull_down_en = flags & ENG_GPIO_PULL_DOWN ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+      esp_err_t err = gpio_config(&io_conf);
+
+      return err == ESP_OK ? 0 : -1;
+    }
+    case ENG_GPIO_WRITE: {
+      // set GPIO level
+      int level = (flags & ENG_GPIO_HIGH) ? 1 : 0;
+      esp_err_t err = gpio_set_level(num, level);
+
+      return err == ESP_OK ? 0 : -1;
+    }
+    case ENG_GPIO_READ: {
+      // get GPIO level
+      int level = gpio_get_level(num);
+
+      return level;
+    }
     default:
       return -1;
   }
 }
 
-enum {
-  ENG_YIELD_SKIP_FRAME = (1 << 0),
-  ENG_YIELD_WAIT_FRAME = (1 << 1),
-  ENG_YIELD_INVERT = (1 << 2),
-  ENG_YIELD_REFRESH = (1 << 3),
-};
-
-enum {
-  ENG_YIELD_TIMEOUT = 0,
-  ENG_YIELD_ENTER = 1,
-  ENG_YIELD_ESCAPE = 2,
-  ENG_YIELD_UP = 3,
-  ENG_YIELD_DOWN = 4,
-  ENG_YIELD_LEFT = 5,
-  ENG_YIELD_RIGHT = 6,
-};
-
-static int eng_exec_op_yield(wasm_exec_env_t _, int timeout, int flags) {
+static int eng_exec_op_i2c(wasm_exec_env_t _, int addr, uint8 *tx, int tx_len, uint8 *rx, int rx_len, int timeout) {
   // log
   if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_yield: timeout=%d flags=%d", timeout, flags);
+    naos_log("eng_exec_op_i2c: addr=%d tx=%d rx=%d timeout=%d", addr, tx_len, rx_len, timeout);
   }
 
-  // unlock graphics
-  gfx_end(flags & ENG_YIELD_SKIP_FRAME, flags & ENG_YIELD_WAIT_FRAME);
+  // perform transfer
+  esp_err_t err = al_i2c_transfer(addr, tx, tx_len, rx, rx_len, timeout);
 
-  // await event or deadline
-  sig_event_t event = sig_await(SIG_KEYS, timeout);
-
-  // handle events
-  int ret = 0;
-  switch (event.type) {
-    case SIG_TIMEOUT:
-      ret = ENG_YIELD_TIMEOUT;
-      break;
-    case SIG_ENTER:
-      ret = ENG_YIELD_ENTER;
-      break;
-    case SIG_ESCAPE:
-      ret = ENG_YIELD_ESCAPE;
-      break;
-    case SIG_UP:
-      ret = ENG_YIELD_UP;
-      break;
-    case SIG_DOWN:
-      ret = ENG_YIELD_DOWN;
-      break;
-    case SIG_LEFT:
-      ret = ENG_YIELD_LEFT;
-      break;
-    case SIG_RIGHT:
-      ret = ENG_YIELD_RIGHT;
-      break;
-    default:
-      break;
-  }
-
-  // lock graphics
-  gfx_begin(flags & ENG_YIELD_REFRESH, flags & ENG_YIELD_INVERT);
-
-  return ret;
-}
-
-static int64_t eng_exec_op_millis(wasm_exec_env_t _) {
-  // log
-  if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_millis");
-  }
-
-  // return time
-  return naos_millis();
+  return err == ESP_OK ? 0 : -1;
 }
 
 /* sprite operations */
@@ -456,84 +534,6 @@ static int eng_exec_op_sprite_read(wasm_exec_env_t env, int sprite, int x, int y
   } else {
     return 0;
   }
-}
-
-/* IO operations */
-
-enum {
-  ENG_GPIO_CONFIG,
-  ENG_GPIO_WRITE,
-  ENG_GPIO_READ,
-};
-
-enum {
-  ENG_GPIO_A = (1 << 0),
-  ENG_GPIO_B = (1 << 1),
-  ENG_GPIO_HIGH = (1 << 2),   // or low
-  ENG_GPIO_INPUT = (1 << 3),  // or output
-  ENG_GPIO_PULL_UP = (1 << 4),
-  ENG_GPIO_PULL_DOWN = (1 << 5),
-};
-
-static int eng_exec_op_gpio(wasm_exec_env_t _, int cmd, int flags) {
-  // log
-  if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_gpio: cmd=%d flags=0x%X", cmd, flags);
-  }
-
-  // determine GPIO num
-  gpio_num_t num = 0;
-  if (flags & ENG_GPIO_A) {
-    num = AL_GPIO_A;
-  } else if (flags & ENG_GPIO_B) {
-    num = AL_GPIO_B;
-  } else {
-    return -1;
-  }
-
-  // handle commands
-  switch (cmd) {
-    case ENG_GPIO_CONFIG: {
-      // configure GPIO
-      gpio_config_t io_conf = {
-          .pin_bit_mask = BIT64(num),
-          .mode = flags & ENG_GPIO_INPUT ? GPIO_MODE_INPUT : GPIO_MODE_OUTPUT,
-          .pull_up_en = flags & ENG_GPIO_PULL_UP ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
-          .pull_down_en = flags & ENG_GPIO_PULL_DOWN ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE,
-          .intr_type = GPIO_INTR_DISABLE,
-      };
-      esp_err_t err = gpio_config(&io_conf);
-
-      return err == ESP_OK ? 0 : -1;
-    }
-    case ENG_GPIO_WRITE: {
-      // set GPIO level
-      int level = (flags & ENG_GPIO_HIGH) ? 1 : 0;
-      esp_err_t err = gpio_set_level(num, level);
-
-      return err == ESP_OK ? 0 : -1;
-    }
-    case ENG_GPIO_READ: {
-      // get GPIO level
-      int level = gpio_get_level(num);
-
-      return level;
-    }
-    default:
-      return -1;
-  }
-}
-
-static int eng_exec_op_i2c(wasm_exec_env_t _, int addr, uint8 *tx, int tx_len, uint8 *rx, int rx_len, int timeout) {
-  // log
-  if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_i2c: addr=%d tx=%d rx=%d timeout=%d", addr, tx_len, rx_len, timeout);
-  }
-
-  // perform transfer
-  esp_err_t err = al_i2c_transfer(addr, tx, tx_len, rx, rx_len, timeout);
-
-  return err == ESP_OK ? 0 : -1;
 }
 
 /* HTTP operations */
