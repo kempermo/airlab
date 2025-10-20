@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/256dpi/naos/pkg/msg"
@@ -21,8 +22,11 @@ func upload(input, device string) {
 		panic(err)
 	}
 
+	// get file name
+	name := filepath.Base(input)
+
 	// log
-	fmt.Printf("==> Read: %s (%d)\n", input, len(data))
+	fmt.Printf("==> Read: %s (%d)\n", name, len(data))
 
 	// open device
 	var dev msg.Device
@@ -81,7 +85,7 @@ func upload(input, device string) {
 		if err != nil {
 			return err
 		}
-		return msg.WriteFile(s, "/int/engine/plugin.alp", data, func(u uint32) {
+		return msg.WriteFile(s, "/int/engine/"+name, data, func(u uint32) {
 			fmt.Printf("\033[A\033[2K\r")
 			fmt.Printf("==> Uploading: %.0f%%\n", float64(u)/float64(len(data))*100)
 		}, time.Minute)
@@ -92,15 +96,4 @@ func upload(input, device string) {
 
 	// log
 	fmt.Printf("==> Done!\n")
-
-	// launch app
-	err = man.UseSession(func(s *msg.Session) error {
-		return s.Send(0xA1, []byte{0x2}, time.Second)
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	// log
-	fmt.Printf("==> Launched!\n")
 }

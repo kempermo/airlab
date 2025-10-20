@@ -8,7 +8,12 @@ import (
 	"github.com/256dpi/naos/pkg/serial"
 )
 
-func launch(device string) {
+func launch(name, device string) {
+	// check name
+	if name == "" {
+		panic("missing name")
+	}
+
 	// open device
 	var dev msg.Device
 	var err error
@@ -32,9 +37,9 @@ func launch(device string) {
 		panic(err)
 	}
 
-	// launch app
+	// launch plugin
 	err = man.UseSession(func(s *msg.Session) error {
-		return s.Send(0xA1, []byte{0x2}, time.Second)
+		return s.Send(0xA1, append([]byte{0x2}, []byte(name)...), time.Second)
 	})
 	if err != nil {
 		panic(err)

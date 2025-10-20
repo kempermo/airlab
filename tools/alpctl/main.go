@@ -18,7 +18,7 @@ func main() {
 	case "upload":
 		upload(flag.Arg(1), flag.Arg(2))
 	case "launch":
-		launch(flag.Arg(1))
+		launch(flag.Arg(1), flag.Arg(2))
 	default:
 		fmt.Println("unknown command: ", flag.Arg(0))
 	}
