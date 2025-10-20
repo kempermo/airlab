@@ -7,6 +7,15 @@
 
 #include "eng_bundle.h"
 
+typedef struct {
+  const uint8_t *buf;
+  size_t len;
+  size_t pos;
+  size_t header_len;
+  uint16_t sections;
+  uint16_t current;
+} eng_bundle_iter_t;
+
 static uint16_t eng_bundle_le16(const void *buf) {
   uint16_t val;
   memcpy(&val, buf, sizeof(val));
@@ -19,7 +28,7 @@ static uint32_t eng_bundle_le32(const void *buf) {
   return val;
 }
 
-bool eng_bundle_iter_init(eng_bundle_iter_t *i, const void *buf, size_t len) {
+static bool eng_bundle_iter_init(eng_bundle_iter_t *i, const void *buf, size_t len) {
   // check bundle header
   if (len < 10 || memcmp(buf, "ALP\0", 4) != 0) {
     naos_log("eng_bundle_iter_init: invalid bundle header");
@@ -42,7 +51,7 @@ bool eng_bundle_iter_init(eng_bundle_iter_t *i, const void *buf, size_t len) {
   return true;
 }
 
-bool eng_bundle_iter_next(eng_bundle_iter_t *i, eng_bundle_section_t *s) {
+static bool eng_bundle_iter_next(eng_bundle_iter_t *i, eng_bundle_section_t *s) {
   // check end of iteration
   if (i->current >= i->sections) {
     return false;
