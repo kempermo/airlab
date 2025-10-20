@@ -186,12 +186,15 @@ void *eng_bundle_read(eng_bundle_t *b, eng_bundle_section_t *s) {
   }
 
   // read data
-  void *data = al_alloc(s->len);
+  void *data = al_alloc(s->len + 1);
   if (!al_storage_read(AL_STORAGE_INT, "engine", b->name, data, s->off, s->len)) {
     naos_log("eng_bundle_read: failed to read section '%s'", s->name);
     free(data);
     return NULL;
   }
+
+  // null terminate
+  ((uint8_t *)data)[s->len] = 0;
 
   // validate checksum
   uint32_t crc32 = esp_crc32_le(0, data, s->len);

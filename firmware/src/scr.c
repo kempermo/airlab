@@ -103,15 +103,15 @@ static void scr_power_off(bool low_power, bool msg) {
   al_power_off();
 }
 
-static void scr_start_engine() {
+static void scr_launch(const char* file) {
   // write message
   gui_cleanup(false);
-  gui_write("Loading app...", false);
+  gui_write("Loading plugin...", false);
 
-  // run app
-  if (!eng_run()) {
+  // run plugin
+  if (!eng_run(file)) {
     gui_cleanup(false);
-    gui_message("Failed run app!", 2000);
+    gui_message("Failed to run plugin!", SCR_MSG_TIMEOUT);
   }
 }
 
@@ -822,7 +822,7 @@ static void* scr_saver() {
       // start engine on launch
       if (event.type == SIG_LAUNCH) {
         // run engine
-        scr_start_engine();
+        scr_launch(event.file);
 
         return scr_menu;
       }
@@ -2077,6 +2077,36 @@ static void* scr_settings() {
   return scr_settings;
 }
 
+static gui_list_item_t scr_engine_cb(int num, void* _) {
+  return (gui_list_item_t){
+      .title = eng_get(num)->title,
+      .info = eng_get(num)->version,
+  };
+}
+
+static void* scr_engine() {
+  // prepare state
+  static int selected = 0;
+  static int offset = 0;
+
+  // reload engine
+  eng_reload();
+
+  // get count
+  int count = (int)eng_num();
+
+  for (;;) {
+    // select plugin
+    selected = gui_list(count, selected, &offset, "Run", "Back", scr_engine_cb, NULL, SCR_ACTION_TIMEOUT);
+    if (selected < 0) {
+      return scr_develop;
+    }
+
+    // launch plugin
+    scr_launch(eng_get(selected)->file);
+  }
+}
+
 static void* scr_develop() {
   // prepare variables
   static int selected = 0;
@@ -2326,8 +2356,7 @@ static void* scr_develop() {
 
     // handle engine
     if (selected == 14) {
-      // run engine
-      scr_start_engine();
+      return scr_engine;
     }
   }
 }
@@ -2573,7 +2602,7 @@ static void* scr_menu() {
     // start engine on launch
     if (event.type == SIG_LAUNCH) {
       // run engine
-      scr_start_engine();
+      scr_launch(event.file);
 
       return scr_menu;
     }

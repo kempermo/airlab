@@ -38,6 +38,7 @@ typedef struct {
       float std;
       float fast;
     } scroll;
+    const char *file;  // launch
   };
 } sig_event_t;
 

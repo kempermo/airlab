@@ -28,6 +28,7 @@ typedef enum {
 
 static bool com_mqtt_ha = false;
 static bool com_did_start = false;
+static char *com_plugin_file = NULL;
 
 static naos_msg_reply_t com_cmd_sensor_read(naos_msg_t msg) {
   // command structure:
@@ -93,16 +94,25 @@ static naos_msg_reply_t com_cmd_sensor_read(naos_msg_t msg) {
 
 static naos_msg_reply_t com_cmd_signal_launch(naos_msg_t msg) {
   // command structure:
-  // NONE
+  // FILE (*)
 
   // check length
-  if (msg.len != 0) {
+  if (msg.len == 0) {
     return NAOS_MSG_INVALID;
   }
+
+  // free previous plugin file
+  if (com_plugin_file) {
+    free(com_plugin_file);
+  }
+
+  // copy plugin file
+  com_plugin_file = strdup((const char *)msg.data);
 
   // signal launch
   sig_dispatch((sig_event_t){
       .type = SIG_LAUNCH,
+      .file = com_plugin_file,
   });
 
   return NAOS_MSG_ACK;
