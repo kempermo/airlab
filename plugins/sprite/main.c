@@ -8,7 +8,7 @@ int main() {
   int sprite = al_sprite_resolve("sprite");
 
   // draw sprite
-  al_sprite_draw(sprite, 0, 0, 1);
+  al_sprite_draw(sprite, 0, 0, 1, 0);
 
   // wait for an event
   al_yield(0, 0);
