@@ -22,8 +22,8 @@ typedef struct {
 
 typedef struct {
   char *name;
-  void *header;
-  size_t header_len;
+  void *buffer;
+  size_t buffer_len;
   eng_bundle_section_t *sections;
   uint16_t sections_num;
 } eng_bundle_t;

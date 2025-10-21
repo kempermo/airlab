@@ -7,6 +7,7 @@
 
 #include "eng_bundle.h"
 
+#define ENG_BUNDLE_BUFFER 4096
 #define ENG_BUNDLE_DEBUG false
 
 typedef struct {
@@ -90,44 +91,60 @@ static bool eng_bundle_iter_next(eng_bundle_iter_t *i, eng_bundle_section_t *s) 
 }
 
 eng_bundle_t *eng_bundle_load(const char *name) {
-  // get file size
+  // get bundle size
   int size = al_storage_stat(AL_STORAGE_INT, "engine", name);
   if (size < 0) {
-    naos_log("eng_bundle_load: failed to stat bundle file");
+    naos_log("eng_bundle_load: failed to get bundle size");
     return NULL;
   }
 
-  // reader bundle prefix
-  uint8_t prefix[10];
-  if (!al_storage_read(AL_STORAGE_INT, "engine", name, prefix, 0, sizeof(prefix))) {
-    naos_log("eng_bundle_load: failed to read bundle prefix");
+  // determine buffer length
+  size_t buffer_len = (size_t)size;
+  if (buffer_len > ENG_BUNDLE_BUFFER) {
+    buffer_len = ENG_BUNDLE_BUFFER;
+  }
+
+  // fill bundle buffer
+  uint8_t *buffer = al_alloc(buffer_len);
+  if (!al_storage_read(AL_STORAGE_INT, "engine", name, buffer, 0, buffer_len)) {
+    naos_log("eng_bundle_load: failed to fill bundle buffer");
+    free(buffer);
     return NULL;
   }
 
-  // parse bundle prefix
+  // prepare bundle iterator
   eng_bundle_iter_t iter;
-  if (!eng_bundle_iter_init(&iter, prefix, sizeof(prefix))) {
+  if (!eng_bundle_iter_init(&iter, buffer, buffer_len)) {
+    free(buffer);
     return NULL;
   }
 
   // check header length
   if (iter.header_len > (size_t)size) {
     naos_log("eng_bundle_load: invalid bundle header length");
+    free(buffer);
     return NULL;
   }
 
-  // read bundle header
-  uint8_t *header = al_alloc(iter.header_len);
-  if (!al_storage_read(AL_STORAGE_INT, "engine", name, header, 0, iter.header_len)) {
-    naos_log("eng_bundle_load: failed to read bundle header");
-    free(header);
-    return NULL;
-  }
+  // handle bigger headers
+  if (iter.header_len > buffer_len) {
+    // re-allocate buffer
+    free(buffer);
+    buffer_len = iter.header_len;
+    buffer = al_alloc(buffer_len);
 
-  // prepare iterator
-  if (!eng_bundle_iter_init(&iter, header, iter.header_len)) {
-    free(header);
-    return NULL;
+    // read bundle header
+    if (!al_storage_read(AL_STORAGE_INT, "engine", name, buffer, 0, buffer_len)) {
+      naos_log("eng_bundle_load: failed to read bundle header");
+      free(buffer);
+      return NULL;
+    }
+
+    // re-prepare iterator
+    if (!eng_bundle_iter_init(&iter, buffer, buffer_len)) {
+      free(buffer);
+      return NULL;
+    }
   }
 
   // allocate bundle
@@ -136,8 +153,8 @@ eng_bundle_t *eng_bundle_load(const char *name) {
   // prepare bundle
   *b = (eng_bundle_t){
       .name = strdup(name),
-      .header = header,
-      .header_len = iter.header_len,
+      .buffer = buffer,
+      .buffer_len = buffer_len,
   };
 
   // allocate sections
@@ -183,6 +200,16 @@ void *eng_bundle_read(eng_bundle_t *b, eng_bundle_section_t *s) {
   // return data if already loaded
   if (s->data) {
     return s->data;
+  }
+
+  // handle empty sections
+  if (s->len == 0) {
+    return NULL;
+  }
+
+  // return data from buffer, if possible
+  if (s->off + s->len < b->buffer_len) {
+    return b->buffer + s->off;
   }
 
   // read data
@@ -244,8 +271,8 @@ void eng_bundle_free(eng_bundle_t *b) {
   }
 
   // free buffer
-  if (b->header) {
-    free(b->header);
+  if (b->buffer) {
+    free(b->buffer);
   }
 
   // free name
