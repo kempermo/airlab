@@ -2,16 +2,15 @@
 #include <naos/sys.h>
 #include <driver/ledc.h>
 #include <esp_timer.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
 
 #define BUZZER_DEBUG false
 
 // Component: PKMCS0909E
 
-static naos_mutex_t al_buzzer_mutex;
 static naos_signal_t al_buzzer_signal;
+static naos_queue_t al_buzzer_queue;
 static esp_timer_handle_t al_buzzer_timer;
+static bool al_buzzer_wait = false;
 
 static void al_buzzer_done() {
   // stop channels
@@ -19,12 +18,16 @@ static void al_buzzer_done() {
   ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 1));
 
   // signal done
-  naos_trigger(al_buzzer_signal, 1, false);
+  if (al_buzzer_wait) {
+    naos_trigger(al_buzzer_signal, 1, false);
+  } else {
+    naos_push(al_buzzer_queue, NULL, 0);
+  }
 }
 
-static void al_buzzer_tone(int hz, int us) {
-  // acquire mutex
-  if (!xSemaphoreTake(al_buzzer_mutex, pdMS_TO_TICKS(10))) {
+static void al_buzzer_tone(int hz, int us, bool wait) {
+  // acquire token
+  if (!naos_pop(al_buzzer_queue, NULL, 10)) {
     if (BUZZER_DEBUG) {
       naos_log("al-bzr: busy");
     }
@@ -49,30 +52,32 @@ static void al_buzzer_tone(int hz, int us) {
   // start timer
   ESP_ERROR_CHECK(esp_timer_start_once(al_buzzer_timer, us));
 
-  // calculate timeout
-  int32_t timeout = 5;
-  if (us > 1000) {
-    timeout += us / 1000;
+  // update flag
+  al_buzzer_wait = wait;
+
+  // stop if not waiting
+  if (!wait) {
+    return;
   }
 
   // await signal
-  naos_await(al_buzzer_signal, 1, true, timeout);
-
-  // ensure timer is stopped
-  esp_timer_stop(al_buzzer_timer);
+  naos_await(al_buzzer_signal, 1, true, -1);
 
   // ensure channels are stopped
   ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0));
   ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 1));
 
-  // release mutex
-  naos_unlock(al_buzzer_mutex);
+  // release token
+  naos_push(al_buzzer_queue, NULL, 0);
 }
 
 void al_buzzer_init() {
   // prepare state
-  al_buzzer_mutex = naos_mutex();
   al_buzzer_signal = naos_signal();
+  al_buzzer_queue = naos_queue(1, 0);
+
+  // add token
+  naos_push(al_buzzer_queue, NULL, 0);
 
   // setup LEDC timer
   ledc_timer_config_t ledc_timer = {
@@ -119,15 +124,15 @@ void al_buzzer_init() {
 
 void al_buzzer_click() {
   // make tone
-  al_buzzer_tone(8000, 125);
+  al_buzzer_tone(8000, 125, false);
 }
 
-void al_buzzer_beep(int hz, int ms) {
+void al_buzzer_beep(int hz, int ms, bool wait) {
   // check arguments
   if (hz == 0 || ms == 0) {
     return;
   }
 
   // make tone
-  al_buzzer_tone(hz, ms * 1000);
+  al_buzzer_tone(hz, ms * 1000, wait);
 }

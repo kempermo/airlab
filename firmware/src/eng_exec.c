@@ -326,7 +326,7 @@ static void eng_exec_op_beep(wasm_exec_env_t _, float freq, int duration) {
   }
 
   // play beep
-  al_buzzer_beep(freq, duration);
+  al_buzzer_beep(freq, duration, false);
 }
 
 /* IO operations */

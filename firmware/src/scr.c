@@ -1898,9 +1898,9 @@ static void* scr_check() {
   // buzzer
   gui_cleanup(false);
   gui_write("Listen for the buzzer...", 0);
-  al_buzzer_beep(4400, 200);
+  al_buzzer_beep(4400, 200, true);
   naos_delay(1000);
-  al_buzzer_beep(440, 200);
+  al_buzzer_beep(440, 200, true);
   naos_delay(1000);
 
   // LED
@@ -2330,7 +2330,7 @@ static void* scr_develop() {
         // handle enter
         if (event.type == SIG_ENTER) {
           // play beep
-          al_buzzer_beep(hertz.value, duration.value);
+          al_buzzer_beep(hertz.value, duration.value, false);
 
           continue;
         }
