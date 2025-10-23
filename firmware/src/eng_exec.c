@@ -9,8 +9,10 @@
 #include <driver/gpio.h>
 #include <esp_http_client.h>
 #include <esp_log.h>
+#include <sys/stat.h>
 
 #include <al/core.h>
+#include <al/storage.h>
 #include <al/buzzer.h>
 
 #include "fnt.h"
@@ -547,6 +549,109 @@ static int eng_exec_op_sprite_read(wasm_exec_env_t env, int sprite, int x, int y
   }
 }
 
+/* data operations */
+
+static int eng_exec_op_data_get(wasm_exec_env_t env, uint8_t *name, int name_len, uint8_t *buf, int buf_len) {
+  // check lengths
+  if (!name || name_len <= 0 || buf_len < 0) {
+    return -1;
+  }
+
+  // copy name
+  char *name_copy = eng_exec_mkstr(name, name_len);
+
+  // log
+  if (ENG_EXEC_DEBUG) {
+    naos_log("eng_exec_op_data_get: name='%s' len=%d", name_copy, buf_len);
+  }
+
+  // get context
+  eng_exec_context_t *ctx = wasm_runtime_get_user_data(env);
+
+  // get bundle name
+  const char *bundle_name = eng_bundle_attr(ctx->bundle, "name", NULL);
+  if (!bundle_name) {
+    eng_exec_free(name_copy);
+    return -1;
+  }
+
+  // prepare dir
+  char dir[32] = {0};
+  strcat(dir, "data/");
+  strcat(dir, bundle_name);
+
+  // get size
+  int size = al_storage_stat(AL_STORAGE_INT, dir, name_copy);
+  if (size < 0) {
+    eng_exec_free(name_copy);
+    return -1;
+  }
+
+  // handle size lookup
+  if (!buf) {
+    eng_exec_free(name_copy);
+    return size;
+  }
+
+  // check size
+  if (buf_len != size) {
+    eng_exec_free(name_copy);
+    return -1;
+  }
+
+  // read data
+  if (!al_storage_read(AL_STORAGE_INT, dir, name_copy, buf, 0, size)) {
+    eng_exec_free(name_copy);
+    return -1;
+  }
+
+  // free name
+  eng_exec_free(name_copy);
+
+  return size;
+}
+
+static int eng_exec_op_data_set(wasm_exec_env_t env, uint8_t *name, int name_len, uint8_t *buf, int buf_len) {
+  // check lengths
+  if (!name || name_len <= 0 || !buf || buf_len <= 0) {
+    return -1;
+  }
+
+  // copy name
+  char *name_copy = eng_exec_mkstr(name, name_len);
+
+  // log
+  if (ENG_EXEC_DEBUG) {
+    naos_log("eng_exec_op_data_set: name='%s' len=%d", name_copy, buf_len);
+  }
+
+  // get context
+  eng_exec_context_t *ctx = wasm_runtime_get_user_data(env);
+
+  // get bundle name
+  const char *bundle_name = eng_bundle_attr(ctx->bundle, "name", NULL);
+  if (!bundle_name) {
+    eng_exec_free(name_copy);
+    return -1;
+  }
+
+  // prepare dir
+  char dir[32] = {0};
+  strcat(dir, "data/");
+  strcat(dir, bundle_name);
+
+  // TODO: Move to storage write?
+  mkdir(AL_STORAGE_INTERNAL "/data", 0777);
+
+  // write data
+  al_storage_write(AL_STORAGE_INT, dir, name_copy, buf, 0, buf_len, true);
+
+  // free name
+  eng_exec_free(name_copy);
+
+  return buf_len;
+}
+
 /* HTTP operations */
 
 static esp_http_client_config_t eng_exec_http_cfg = {0};
@@ -765,6 +870,8 @@ static NativeSymbol eng_exec_ops[] = {
     {"al_sprite_height", eng_exec_op_sprite_height, "(i)i", NULL},
     {"al_sprite_draw", eng_exec_op_sprite_draw, "(iiiii)", NULL},
     {"al_sprite_read", eng_exec_op_sprite_read, "(iii)i", NULL},
+    {"al_data_get", eng_exec_op_data_get, "(*~*~)i", NULL},
+    {"al_data_set", eng_exec_op_data_set, "(*~*~)i", NULL},
     {"al_http_new", eng_exec_op_http_new, "()", NULL},
     {"al_http_set", eng_exec_op_http_set, "(ii*~*~)i", NULL},
     {"al_http_run", eng_exec_op_http_run, "(*~*~)i", NULL},
