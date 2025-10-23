@@ -79,7 +79,6 @@ static naos_param_t params[] = {
 };
 
 static naos_config_t config = {
-    .setup_callback = setup,
     .online_callback = com_online,
     .battery_callback = battery,
     .parameters = params,
@@ -101,4 +100,7 @@ void app_main() {
     memcpy(name + 2, id + (strlen(id) - 6), 6);
     naos_set_s("device-name", name);
   }
+
+  // run setup
+  naos_run("setup", 8192, 1, setup);
 }
