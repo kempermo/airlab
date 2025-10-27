@@ -27,7 +27,7 @@ static void al_buzzer_done() {
 
 static void al_buzzer_tone(int hz, int us, bool wait) {
   // check frequency
-  if (hz < 150) {
+  if (hz < 20 || hz > 12000) {
     return;
   }
 
@@ -49,8 +49,8 @@ static void al_buzzer_tone(int hz, int us, bool wait) {
 
   // start beep
   ESP_ERROR_CHECK(ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0, hz));
-  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 512));
-  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 512));
+  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 1 << 11));
+  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 1 << 11));
   ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
   ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));
 
@@ -87,7 +87,7 @@ void al_buzzer_init() {
   // setup LEDC timer
   ledc_timer_config_t ledc_timer = {
       .freq_hz = 440,
-      .duty_resolution = LEDC_TIMER_10_BIT,
+      .duty_resolution = LEDC_TIMER_12_BIT,
       .speed_mode = LEDC_LOW_SPEED_MODE,
       .timer_num = LEDC_TIMER_0,
       .clk_cfg = LEDC_AUTO_CLK,
