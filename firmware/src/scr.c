@@ -2488,7 +2488,6 @@ static void* scr_menu() {
     }
 
     // set fan
-    fan_alt = !fan_alt;
     if (fan_alt) {
       lv_img_set_src(fan, &img_fan2);
     } else {
@@ -2591,6 +2590,11 @@ static void* scr_menu() {
 
     // loop on sensor, interrupt, or escape
     if (event.type & (SIG_SENSOR | SIG_INTERRUPT | SIG_ESCAPE)) {
+      // cycle fan on sensor value
+      if (event.type & SIG_SENSOR) {
+        fan_alt = !fan_alt;
+      }
+
       // show fun fact after half of deadline expired
       if (deadline - naos_millis() < SCR_IDLE_TIMEOUT / 2) {
         fun = true;
