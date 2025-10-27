@@ -1,0 +1,4 @@
+name: info-example
+title: Info Example
+version: v0.1.0
+binary: ./main.wasm

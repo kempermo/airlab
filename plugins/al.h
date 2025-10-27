@@ -5,6 +5,27 @@
 
 #define IMPORT(fn) __attribute__((import_module("env"), import_name(fn)))
 
+typedef enum {
+  AL_INFO_BATTERY_LEVEL,
+  AL_INFO_BATTERY_VOLTAGE,
+  AL_INFO_POWER_USB,
+  AL_INGO_POWER_CHARGING,
+  AL_INFO_SENSOR_TEMPERATURE,
+  AL_INFO_SENSOR_HUMIDITY,
+  AL_INFO_SENSOR_CO2,
+  AL_INFO_SENSOR_VOC,
+  AL_INFO_SENSOR_NOX,
+  AL_INFO_SENSOR_PRESSURE,
+  AL_INGO_STORE_SHORT,
+  AL_INGO_STORE_LONG,
+  AL_INFO_ACCEL_FRONT,
+  AL_INFO_ACCEL_ROTATION,
+  AL_INFO_STORAGE_INT,
+  AL_INFO_STORAGE_EXT,
+} al_info_t;
+
+IMPORT("al_info") extern float al_info(al_info_t i);
+
 IMPORT("al_clear") extern void al_clear(int c);
 
 IMPORT("al_line") extern void al_line(int x1, int y1, int x2, int y2, int c, int b);
