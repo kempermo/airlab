@@ -75,7 +75,7 @@ static bool eng_exec_bit(const uint8_t *buf, size_t pos) {
   return buf[byte] & (1 << bit) ? 1 : 0;
 }
 
-static char *eng_exec_mkstr(const uint8 *buf, int len) {
+static char *eng_exec_mkstr(const uint8_t *buf, int len) {
   // check length
   if (len <= 0) {
     return NULL;
@@ -87,6 +87,19 @@ static char *eng_exec_mkstr(const uint8 *buf, int len) {
   str[len] = 0;
 
   return str;
+}
+
+static bool eng_valid_buf(wasm_exec_env_t env, void *ptr, size_t len, bool allow_null) {
+  // check null
+  if (ptr == NULL) {
+    return allow_null && (len == 0);
+  }
+
+  // get module instance
+  wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+
+  // check native address
+  return wasm_runtime_validate_native_addr(inst, ptr, len);
 }
 
 /* primary operations */
@@ -237,8 +250,13 @@ enum {
   ENG_WRITE_ALIGN_RIGHT = (1 << 1),
 };
 
-static void eng_exec_op_write(wasm_exec_env_t env, int x, int y, int s, int f, int c, uint8 *text, int text_len,
+static void eng_exec_op_write(wasm_exec_env_t env, int x, int y, int s, int f, int c, uint8_t *text, int text_len,
                               int flags) {
+  // validate buffer
+  if (!eng_valid_buf(env, text, text_len, false)) {
+    return;
+  }
+
   // copy text
   char copy[128];
   if (text_len >= sizeof(copy)) {
@@ -249,7 +267,7 @@ static void eng_exec_op_write(wasm_exec_env_t env, int x, int y, int s, int f, i
 
   // log
   if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_write: x=%d y=%d, s=%d f=%d c=%d s='%s' flags=%d", x, y, s, f, c, copy, flags);
+    naos_log("eng_exec_op_write: x=%d y=%d, s=%d f=%d c=%d text='%s' flags=%d", x, y, s, f, c, copy, flags);
   }
 
   // get context
@@ -283,8 +301,8 @@ static void eng_exec_op_write(wasm_exec_env_t env, int x, int y, int s, int f, i
   lv_canvas_draw_text(ctx->canvas, x, y, w, &label_dsc, copy);
 }
 
-static void eng_exec_op_draw(wasm_exec_env_t env, int x, int y, int w, int h, int s, int a, const uint8 *i,
-                             const uint8 *m) {
+static void eng_exec_op_draw(wasm_exec_env_t env, int x, int y, int w, int h, int s, int a, const uint8_t *i,
+                             const uint8_t *m) {
   // log
   if (ENG_EXEC_DEBUG) {
     naos_log("eng_exec_op_draw: x=%d y=%d w=%d h=%d s=%d a=%d", x, y, w, h, s, a);
@@ -292,6 +310,14 @@ static void eng_exec_op_draw(wasm_exec_env_t env, int x, int y, int w, int h, in
 
   // check dimensions
   if (w <= 0 || h <= 0 || s <= 0) {
+    return;
+  }
+
+  // calculate size
+  size_t size = ((w * h) + 7) / 8;
+
+  // validate buffers
+  if (!eng_valid_buf(env, i, size, false) || !eng_valid_buf(env, m, size, false)) {
     return;
   }
 
@@ -395,10 +421,16 @@ static int eng_exec_op_gpio(wasm_exec_env_t _, int cmd, int flags) {
   }
 }
 
-static int eng_exec_op_i2c(wasm_exec_env_t _, int addr, uint8 *tx, int tx_len, uint8 *rx, int rx_len, int timeout) {
+static int eng_exec_op_i2c(wasm_exec_env_t env, int addr, uint8_t *tx, int tx_len, uint8_t *rx, int rx_len,
+                           int timeout) {
   // log
   if (ENG_EXEC_DEBUG) {
     naos_log("eng_exec_op_i2c: addr=%d tx=%d rx=%d timeout=%d", addr, tx_len, rx_len, timeout);
+  }
+
+  // validate buffers
+  if (!eng_valid_buf(env, tx, tx_len, true) || !eng_valid_buf(env, rx, rx_len, true)) {
+    return -1;
   }
 
   // perform transfer
@@ -409,7 +441,12 @@ static int eng_exec_op_i2c(wasm_exec_env_t _, int addr, uint8 *tx, int tx_len, u
 
 /* sprite operations */
 
-static int eng_exec_op_sprite_resolve(wasm_exec_env_t env, uint8 *name, int name_len) {
+static int eng_exec_op_sprite_resolve(wasm_exec_env_t env, uint8_t *name, int name_len) {
+  // validate buffers
+  if (!eng_valid_buf(env, name, name_len, false)) {
+    return -1;
+  }
+
   // copy name
   char copy[64];
   if (name_len >= sizeof(copy)) {
@@ -430,80 +467,102 @@ static int eng_exec_op_sprite_resolve(wasm_exec_env_t env, uint8 *name, int name
   return eng_bundle_locate(ctx->bundle, ENG_BUNDLE_TYPE_SPRITE, copy, NULL);
 }
 
-static int eng_exec_op_sprite_width(wasm_exec_env_t env, int sprite) {
+static int eng_exec_op_sprite_width(wasm_exec_env_t env, int n) {
   // log
   if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_sprite_width: sprite=%d", sprite);
+    naos_log("eng_exec_op_sprite_width: n=%d", n);
   }
 
   // get context
   eng_exec_context_t *ctx = wasm_runtime_get_user_data(env);
 
   // check sprite
-  eng_bundle_section_t *section = &ctx->bundle->sections[sprite];
-  if (sprite < 0 || sprite >= ctx->bundle->sections_num || section->type != ENG_BUNDLE_TYPE_SPRITE) {
+  eng_bundle_section_t *section = &ctx->bundle->sections[n];
+  if (n < 0 || n >= ctx->bundle->sections_num || section->type != ENG_BUNDLE_TYPE_SPRITE) {
     return -1;
   }
 
   // parse sprite
   eng_bundle_sprite_t sp;
   if (!eng_bundle_parse_sprite(&sp, ctx->bundle, section)) {
-    naos_log("eng_exec_op_sprite_draw: parsing sprite %d failed", sprite);
+    naos_log("eng_exec_op_sprite_draw: parsing sprite %d failed", n);
     return -1;
   }
 
   return sp.width;
 }
 
-static int eng_exec_op_sprite_height(wasm_exec_env_t env, int sprite) {
+static int eng_exec_op_sprite_height(wasm_exec_env_t env, int n) {
   // log
   if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_sprite_height: sprite=%d", sprite);
+    naos_log("eng_exec_op_sprite_height: n=%d", n);
   }
 
   // get context
   eng_exec_context_t *ctx = wasm_runtime_get_user_data(env);
 
   // check sprite
-  eng_bundle_section_t *section = &ctx->bundle->sections[sprite];
-  if (sprite < 0 || sprite >= ctx->bundle->sections_num || section->type != ENG_BUNDLE_TYPE_SPRITE) {
+  eng_bundle_section_t *section = &ctx->bundle->sections[n];
+  if (n < 0 || n >= ctx->bundle->sections_num || section->type != ENG_BUNDLE_TYPE_SPRITE) {
     return -1;
   }
 
   // parse sprite
   eng_bundle_sprite_t sp;
   if (!eng_bundle_parse_sprite(&sp, ctx->bundle, section)) {
-    naos_log("eng_exec_op_sprite_draw: parsing sprite %d failed", sprite);
+    naos_log("eng_exec_op_sprite_draw: parsing sprite %d failed", n);
     return -1;
   }
 
   return sp.height;
 }
 
-static void eng_exec_op_sprite_draw(wasm_exec_env_t env, int sprite, int x, int y, int s, int a) {
+static void eng_exec_op_sprite_draw(wasm_exec_env_t env, int n, int x, int y, int s, int a) {
+  // check scale
+  if (s <= 0) {
+    return;
+  }
+
   // log
   if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_sprite_draw: sprite=%d x=%d y=%d s=%d a=%d", sprite, x, y, s, a);
+    naos_log("eng_exec_op_sprite_draw: n=%d x=%d y=%d s=%d a=%d", n, x, y, s, a);
   }
 
   // get context
   eng_exec_context_t *ctx = wasm_runtime_get_user_data(env);
 
   // check sprite
-  eng_bundle_section_t *section = &ctx->bundle->sections[sprite];
-  if (sprite < 0 || sprite >= ctx->bundle->sections_num || section->type != ENG_BUNDLE_TYPE_SPRITE) {
+  eng_bundle_section_t *section = &ctx->bundle->sections[n];
+  if (n < 0 || n >= ctx->bundle->sections_num || section->type != ENG_BUNDLE_TYPE_SPRITE) {
     return;
   }
 
   // parse sprite
   eng_bundle_sprite_t sp;
   if (!eng_bundle_parse_sprite(&sp, ctx->bundle, section)) {
-    naos_log("eng_exec_op_sprite_draw: parsing sprite %d failed", sprite);
+    naos_log("eng_exec_op_sprite_draw: parsing sprite %d failed", n);
     return;
   }
 
-  // draw sprite
-  eng_exec_op_draw(env, x, y, sp.width, sp.height, s, a, sp.image, sp.mask);
+  // prepare sprite
+  lvx_sprite_t sprite = {
+      .w = sp.width,
+      .h = sp.height,
+      .s = s,
+      .a = a,
+      .img = sp.image,
+      .mask = sp.mask,
+  };
+
+  // prepare image
+  lv_img_dsc_t img = lvx_sprite_img(&sprite);
+
+  // prepare descriptor
+  lv_draw_img_dsc_t img_draw;
+  lv_draw_img_dsc_init(&img_draw);
+
+  // draw image
+  lv_canvas_draw_img(ctx->canvas, x, y, &img, &img_draw);
 }
 
 static int eng_exec_op_sprite_read(wasm_exec_env_t env, int sprite, int x, int y) {
@@ -553,7 +612,12 @@ static int eng_exec_op_sprite_read(wasm_exec_env_t env, int sprite, int x, int y
 
 static int eng_exec_op_data_get(wasm_exec_env_t env, uint8_t *name, int name_len, uint8_t *buf, int buf_len) {
   // check lengths
-  if (!name || name_len <= 0 || buf_len < 0) {
+  if (name_len <= 0 || buf_len < 0) {
+    return -1;
+  }
+
+  // validate buffers
+  if (!eng_valid_buf(env, name, name_len, false) || !eng_valid_buf(env, buf, buf_len, true)) {
     return -1;
   }
 
@@ -588,7 +652,7 @@ static int eng_exec_op_data_get(wasm_exec_env_t env, uint8_t *name, int name_len
   }
 
   // handle size lookup
-  if (!buf) {
+  if (buf_len <= 0) {
     eng_exec_free(name_copy);
     return size;
   }
@@ -613,7 +677,12 @@ static int eng_exec_op_data_get(wasm_exec_env_t env, uint8_t *name, int name_len
 
 static int eng_exec_op_data_set(wasm_exec_env_t env, uint8_t *name, int name_len, uint8_t *buf, int buf_len) {
   // check lengths
-  if (!name || name_len <= 0 || !buf || buf_len <= 0) {
+  if (name_len <= 0 || buf_len <= 0) {
+    return -1;
+  }
+
+  // validate buffers
+  if (!eng_valid_buf(env, name, name_len, false) || !eng_valid_buf(env, buf, buf_len, false)) {
     return -1;
   }
 
@@ -747,8 +816,13 @@ static void eng_exec_op_http_new() {
   }
 }
 
-static int eng_exec_op_http_set(wasm_exec_env_t _, int field, int num, uint8 *str, int str_len, uint8 *str2,
+static int eng_exec_op_http_set(wasm_exec_env_t env, int field, int num, uint8_t *str, int str_len, uint8_t *str2,
                                 int str2_len) {
+  // validate buffers
+  if (!eng_valid_buf(env, str, str_len, true) || !eng_valid_buf(env, str2, str2_len, true)) {
+    return -1;
+  }
+
   // copy strings
   char *str_copy = eng_exec_mkstr(str, str_len);
   char *str2_copy = eng_exec_mkstr(str2, str2_len);
@@ -759,49 +833,55 @@ static int eng_exec_op_http_set(wasm_exec_env_t _, int field, int num, uint8 *st
   }
 
   // handle fields
+  bool ok = true;
   switch (field) {
     case ENG_HTTP_URL:
       esp_http_client_set_url(eng_exec_http_client, str_copy);  // makes copy
       break;
     case ENG_HTTP_METHOD:
       if (strcmp(str_copy, "GET") == 0) {
-        esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_GET);
+        ok = esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_GET) == ESP_OK;
       } else if (strcmp(str_copy, "POST") == 0) {
-        esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_POST);
+        ok = esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_POST) == ESP_OK;
       } else if (strcmp(str_copy, "PUT") == 0) {
-        esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_PUT);
+        ok = esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_PUT) == ESP_OK;
       } else if (strcmp(str_copy, "PATH") == 0) {
-        esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_PATCH);
+        ok = esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_PATCH) == ESP_OK;
       } else if (strcmp(str_copy, "DELETE") == 0) {
-        esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_DELETE);
+        ok = esp_http_client_set_method(eng_exec_http_client, HTTP_METHOD_DELETE) == ESP_OK;
       } else {
-        return -1;
+        ok = false;
       }
       break;
     case ENG_HTTP_USERNAME:
-      esp_http_client_set_username(eng_exec_http_client, str_copy);  // makes copy
+      ok = esp_http_client_set_username(eng_exec_http_client, str_copy) == ESP_OK;  // makes copy
       break;
     case ENG_HTTP_PASSWORD:
-      esp_http_client_set_password(eng_exec_http_client, str_copy);  // makes copy
+      ok = esp_http_client_set_password(eng_exec_http_client, str_copy) == ESP_OK;  // makes copy
       break;
     case ENG_HTTP_HEADER:
-      esp_http_client_set_header(eng_exec_http_client, str_copy, str2_copy);  // makes copy
+      ok = esp_http_client_set_header(eng_exec_http_client, str_copy, str2_copy) == ESP_OK;  // makes copy
       break;
     case ENG_HTTP_TIMEOUT:
-      esp_http_client_set_timeout_ms(eng_exec_http_client, num);
+      ok = esp_http_client_set_timeout_ms(eng_exec_http_client, num) == ESP_OK;
       break;
     default:
-      return -1;
+      ok = false;
   }
 
   // free
   eng_exec_free(str_copy);
   eng_exec_free(str2_copy);
 
-  return 0;
+  return ok ? 0 : -1;
 }
 
-static int eng_exec_op_http_run(wasm_exec_env_t _, uint8 *req, int req_len, uint8 *res, int res_len) {
+static int eng_exec_op_http_run(wasm_exec_env_t env, uint8_t *req, int req_len, uint8_t *res, int res_len) {
+  // validate buffers
+  if (!eng_valid_buf(env, req, req_len, true) || !eng_valid_buf(env, res, res_len, true)) {
+    return -1;
+  }
+
   // log
   if (ENG_EXEC_DEBUG) {
     naos_log("eng_exec_op_http_run: req_len=%d res_len=%d", req_len, res_len);
