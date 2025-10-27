@@ -108,3 +108,15 @@ IMPORT("al_http_run")
 extern int al_http_run(void *req, int req_len, void *res, int res_len);
 
 IMPORT("al_http_get") extern int al_http_get(int field);
+
+/* Data */
+
+IMPORT("al_data_set") extern int _al_data_set(const void *name, int name_len, const void *buf, int buf_len);
+int al_data_set(const char *name, const void *buf, int buf_len) {
+  return _al_data_set((const void *)name, strlen(name), buf, buf_len);
+}
+
+IMPORT("al_data_get") extern int _al_data_get(const void *name, int name_len, void *buf, int buf_len);
+int al_data_get(const char *name, void *buf, int buf_len) {
+  return _al_data_get((const void *)name, strlen(name), buf, buf_len);
+}

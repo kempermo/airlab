@@ -1,4 +1,4 @@
-.PHONY: gfx gpio hello http i2c sen55 sprite weather
+.PHONY: data gfx gpio hello http i2c sen55 sprite weather
 
 COMPILE := zig cc -target wasm32-wasi -Wl,-z,stack-size=65536 -Wl,--initial-memory=262144 -Wl,--max-memory=262144 -Os
 UPLOAD ?= 0
@@ -12,9 +12,9 @@ $1:
 	@if [ "$$(LAUNCH)" = "1" ]; then alpctl launch $1.alp; fi
 endef
 
-$(foreach t,gfx hello gpio sen55 sprite http i2c weather,$(eval $(call build_task,$t)))
+$(foreach t,data gfx hello gpio sen55 sprite http i2c weather,$(eval $(call build_task,$t)))
 
-all: gfx gpio hello http i2c sen55 sprite weather
+all: data gfx gpio hello http i2c sen55 sprite weather
 
 upload:
 	$(MAKE) UPLOAD=1 all
