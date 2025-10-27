@@ -183,13 +183,13 @@ static int eng_exec_op_yield(wasm_exec_env_t _, int timeout, int flags) {
   return ret;
 }
 
-static void eng_exec_op_sleep(wasm_exec_env_t _, int ms) {
+static void eng_exec_op_delay(wasm_exec_env_t _, int ms) {
   // log
   if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_sleep: ms=%d", ms);
+    naos_log("eng_exec_op_delay: ms=%d", ms);
   }
 
-  // sleep
+  // delay
   naos_delay(ms);
 }
 
@@ -946,7 +946,7 @@ static int eng_exec_op_http_get(wasm_exec_env_t _, int field) {
 static NativeSymbol eng_exec_ops[] = {
     {"al_config", eng_exec_op_config, "(iiii)i", NULL},
     {"al_yield", eng_exec_op_yield, "(ii)i", NULL},
-    {"al_sleep", eng_exec_op_sleep, "(i)", NULL},
+    {"al_delay", eng_exec_op_delay, "(i)", NULL},
     {"al_millis", eng_exec_op_millis, "()I", NULL},
     {"al_clear", eng_exec_op_clear, "(i)", NULL},
     {"al_line", eng_exec_op_line, "(iiiiii)", NULL},
