@@ -260,8 +260,14 @@ static void eng_exec_op_delay(wasm_exec_env_t _, int ms) {
     naos_log("eng_exec_op_delay: ms=%d", ms);
   }
 
+  // unlock graphics
+  gfx_end(false, false);
+
   // delay
   naos_delay(ms);
+
+  // lock graphics
+  gfx_begin(false, false);
 }
 
 static int64_t eng_exec_op_millis(wasm_exec_env_t _) {
