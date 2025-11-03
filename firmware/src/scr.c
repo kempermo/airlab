@@ -2582,8 +2582,8 @@ static void* scr_menu() {
       deadline = naos_millis() + SCR_IDLE_TIMEOUT;
     }
 
-    // clear statement and action on any key or launch
-    if (statement != NULL && event.type & (SIG_KEYS | SIG_LAUNCH)) {
+    // clear statement and action on any key
+    if (statement != NULL && (event.type & SIG_KEYS)) {
       statement = NULL;
       scr_action = 0;
       continue;
