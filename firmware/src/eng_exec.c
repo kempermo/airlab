@@ -8,6 +8,8 @@
 #include <wasm_export.h>
 #include <lvgl.h>
 #include <driver/gpio.h>
+#include <driver/ledc.h>
+#include <driver/adc.h>
 #include <esp_http_client.h>
 
 #include <al/core.h>
@@ -469,31 +471,44 @@ static void eng_exec_op_beep(wasm_exec_env_t _, float freq, int duration, int fl
 
 enum {
   ENG_GPIO_CONFIG,
-  ENG_GPIO_WRITE,
-  ENG_GPIO_READ,
+  ENG_GPIO_WRITE,        // 0/1
+  ENG_GPIO_READ,         // 0/1
+  ENG_GPIO_WRITE_PWM,    // 0-4096
+  ENG_GPIO_READ_ANALOG,  // 0-4096
 };
 
 enum {
   ENG_GPIO_A = (1 << 0),
   ENG_GPIO_B = (1 << 1),
-  ENG_GPIO_HIGH = (1 << 2),   // or low
-  ENG_GPIO_INPUT = (1 << 3),  // or output
+  ENG_GPIO_OUTPUT = (1 << 2),
+  ENG_GPIO_INPUT = (1 << 3),
   ENG_GPIO_PULL_UP = (1 << 4),
   ENG_GPIO_PULL_DOWN = (1 << 5),
+  ENG_GPIO_ANALOG_INPUT = (1 << 6),
+  ENG_GPIO_PWM_OUTPUT = (1 << 7),
 };
 
-static int eng_exec_op_gpio(wasm_exec_env_t _, int cmd, int flags) {
+static int eng_exec_op_gpio(wasm_exec_env_t env, int cmd, int flags, int arg) {
   // log
   if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_gpio: cmd=%d flags=0x%X", cmd, flags);
+    naos_log("eng_exec_op_gpio: cmd=%d flags=0x%X arg=%d", cmd, flags, arg);
   }
 
-  // determine GPIO num
-  gpio_num_t num = 0;
+  // determine GPIO num, LEDC and ADC channels
+  gpio_num_t io_num = 0;
+  ledc_timer_t pwm_tm = 0;
+  ledc_channel_t pwm_ch = 0;
+  adc1_channel_t adc_ch = 0;
   if (flags & ENG_GPIO_A) {
-    num = AL_GPIO_A;
+    io_num = AL_GPIO_A;
+    pwm_tm = LEDC_TIMER_2;
+    pwm_ch = LEDC_CHANNEL_6;
+    adc_ch = ADC1_CHANNEL_2;
   } else if (flags & ENG_GPIO_B) {
-    num = AL_GPIO_B;
+    io_num = AL_GPIO_B;
+    pwm_tm = LEDC_TIMER_3;
+    pwm_ch = LEDC_CHANNEL_7;
+    adc_ch = ADC1_CHANNEL_9;
   } else {
     return -1;
   }
@@ -501,30 +516,107 @@ static int eng_exec_op_gpio(wasm_exec_env_t _, int cmd, int flags) {
   // handle commands
   switch (cmd) {
     case ENG_GPIO_CONFIG: {
-      // configure GPIO
-      gpio_config_t io_conf = {
-          .pin_bit_mask = BIT64(num),
-          .mode = flags & ENG_GPIO_INPUT ? GPIO_MODE_INPUT : GPIO_MODE_OUTPUT,
-          .pull_up_en = flags & ENG_GPIO_PULL_UP ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
-          .pull_down_en = flags & ENG_GPIO_PULL_DOWN ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE,
-          .intr_type = GPIO_INTR_DISABLE,
-      };
-      esp_err_t err = gpio_config(&io_conf);
+      // reset GPIO
+      gpio_reset_pin(io_num);
 
-      return err == ESP_OK ? 0 : -1;
+      // apply configuration
+      if (flags & ENG_GPIO_ANALOG_INPUT) {
+        // configure attenuation
+        esp_err_t err = adc1_config_channel_atten(adc_ch, ADC_ATTEN_DB_12);
+        if (err != ESP_OK) {
+          return -1;
+        }
+
+        return 0;
+      } else if (flags & ENG_GPIO_PWM_OUTPUT) {
+        // configure LEDC timer
+        ledc_timer_config_t tcfg = {
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .timer_num = pwm_tm,
+            .duty_resolution = LEDC_TIMER_12_BIT,
+            .freq_hz = arg,
+            .clk_cfg = LEDC_AUTO_CLK,
+        };
+        esp_err_t err = ledc_timer_config(&tcfg);
+        if (err != ESP_OK) {
+          naos_log("eng_exec_op_gpio: ledc_timer_config failed");
+          return -1;
+        }
+
+        // configure LEDC channel
+        ledc_channel_config_t cfg = {
+            .gpio_num = io_num,
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .timer_sel = pwm_tm,
+            .channel = pwm_ch,
+            .duty = 0,
+            .hpoint = 0,
+        };
+        err = ledc_channel_config(&cfg);
+        if (err != ESP_OK) {
+          naos_log("eng_exec_op_gpio: ledc_timer_config failed");
+          return -1;
+        }
+
+        return 0;
+      } else {
+        // determine mode
+        gpio_mode_t mode = GPIO_MODE_DISABLE;
+        if (flags & ENG_GPIO_INPUT) {
+          mode = GPIO_MODE_INPUT;
+        } else if (flags & ENG_GPIO_OUTPUT) {
+          mode = GPIO_MODE_OUTPUT;
+        } else {
+          return -1;
+        }
+
+        // configure GPIO
+        gpio_config_t io_conf = {
+            .pin_bit_mask = BIT64(io_num),
+            .mode = mode,
+            .pull_up_en = flags & ENG_GPIO_PULL_UP ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
+            .pull_down_en = flags & ENG_GPIO_PULL_DOWN ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE,
+        };
+        esp_err_t err = gpio_config(&io_conf);
+        if (err != ESP_OK) {
+          return -1;
+        }
+
+        return 0;
+      }
     }
+
     case ENG_GPIO_WRITE: {
       // set GPIO level
-      int level = (flags & ENG_GPIO_HIGH) ? 1 : 0;
-      esp_err_t err = gpio_set_level(num, level);
+      esp_err_t err = gpio_set_level(io_num, arg == 1 ? 1 : 0);
 
       return err == ESP_OK ? 0 : -1;
     }
     case ENG_GPIO_READ: {
       // get GPIO level
-      int level = gpio_get_level(num);
+      int level = gpio_get_level(io_num);
 
       return level;
+    }
+    case ENG_GPIO_WRITE_PWM: {
+      // set PWM duty
+      uint32_t duty = (arg > 4095) ? 4095 : arg;
+      esp_err_t err1 = ledc_set_duty(LEDC_LOW_SPEED_MODE, pwm_ch, duty);
+      esp_err_t err2 = ledc_update_duty(LEDC_LOW_SPEED_MODE, pwm_ch);
+      if (err1 != ESP_OK || err2 != ESP_OK) {
+        naos_log("eng_exec_op_gpio: PWM write failed");
+        return -1;
+      }
+
+      return 0;
+    }
+
+    case ENG_GPIO_READ_ANALOG: {
+      // get analog value
+      int val = adc1_get_raw(adc_ch);
+
+      return val;
     }
     default:
       return -1;
@@ -1087,7 +1179,7 @@ static NativeSymbol eng_exec_ops[] = {
     {"al_write", eng_exec_op_write, "(iiiii*~i)", NULL},
     {"al_beep", eng_exec_op_beep, "(fii)", NULL},
     {"al_draw", eng_exec_op_draw, "(iiiiii**)", NULL},
-    {"al_gpio", eng_exec_op_gpio, "(ii)i", NULL},
+    {"al_gpio", eng_exec_op_gpio, "(iii)i", NULL},
     {"al_i2c", eng_exec_op_i2c, "(i*i*ii)i", NULL},
     {"al_sprite_resolve", eng_exec_op_sprite_resolve, "(*~)i", NULL},
     {"al_sprite_width", eng_exec_op_sprite_width, "(i)i", NULL},
