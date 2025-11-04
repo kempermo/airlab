@@ -22,8 +22,9 @@
 // TODO: Only send discovery when the HA MQTT service comes online.
 
 typedef enum {
-  COM_CMD_SENSOR_READ = 0x01,
-  COM_CMD_SIGNAL_LAUNCH = 0x02,
+  COM_CMD_SENSOR_READ = 0x1,
+  COM_CMD_ENGINE_LAUNCH = 0x2,
+  COM_CMD_ENGINE_KILL = 0x3,
 } com_cmd_t;
 
 static bool com_mqtt_ha = false;
@@ -118,6 +119,20 @@ static naos_msg_reply_t com_cmd_signal_launch(naos_msg_t msg) {
   return NAOS_MSG_ACK;
 }
 
+static naos_msg_reply_t com_cmd_signal_kill(naos_msg_t msg) {
+  // check length
+  if (msg.len != 0) {
+    return NAOS_MSG_INVALID;
+  }
+
+  // signal kill
+  sig_dispatch((sig_event_t){
+    .type = SIG_KILL,
+  });
+
+  return NAOS_MSG_ACK;
+}
+
 static naos_msg_reply_t com_handle(naos_msg_t msg) {
   // message structure:
   // CMD (1) | *
@@ -145,8 +160,11 @@ static naos_msg_reply_t com_handle(naos_msg_t msg) {
     case COM_CMD_SENSOR_READ:
       reply = com_cmd_sensor_read(msg);
       break;
-    case COM_CMD_SIGNAL_LAUNCH:
+    case COM_CMD_ENGINE_LAUNCH:
       reply = com_cmd_signal_launch(msg);
+      break;
+    case COM_CMD_ENGINE_KILL:
+      reply = com_cmd_signal_kill(msg);
       break;
     default:
       reply = NAOS_MSG_UNKNOWN;

@@ -212,7 +212,7 @@ enum {
   ENG_YIELD_RIGHT = 6,
 };
 
-static int eng_exec_op_yield(wasm_exec_env_t _, int timeout, int flags) {
+static int eng_exec_op_yield(wasm_exec_env_t env, int timeout, int flags) {
   // log
   if (ENG_EXEC_DEBUG) {
     naos_log("eng_exec_op_yield: timeout=%d flags=%d", timeout, flags);
@@ -222,7 +222,20 @@ static int eng_exec_op_yield(wasm_exec_env_t _, int timeout, int flags) {
   gfx_end(flags & ENG_YIELD_SKIP_FRAME, flags & ENG_YIELD_WAIT_FRAME);
 
   // await event or deadline
-  sig_event_t event = sig_await(SIG_KEYS, timeout);
+  sig_event_t event = sig_await(SIG_KEYS | SIG_KILL, timeout);
+
+  // handle kill
+  if (event.type == SIG_KILL) {
+    // log
+    if (ENG_EXEC_DEBUG) {
+      naos_log("eng_exec_op_yield: received kill");
+    }
+
+    // clean up the WASM runtime here if needed
+    wasm_runtime_set_exception(wasm_runtime_get_module_inst(env), "killed");
+
+    return 0;
+  }
 
   // handle events
   int ret = 0;
