@@ -95,19 +95,22 @@ typedef enum {
   AL_GPIO_CONFIG,
   AL_GPIO_WRITE,
   AL_GPIO_READ,
+  AL_GPIO_WRITE_PWM,
+  AL_GPIO_READ_ANALOG,
 } al_gpio_cmd_t;
 
 typedef enum {
   AL_GPIO_A = (1 << 0),
   AL_GPIO_B = (1 << 1),
-  AL_GPIO_HIGH = (1 << 2),   // or low
-  AL_GPIO_INPUT = (1 << 3),  // or output
+  AL_GPIO_OUTPUT = (1 << 2),
+  AL_GPIO_INPUT = (1 << 3),
   AL_GPIO_PULL_UP = (1 << 4),
   AL_GPIO_PULL_DOWN = (1 << 5),
+  AL_GPIO_ANALOG_INPUT = (1 << 6),  // 0-4096
+  AL_GPIO_PWM_OUTPUT = (1 << 7),    // 0-4096
 } al_gpio_flags_t;
 
-IMPORT("al_gpio") extern int _al_gpio(int cmd, int flags);
-int al_gpio(al_gpio_cmd_t cmd, al_gpio_flags_t flags) { return _al_gpio(cmd, flags); }
+IMPORT("al_gpio") extern int al_gpio(int cmd, al_gpio_flags_t flags, int arg);
 
 IMPORT("al_i2c")
 extern int al_i2c(int addr, const void *w, int wl, void *r, int rl, int timeout);

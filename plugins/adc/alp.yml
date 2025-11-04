@@ -1,0 +1,4 @@
+name: adc-example
+title: ADC Example
+version: v0.1.0
+binary: ./main.wasm

@@ -4,12 +4,13 @@
 
 int main() {
   // configure GPIOs
-  al_gpio(AL_GPIO_CONFIG, AL_GPIO_A);  // output
-  al_gpio(AL_GPIO_CONFIG, AL_GPIO_B | AL_GPIO_INPUT | AL_GPIO_PULL_UP);
+  al_gpio(AL_GPIO_CONFIG, AL_GPIO_A | AL_GPIO_OUTPUT, 0);
+  al_gpio(AL_GPIO_CONFIG, AL_GPIO_B | AL_GPIO_INPUT | AL_GPIO_PULL_UP, 0);
 
   // clear screen
   al_clear(0);
 
+  // prepar state
   bool gpio_a = false;
 
   // draw borders for GPIO indicators
@@ -18,7 +19,7 @@ int main() {
 
   for (;;) {
     // read GPIO B
-    bool gpio_b = al_gpio(AL_GPIO_READ, AL_GPIO_B) == 1;
+    bool gpio_b = al_gpio(AL_GPIO_READ, AL_GPIO_B, 0) == 1;
 
     // show rectangles based on levels
     al_rect(103 + 3, 49 + 3, 24, 24, gpio_a ? 1 : 0, 0);
@@ -35,7 +36,7 @@ int main() {
     // toggle GPIO A on enter
     if (res == AL_YIELD_ENTER) {
       gpio_a = !gpio_a;
-      al_gpio(AL_GPIO_WRITE, AL_GPIO_A | (gpio_a ? AL_GPIO_HIGH : 0));
+      al_gpio(AL_GPIO_WRITE, AL_GPIO_A, gpio_a ? 1 : 0);
     }
   }
 

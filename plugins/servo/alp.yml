@@ -1,0 +1,4 @@
+name: servo-example
+title: Servo Example
+version: v0.1.0
+binary: ./main.wasm
