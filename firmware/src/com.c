@@ -130,7 +130,7 @@ static naos_msg_reply_t com_cmd_signal_kill(naos_msg_t msg) {
 
   // signal kill
   sig_dispatch((sig_event_t){
-    .type = SIG_KILL,
+      .type = SIG_KILL,
   });
 
   return NAOS_MSG_ACK;

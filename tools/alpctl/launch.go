@@ -37,14 +37,42 @@ func launch(name, device string) {
 		panic(err)
 	}
 
+	// create session
+	sess, err := man.NewSession()
+	if err != nil {
+		panic(err)
+	}
+	defer sess.End(0)
+
+	// kill running plugin
+	err = sess.Send(0xA1, []byte{0x3}, 5*time.Second)
+	if err != nil {
+		panic(err)
+	}
+
 	// launch plugin
-	err = man.UseSession(func(s *msg.Session) error {
-		return s.Send(0xA1, append([]byte{0x2}, []byte(name)...), time.Second)
-	})
+	err = sess.Send(0xA1, append([]byte{0x2}, []byte(name)...), 5*time.Second)
 	if err != nil {
 		panic(err)
 	}
 
 	// log
 	fmt.Printf("==> Launched!\n")
+
+	// start log streaming
+	err = sess.Send(0xA1, []byte{0x4}, 5*time.Second)
+	if err != nil {
+		panic(err)
+	}
+
+	// TODO: Prevent session timeout.
+
+	// receive logs
+	for {
+		log, err := sess.Receive(0xA1, false, time.Minute)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("==> Log: %s\n", string(log))
+	}
 }
