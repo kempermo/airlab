@@ -18,6 +18,7 @@
 #include <al/power.h>
 #include <al/store.h>
 
+#include "com.h"
 #include "fnt.h"
 #include "gfx.h"
 #include "gui.h"
@@ -1045,6 +1046,29 @@ static int eng_exec_op_http_get(wasm_exec_env_t env, int field) {
   }
 }
 
+/* utils */
+
+static void eng_exec_op_log(wasm_exec_env_t env, uint8_t *msg, int msg_len) {
+  // validate buffer
+  if (!eng_valid_buf(env, msg, msg_len, false)) {
+    return;
+  }
+
+  // copy message
+  char *cpy = eng_exec_mkstr(msg, msg_len);
+
+  // log
+  if (ENG_EXEC_DEBUG) {
+    naos_log("eng_exec_op_log: msg='%s'", cpy);
+  }
+
+  // log message
+  com_log(cpy, msg_len);
+
+  // free copy
+  eng_exec_free(cpy);
+}
+
 /* runtime */
 
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/export_native_api.md
@@ -1073,6 +1097,7 @@ static NativeSymbol eng_exec_ops[] = {
     {"al_http_set", eng_exec_op_http_set, "(ii*~*~)i", NULL},
     {"al_http_run", eng_exec_op_http_run, "(*~*~)i", NULL},
     {"al_http_get", eng_exec_op_http_get, "(i)i", NULL},
+    {"al_log", eng_exec_op_log, "(*~)", NULL},
 };
 
 static void *eng_exec_task(void *arg) {

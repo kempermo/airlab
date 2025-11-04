@@ -25,11 +25,14 @@ typedef enum {
   COM_CMD_SENSOR_READ = 0x1,
   COM_CMD_ENGINE_LAUNCH = 0x2,
   COM_CMD_ENGINE_KILL = 0x3,
+  COM_CMD_ENGINE_LOG_START = 0x4,
+  COM_CMD_ENGINE_LOG_STOP = 0x5,
 } com_cmd_t;
 
 static bool com_mqtt_ha = false;
 static bool com_did_start = false;
 static char *com_plugin_file = NULL;
+static uint16_t com_log_sessions[16] = {0};
 
 static naos_msg_reply_t com_cmd_sensor_read(naos_msg_t msg) {
   // command structure:
@@ -133,6 +136,41 @@ static naos_msg_reply_t com_cmd_signal_kill(naos_msg_t msg) {
   return NAOS_MSG_ACK;
 }
 
+static naos_msg_reply_t com_cmd_engine_log_start(naos_msg_t msg) {
+  // TODO: Support filter?
+
+  // check if already registered
+  for (size_t i = 0; i < sizeof(com_log_sessions) / sizeof(uint16_t); i++) {
+    if (com_log_sessions[i] == msg.session) {
+      return NAOS_MSG_ACK;
+    }
+  }
+
+  // find free slot and add session
+  for (size_t i = 0; i < sizeof(com_log_sessions) / sizeof(uint16_t); i++) {
+    if (com_log_sessions[i] == 0) {
+      com_log_sessions[i] = msg.session;
+      return NAOS_MSG_ACK;
+    }
+  }
+
+  return NAOS_MSG_ERROR;
+}
+
+static naos_msg_reply_t com_cmd_engine_log_stop(naos_msg_t msg) {
+  // TODO: Support filter?
+
+  // find session and remove
+  for (size_t i = 0; i < sizeof(com_log_sessions) / sizeof(uint16_t); i++) {
+    if (com_log_sessions[i] == msg.session) {
+      com_log_sessions[i] = 0;
+      return NAOS_MSG_ACK;
+    }
+  }
+
+  return NAOS_MSG_ERROR;
+}
+
 static naos_msg_reply_t com_handle(naos_msg_t msg) {
   // message structure:
   // CMD (1) | *
@@ -166,11 +204,26 @@ static naos_msg_reply_t com_handle(naos_msg_t msg) {
     case COM_CMD_ENGINE_KILL:
       reply = com_cmd_signal_kill(msg);
       break;
+    case COM_CMD_ENGINE_LOG_START:
+      reply = com_cmd_engine_log_start(msg);
+      break;
+    case COM_CMD_ENGINE_LOG_STOP:
+      reply = com_cmd_engine_log_stop(msg);
+      break;
     default:
       reply = NAOS_MSG_UNKNOWN;
   }
 
   return reply;
+}
+
+static void com_cleanup(uint16_t session) {
+  // remove from log sessions
+  for (size_t i = 0; i < sizeof(com_log_sessions) / sizeof(uint16_t); i++) {
+    if (com_log_sessions[i] == session) {
+      com_log_sessions[i] = 0;
+    }
+  }
 }
 
 static void com_ha_config_sensor(const char *hat, const char *did, const char *fwv, const char *bt, const char *uid,
@@ -278,6 +331,7 @@ void com_init() {
       .ref = ENDPOINT,
       .name = "com",
       .handle = com_handle,
+      .cleanup = com_cleanup,
   });
 
   // install filesystem endpoint
@@ -317,4 +371,22 @@ void com_online() {
   com_ha_config_sensor(hat, did, av, bt, "al-voc", "voc", "VOC", "", "aqi");
   com_ha_config_sensor(hat, did, av, bt, "al-nox", "nox", "NOx", "", "aqi");
   com_ha_config_sensor(hat, did, av, bt, "al-prs", "prs", "Pressure", "hPa", "atmospheric_pressure");
+}
+
+void com_log(const char *msg, size_t len) {
+  // dispatch message to sessions
+  for (size_t i = 0; i < sizeof(com_log_sessions) / sizeof(uint16_t); i++) {
+    // check session
+    if (com_log_sessions[i] == 0) {
+      continue;
+    }
+
+    // send message
+    naos_msg_send((naos_msg_t){
+        .session = com_log_sessions[i],
+        .endpoint = ENDPOINT,
+        .data = (uint8_t *)msg,
+        .len = len,
+    });
+  }
 }
