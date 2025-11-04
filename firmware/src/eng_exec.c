@@ -452,14 +452,18 @@ static void eng_exec_op_draw(wasm_exec_env_t env, int x, int y, int w, int h, in
   lv_canvas_draw_img(ctx->canvas, x, y, &img, &img_draw);
 }
 
-static void eng_exec_op_beep(wasm_exec_env_t _, float freq, int duration) {
+enum {
+  ENG_BEEP_WAIT,
+};
+
+static void eng_exec_op_beep(wasm_exec_env_t _, float freq, int duration, int flags) {
   // log
   if (ENG_EXEC_DEBUG) {
-    naos_log("eng_exec_op_beep: freq=%d duration=%d", freq, duration);
+    naos_log("eng_exec_op_beep: freq=%d duration=%d flags=%d", freq, duration, flags);
   }
 
   // play beep
-  al_buzzer_beep(freq, duration, true);
+  al_buzzer_beep(freq, duration, flags & ENG_BEEP_WAIT);
 }
 
 /* IO operations */
@@ -1082,7 +1086,7 @@ static NativeSymbol eng_exec_ops[] = {
     {"al_line", eng_exec_op_line, "(iiiiii)", NULL},
     {"al_rect", eng_exec_op_rect, "(iiiiii)", NULL},
     {"al_write", eng_exec_op_write, "(iiiii*~i)", NULL},
-    {"al_beep", eng_exec_op_beep, "(fi)", NULL},
+    {"al_beep", eng_exec_op_beep, "(fii)", NULL},
     {"al_draw", eng_exec_op_draw, "(iiiiii**)", NULL},
     {"al_gpio", eng_exec_op_gpio, "(ii)i", NULL},
     {"al_i2c", eng_exec_op_i2c, "(i*i*ii)i", NULL},
