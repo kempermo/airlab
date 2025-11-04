@@ -81,7 +81,11 @@ void al_write(int x, int y, int s, int f, int c, const char *str, al_write_flags
 
 IMPORT("al_draw") extern void al_draw(int x, int y, int w, int h, int s, int a, const void *i, const void *m);
 
-IMPORT("al_beep") extern void al_beep(float freq, int duration);
+typedef enum {
+  AL_BEEP_WAIT = (1 << 0),
+} al_beep_flags_t;
+
+IMPORT("al_beep") extern void al_beep(float freq, int duration, al_beep_flags_t flags);
 
 /* IO operations */
 
@@ -161,9 +165,7 @@ IMPORT("al_http_get") extern int al_http_get(int field);
 /* utils */
 
 IMPORT("al_log") extern void _al_log(const void *msg, int msg_len);
-extern void al_log(const char *msg) {
-  _al_log(msg, strlen(msg));
-}
+extern void al_log(const char *msg) { _al_log(msg, strlen(msg)); }
 extern void al_logf(const char *fmt, ...) {
   char buf[256];
   va_list args;

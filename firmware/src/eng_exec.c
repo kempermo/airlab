@@ -453,7 +453,7 @@ static void eng_exec_op_draw(wasm_exec_env_t env, int x, int y, int w, int h, in
 }
 
 enum {
-  ENG_BEEP_WAIT,
+  ENG_BEEP_WAIT = (1 << 0),
 };
 
 static void eng_exec_op_beep(wasm_exec_env_t _, float freq, int duration, int flags) {
