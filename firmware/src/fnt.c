@@ -1,7 +1,6 @@
 #include "fnt.h"
 
 // Grand9K - 24px - 1bpp (0123456789.:)
-// https://lvgl.io/tools/fontconverter
 
 static LV_ATTRIBUTE_LARGE_CONST const uint8_t fnt_bitmap_24[] = {
     /* U+002E "." */
@@ -100,7 +99,6 @@ const lv_font_t fnt_24 = {
 };
 
 // Grand9K - 16px - 1bpp (0x20-0x7F, 0xA0-0xFF, 0x2191, 0x2193)
-// https://lvgl.io/tools/fontconverter
 
 static LV_ATTRIBUTE_LARGE_CONST const uint8_t fnt_bitmap_16[] = {
     /* U+0020 " " */
@@ -932,7 +930,7 @@ const lv_font_t fnt_16 = {
     .dsc = &fnt_font_dsc_16,
 };
 
-// Grand9K - 8px - 1bpp ( )
+// Grand9K - 8px - 1bpp (0123456789.:)
 
 static const uint8_t fnt_bitmap_8[] = {
     /* U+002E "." */
