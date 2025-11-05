@@ -1287,6 +1287,11 @@ static void *eng_exec_task(void *arg) {
   gpio_reset_pin(AL_GPIO_A);
   gpio_reset_pin(AL_GPIO_B);
 
+  // destroy HTTP client
+  if (ctx->http_client) {
+    esp_http_client_cleanup(ctx->http_client);
+  }
+
   // check result
   if (!ok) {
     naos_log("eng_exec_task: calling _start function failed: %s", wasm_runtime_get_exception(module_inst));
@@ -1382,4 +1387,7 @@ void eng_exec_wait(void *ref) {
 
   // free buffer
   free(ctx->frame_buffer);
+
+  // free context
+  eng_exec_free(ctx);
 }
