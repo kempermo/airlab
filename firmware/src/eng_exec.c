@@ -11,6 +11,7 @@
 #include <driver/ledc.h>
 #include <driver/adc.h>
 #include <esp_http_client.h>
+#include <esp_crt_bundle.h>
 
 #include <al/core.h>
 #include <al/storage.h>
@@ -1013,6 +1014,7 @@ static void eng_exec_op_http_new(wasm_exec_env_t env) {
   ctx->http_cfg.buffer_size_tx = 1024;
   ctx->http_cfg.event_handler = eng_exec_http_handler;
   ctx->http_cfg.transport_type = HTTP_TRANSPORT_OVER_TCP;
+  ctx->http_cfg.crt_bundle_attach = esp_crt_bundle_attach;
 
   // create client
   ctx->http_client = esp_http_client_init(&ctx->http_cfg);
@@ -1349,7 +1351,7 @@ void *eng_exec_start(eng_bundle_t *bundle, const char *name) {
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-  pthread_attr_setstacksize(&attr, 5120);
+  pthread_attr_setstacksize(&attr, 12288);
 
   // create thread
   int res = pthread_create(&ctx->thread, &attr, eng_exec_task, ctx);
