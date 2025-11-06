@@ -55,7 +55,7 @@ static void setup() {
   com_init();
 
   // allow allocations in external memory
-  heap_caps_malloc_extmem_enable(4096);
+  heap_caps_malloc_extmem_enable(2048);
 
   // run sync
   naos_repeat("sync", 1000, sync);
