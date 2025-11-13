@@ -274,7 +274,7 @@ static const scr_trans_t scr_trans_map[] = {
             .menu__no_data = "Keine Daten",
             .intro__hello1 = "Hi! Ich bin Professor Robin,\nWissenschaftsleiter am Air Lab.",
             .intro__hello2 = "Da bin ich eben kurz eingenickt.\nSag mal wie spät ist es?",
-            .intro__watch = "Meine Uhr zeigt %d:%02d\nam %d/%d/%d, richtig?",
+            .intro__watch = "Meine Uhr zeigt %d:%02d\nam %d-%02d-%02d, richtig?",
             .intro__correct = "Richtig!",
             .intro__adjust = "<Anpassen>",
             .intro__end = "Ach, Wie die Zeit vergeht...\nKomm, lass uns ins Labor gehen!",
@@ -348,7 +348,7 @@ static const scr_trans_t scr_trans_map[] = {
             .menu__no_data = "No Data",
             .intro__hello1 = "Hi! I'm Professor Robin,\nhead of sciences at Air Lab.",
             .intro__hello2 = "I dozed off for a bit...\nCan you tell me the time?",
-            .intro__watch = "My watch says its %d:%02d\non the %d/%d/%d, right?",
+            .intro__watch = "My watch says its %d:%02d\non the %d-%02d-%02d, right?",
             .intro__correct = "Correct!",
             .intro__adjust = "<Adjust>",
             .intro__end = "Oh, how time flies...\nLet's go to the lab!",
@@ -375,7 +375,7 @@ static const char* scr_file_date(dat_file_t* file) {
   al_clock_epoch_date(file->head.start, &year, &month, &day);
 
   // format date
-  return lvx_fmt("%d.%d.%d", day, month, year);
+  return lvx_fmt("%d-%02d-%02d", year, month, day);
 }
 
 static const char* scr_file_info(dat_file_t* file) {
@@ -475,17 +475,17 @@ static bool scr_date() {
   lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
 
   // prepare wheels
-  lvx_wheel_t day = {.value = 15, .min = 1, .max = 31, .format = "%02d", .fixed = true};
-  lvx_wheel_t month = {.value = 6, .min = 1, .max = 12, .format = "%02d", .fixed = true};
   lvx_wheel_t year = {.value = 2023, .min = 2023, .max = 2999, .fixed = true};
+  lvx_wheel_t month = {.value = 6, .min = 1, .max = 12, .format = "%02d", .fixed = true};
+  lvx_wheel_t day = {.value = 15, .min = 1, .max = 31, .format = "%02d", .fixed = true};
 
   // assign current date
   al_clock_get_date(&year.value, &month.value, &day.value);
 
   // add wheels
-  lvx_wheel_create(&day, row);
-  lvx_wheel_create(&month, row);
   lvx_wheel_create(&year, row);
+  lvx_wheel_create(&month, row);
+  lvx_wheel_create(&day, row);
 
   // add button
   lvx_sign_t next = {
@@ -1621,7 +1621,7 @@ static gui_list_item_t scr_config_cb(int num, void* ctx) {
 
       return (gui_list_item_t){
           .title = t->config__date,
-          .info = lvx_fmt("%d/%d/%d", day, month, year),
+          .info = lvx_fmt("%d-%02d-%02d", year, month, day),
       };
     }
     case 2: {
@@ -2707,7 +2707,7 @@ static void* scr_intro() {
     uint16_t year, month, day, hour, minute, seconds;
     al_clock_get_date(&year, &month, &day);
     al_clock_get_time(&hour, &minute, &seconds);
-    const char* date_time = lvx_fmt(scr_trans()->intro__watch, hour, minute, month, day, year);
+    const char* date_time = lvx_fmt(scr_trans()->intro__watch, hour, minute, year, month, day);
 
     // confirm date/time
     if (!gui_confirm(date_time, scr_trans()->intro__adjust, scr_trans()->intro__correct, false, SCR_ACTION_TIMEOUT)) {
