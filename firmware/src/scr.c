@@ -2615,8 +2615,19 @@ static void* scr_menu() {
       continue;
     }
 
-    // loop on sensor, interrupt, or escape
-    if (event.type & (SIG_SENSOR | SIG_INTERRUPT | SIG_ESCAPE)) {
+    // enter screen saver on escape
+    if (event.type == SIG_ESCAPE) {
+      // cleanup
+      gui_cleanup(false);
+
+      // set return
+      scr_return_unlock = scr_menu;
+
+      return scr_saver;
+    }
+
+    // loop on sensor or interrupt
+    if (event.type & (SIG_SENSOR | SIG_INTERRUPT)) {
       // cycle fan on sensor value
       if (event.type & SIG_SENSOR) {
         fan_alt = !fan_alt;
