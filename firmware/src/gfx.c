@@ -18,12 +18,11 @@
 
 static naos_mutex_t gfx_mutex;
 static naos_signal_t gfx_signal;
-static lv_disp_draw_buf_t gfx_draw_buffer;
-static lv_color_t* gfx_frame_buffer = NULL;
+static lv_disp_draw_buf_t gfx_buffer;
+static lv_color_t* gfx_frame = NULL;
 static lv_disp_drv_t gfx_driver;
 static lv_disp_t* gfx_display;
-static lv_group_t* gfx_group = NULL;
-static uint8_t* gfx_frame = NULL;
+static uint8_t* gfx_bitmap = NULL;
 static lv_theme_t* gfx_theme;
 static bool gfx_refresh = false;
 static bool gfx_invert = false;
@@ -63,7 +62,7 @@ static void gfx_flush(lv_disp_drv_t* driver, const lv_area_t* area, lv_color_t* 
 
       // set physical pixel
       bool black = (*buffer).full == 0;
-      al_epd_set(gfx_frame, px, py, gfx_invert ? !black : black);
+      al_epd_set(gfx_bitmap, px, py, gfx_invert ? !black : black);
 
       // increment pixel
       buffer++;
@@ -79,7 +78,7 @@ static void gfx_flush(lv_disp_drv_t* driver, const lv_area_t* area, lv_color_t* 
   // check if frame should be skipped
   if (!gfx_skip) {
     // display frame
-    al_epd_update(gfx_frame, !gfx_refresh);
+    al_epd_update(gfx_bitmap, !gfx_refresh);
     if (GFX_DEBUG) {
       naos_log("gfx: updated partial=%d", !gfx_refresh);
     }
@@ -88,7 +87,7 @@ static void gfx_flush(lv_disp_drv_t* driver, const lv_area_t* area, lv_color_t* 
     if (gfx_record) {
       char name[32];
       snprintf(name, sizeof(name), "screen-%llu.bin", naos_millis());
-      al_storage_write(AL_STORAGE_EXT, "dump", name, gfx_frame, 0, AL_EPD_FRAME, true);
+      al_storage_write(AL_STORAGE_EXT, "dump", name, gfx_bitmap, 0, AL_EPD_FRAME, true);
     }
   }
 
@@ -114,12 +113,12 @@ void gfx_init(bool reset) {
   gfx_signal = naos_signal();
 
   // allocate buffers
-  gfx_frame_buffer = al_calloc(GFX_WIDTH * GFX_HEIGHT, sizeof(lv_color_t));
-  gfx_frame = al_calloc(AL_EPD_FRAME, sizeof(uint8_t));
+  gfx_frame = al_calloc(GFX_WIDTH * GFX_HEIGHT, sizeof(lv_color_t));
+  gfx_bitmap = al_calloc(AL_EPD_FRAME, sizeof(uint8_t));
 
-  if (gfx_frame_buffer == NULL) {
+  if (gfx_frame == NULL) {
     ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
-  } else if (gfx_frame == NULL) {
+  } else if (gfx_bitmap == NULL) {
     ESP_ERROR_CHECK(ESP_ERR_NO_MEM);
   }
 
@@ -128,19 +127,16 @@ void gfx_init(bool reset) {
   lvx_init();
 
   // initialize buffer
-  lv_disp_draw_buf_init(&gfx_draw_buffer, gfx_frame_buffer, NULL, AL_EPD_WIDTH * AL_EPD_HEIGHT);
+  lv_disp_draw_buf_init(&gfx_buffer, gfx_frame, NULL, AL_EPD_WIDTH * AL_EPD_HEIGHT);
 
   // register display driver
   lv_disp_drv_init(&gfx_driver);
-  gfx_driver.draw_buf = &gfx_draw_buffer;
+  gfx_driver.draw_buf = &gfx_buffer;
   gfx_driver.flush_cb = gfx_flush;
   gfx_driver.hor_res = GFX_WIDTH;
   gfx_driver.ver_res = GFX_HEIGHT;
   gfx_driver.sw_rotate = 1;
   gfx_display = lv_disp_drv_register(&gfx_driver);
-
-  // create group
-  gfx_group = lv_group_create();
 
   // initialize theme
   gfx_theme = lv_theme_mono_init(gfx_display, false, &fnt_16);
@@ -153,7 +149,7 @@ void gfx_init(bool reset) {
 
   // clear screen on reset
   if (reset) {
-    al_epd_update(gfx_frame, false);
+    al_epd_update(gfx_bitmap, false);
   }
 
   // run task
@@ -171,7 +167,7 @@ void gfx_begin(bool refresh, bool invert) {
   // flip frame on inversion change
   if (invert != gfx_invert) {
     for (size_t i = 0; i < AL_EPD_FRAME; i++) {
-      gfx_frame[i] ^= UINT8_MAX;
+      gfx_bitmap[i] ^= UINT8_MAX;
     }
   }
 
@@ -201,9 +197,4 @@ void gfx_end(bool skip, bool wait) {
       naos_log("gfx: end done");
     }
   }
-}
-
-lv_group_t* gfx_get_group() {
-  // return input
-  return gfx_group;
 }

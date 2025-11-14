@@ -15,7 +15,6 @@ void gui_cleanup(bool refresh) {
   // clear group and screen
   gfx_begin(refresh, false);
   lv_disp_set_rotation(NULL, LV_DISP_ROT_NONE);
-  lv_group_remove_all_objs(gfx_get_group());
   lv_obj_clean(lv_scr_act());
   gfx_end(false, refresh);
 }
