@@ -1277,6 +1277,12 @@ static void *eng_exec_task(void *arg) {
   // lock graphics
   gfx_begin(false, false);
 
+  // create canvas
+  ctx->canvas = lv_canvas_create(lv_scr_act());
+  lv_canvas_set_buffer(ctx->canvas, ctx->frame_buffer, 296, 128, LV_IMG_CF_TRUE_COLOR);
+  lv_obj_align(ctx->canvas, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_canvas_fill_bg(ctx->canvas, lv_color_white(), LV_OPA_COVER);
+
   // call _start function
   bool ok = wasm_runtime_call_wasm(exec_env, func, 0, NULL);
 
@@ -1346,12 +1352,6 @@ void *eng_exec_start(eng_bundle_t *bundle, const char *name) {
   // allocate frame buffer
   ctx->frame_buffer = al_calloc(1, LV_CANVAS_BUF_SIZE_TRUE_COLOR(296, 128));
 
-  // create canvas
-  ctx->canvas = lv_canvas_create(lv_scr_act());
-  lv_canvas_set_buffer(ctx->canvas, ctx->frame_buffer, 296, 128, LV_IMG_CF_TRUE_COLOR);
-  lv_obj_align(ctx->canvas, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_canvas_fill_bg(ctx->canvas, lv_color_white(), LV_OPA_COVER);
-
   // prepare thread attributes
   pthread_attr_t attr;
   pthread_attr_init(&attr);
@@ -1362,6 +1362,7 @@ void *eng_exec_start(eng_bundle_t *bundle, const char *name) {
   int res = pthread_create(&ctx->thread, &attr, eng_exec_task, ctx);
   if (res != 0) {
     naos_log("eng_exec_start: pthread_create failed: %d", res);
+    free(ctx->frame_buffer);
     eng_exec_free(ctx);
     return NULL;
   }
