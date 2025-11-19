@@ -17,7 +17,28 @@ static void sig_sensor(al_sample_t sample) {
   });
 }
 
+static void sig_inject(int32_t n) {
+  // log
+  if (SIG_DEBUG) {
+    naos_log("sig: inject %d", n);
+  }
+
+  // dispatch event
+  sig_dispatch((sig_event_t){
+      .type = (sig_type_t)n,
+  });
+}
+
+static naos_param_t sig_params[] = {
+    {.name = "sig-inject", .type = NAOS_LONG, .func_l = sig_inject, .mode = NAOS_VOLATILE, .skip_func_init = true},
+};
+
 void sig_init() {
+  // register params
+  for (size_t i = 0; i < sizeof(sig_params) / sizeof(naos_param_t); i++) {
+    naos_register(sig_params);
+  }
+
   // create queue
   sig_queue = naos_queue(3, sizeof(sig_event_t));
 
