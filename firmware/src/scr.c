@@ -1246,6 +1246,13 @@ static void* scr_create() {
     return scr_explore;
   }
 
+  // check recording
+  if (rec_running()) {
+    gui_message(scr_trans()->recording, SCR_MSG_TIMEOUT);
+    return scr_explore;
+    ;
+  }
+
   // calculate hours at 12 samples per minute
   uint32_t hours = samples / 12 / 60;
 
