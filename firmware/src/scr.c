@@ -124,7 +124,7 @@ static bool scr_idle_sleep() {
   al_power_state_t power = al_power_get();
 
   // power off (no return) if battery is low and not charging
-  if (power.bat_level < 0.10 && !power.has_usb && !power.charging) {
+  if (power.bat_low && !power.has_usb && !power.charging) {
     scr_power_off(true, true);
   }
 

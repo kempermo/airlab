@@ -9,6 +9,7 @@
 typedef struct {
   float bat_voltage;
   float bat_level;
+  bool bat_low;
   bool has_usb;
   bool can_fast;
   bool charging;
