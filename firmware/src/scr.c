@@ -230,6 +230,7 @@ typedef struct {
   const char* settings__title;
   const char* settings__about;
   const char* settings__config;
+  const char* settings__regulatory;
   const char* settings__off;
   const char* about__device_name;
   const char* about__serial_number;
@@ -307,6 +308,7 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__about = "Über",
             .settings__config = "Konfiguration",
             .settings__off = "Ausschalten",
+            .settings__regulatory = "Regulatorisches",
             .about__device_name = "Gerätename",
             .about__serial_number = "Seriennummer",
             .about__firmware_version = "FW Version",
@@ -381,6 +383,7 @@ static const scr_trans_t scr_trans_map[] = {
             .settings__about = "About",
             .settings__config = "Configuration",
             .settings__off = "Power Off",
+            .settings__regulatory = "Regulatory",
             .about__device_name = "Device Name",
             .about__serial_number = "Serial Number",
             .about__firmware_version = "FW Version",
@@ -2067,6 +2070,12 @@ static void* scr_settings() {
       .text = scr_trans()->back,
       .align = LV_ALIGN_BOTTOM_LEFT,
   };
+  lvx_sign_t regulatory = {
+      .title = "↑",
+      .text = scr_trans()->settings__regulatory,
+      .align = LV_ALIGN_BOTTOM_RIGHT,
+      .offset = -50,
+  };
   lvx_sign_t off = {
       .title = ">",
       .text = scr_trans()->settings__config,
@@ -2080,6 +2089,7 @@ static void* scr_settings() {
   };
   lvx_sign_create(&about, lv_scr_act());
   lvx_sign_create(&back, lv_scr_act());
+  lvx_sign_create(&regulatory, lv_scr_act());
   lvx_sign_create(&off, lv_scr_act());
   lvx_sign_create(&config, lv_scr_act());
 
@@ -2102,6 +2112,27 @@ static void* scr_settings() {
 
     // turn off
     scr_power_off(false, true);
+
+    return scr_settings;
+  }
+
+  // handle regulatory
+  if (event.type == SIG_UP) {
+    // prepare texts
+    const char* texts[] = {
+        "Product Information\n\nAir Lab - Portable Air Quality Monitor\nNA-AL1 / Made in Switzerland\n© 2025 Networked "
+        "Artifacts Inc.\nhttps://networkedartifacts.com/airlab",
+        "EU Regulations\n\nThis product complies with the following directives:\n2014/53/EU (RED)\n2011/65/EU (RoHS)",
+        "FCC Statement 1/2\n\nThis product contains a radio module\napproved under  FCC ID 2AC7Z-ESPS3WROOM1.\nThis "
+        "device complies with Part 15 of the FCC rules.",
+        "FCC Statement 2/2\n\nOperation is subject to the following two conditions:\n1. This device may not cause "
+        "harmful interference; and\n2. This device must accept any interference received,\nincluding interference that "
+        "may cause undesired operation.",
+        NULL,
+    };
+
+    // show regulatory info
+    gui_cycle("Regulatory", texts, scr_trans()->next, scr_trans()->back);
 
     return scr_settings;
   }
