@@ -473,7 +473,7 @@ static bool scr_time() {
   // add button
   lvx_sign_t back = {
       .title = "B",
-      .text = scr_trans()->back,
+      .text = scr_trans()->cancel,
       .align = LV_ALIGN_BOTTOM_LEFT,
   };
   lvx_sign_t next = {
@@ -2794,7 +2794,7 @@ static void* scr_intro() {
     const char* date_time = lvx_fmt(scr_trans()->intro__watch, hour, minute, year, month, day);
 
     // confirm date/time
-    if (!gui_confirm(date_time, scr_trans()->intro__adjust, scr_trans()->intro__correct, false, SCR_ACTION_TIMEOUT)) {
+    if (gui_confirm(date_time, scr_trans()->intro__correct, scr_trans()->intro__adjust, false, SCR_ACTION_TIMEOUT)) {
       break;
     }
 
