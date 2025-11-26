@@ -203,8 +203,7 @@ typedef struct {
   const char* exit__stopped;
   const char* view__not_enough;
   const char* create__full;
-  const char* create__name;
-  const char* create__length;
+  const char* create__info;
   const char* create__start;
   const char* create__import;
   const char* create__importing;
@@ -280,10 +279,9 @@ static const scr_trans_t scr_trans_map[] = {
             .exit__stopped = "%s\n beendet!",
             .view__not_enough = "Nicht genug Daten\nfür Präzisionsmodus.",
             .create__full = "Speicher voll!",
-            .create__name = "Messung %u",
-            .create__length = "Länge min. %d Stunden",
+            .create__info = "Messung %u\n%d Stunden verfügbar",
             .create__start = "Starten",
-            .create__import = "Bestehende Daten importieren?",
+            .create__import = "Möchtest du die Live-View\nDaten importieren?",
             .create__importing = "Importiere Daten...",
             .create__imported = "Import erfolgreich!",
             .delete__confirm = "%s\nwirklich löschen?",
@@ -355,10 +353,9 @@ static const scr_trans_t scr_trans_map[] = {
             .exit__stopped = "%s\n stopped!",
             .view__not_enough = "Not enough data\nfor precision mode.",
             .create__full = "Storage full!",
-            .create__name = "Measurement %u",
-            .create__length = "Length min. %d hours",
+            .create__info = "Measurement %u\n%d hours available",
             .create__start = "Start",
-            .create__import = "Import existing data?",
+            .create__import = "Do you want to import\nthe live-view data?",
             .create__importing = "Importing data...",
             .create__imported = "Import successful!",
             .delete__confirm = "Really delete %s?",
@@ -1267,104 +1264,62 @@ static void* scr_create() {
   if (rec_running()) {
     gui_message(scr_trans()->recording, SCR_MSG_TIMEOUT);
     return scr_explore;
-    ;
   }
 
-  // calculate hours at 12 samples per minute
-  uint32_t hours = samples / 12 / 60;
+  // get record rate
+  int32_t record_rate = naos_get_l("record-rate");
 
-  // begin draw
-  gfx_begin(false, false);
+  // calculate hours at record rate
+  int32_t sph = 60 * 60 / record_rate;
+  uint32_t hours = samples / sph;
 
-  // add name
-  lv_obj_t* name = lv_label_create(lv_scr_act());
-  lv_label_set_text(name, lvx_fmt(scr_trans()->create__name, dat_next()));
-  lv_obj_align(name, LV_ALIGN_TOP_LEFT, 5, 5);
+  // confirm creation
+  if (!gui_confirm(lvx_fmt(scr_trans()->create__info, dat_next(), hours), scr_trans()->create__start, scr_trans()->back,
+                   false, 0)) {
+    return scr_explore;
+  }
 
-  // add mode
-  lv_obj_t* mode = lv_label_create(lv_scr_act());
-  lv_label_set_text(mode, "CO2, TMP, RH, VOC, NOX, PRS");
-  lv_obj_align(mode, LV_ALIGN_TOP_LEFT, 5, 26);
+  // confirm import
+  bool import = gui_confirm(scr_trans()->create__import, scr_trans()->yes, scr_trans()->no, false, SCR_ACTION_TIMEOUT);
 
-  // add length
-  lv_obj_t* length = lv_label_create(lv_scr_act());
-  lv_label_set_text(length, lvx_fmt(scr_trans()->create__length, hours));
-  lv_obj_align(length, LV_ALIGN_TOP_LEFT, 5, 47);
+  // determine epoch
+  int64_t epoch = al_clock_get_epoch();
+  if (import) {
+    al_sample_source_t source = al_store_source();
+    epoch = source.start(source.ctx);
+  }
 
-  // add signs
-  lvx_sign_t start = {
-      .title = "A",
-      .text = scr_trans()->create__start,
-      .align = LV_ALIGN_BOTTOM_RIGHT,
-  };
-  lvx_sign_t back = {
-      .title = "B",
-      .text = scr_trans()->back,
-      .align = LV_ALIGN_BOTTOM_LEFT,
-  };
-  lvx_sign_create(&start, lv_scr_act());
-  lvx_sign_create(&back, lv_scr_act());
+  // create measurement
+  scr_file = dat_create(epoch);
 
-  // end draw
-  gfx_end(false, false);
+  // confirm and perform data import
+  if (import) {
+    // set flag
+    hmi_set_flag(HMI_FLAG_PROCESS);
 
-  for (;;) {
-    // await event
-    sig_event_t event = sig_await(SIG_META, SCR_ACTION_TIMEOUT);
-
-    // cleanup
+    // perform import
+    gui_progress_start(scr_trans()->create__importing);
+    dat_import(scr_file, 0, gui_progress_update);
     gui_cleanup(false);
 
-    // handle escape and timeout
-    if (event.type == SIG_ESCAPE || event.type == SIG_TIMEOUT) {
-      return scr_explore;
-    }
+    // clear flag
+    hmi_clear_flag(HMI_FLAG_PROCESS);
 
-    /* handle enter */
-
-    // confirm import
-    bool import =
-        gui_confirm(scr_trans()->create__import, scr_trans()->yes, scr_trans()->no, false, SCR_ACTION_TIMEOUT);
-
-    // determine epoch
-    int64_t epoch = al_clock_get_epoch();
-    if (import) {
-      al_sample_source_t source = al_store_source();
-      epoch = source.start(source.ctx);
-    }
-
-    // create measurement
-    scr_file = dat_create(epoch);
-
-    // confirm and perform data import
-    if (import) {
-      // set flag
-      hmi_set_flag(HMI_FLAG_PROCESS);
-
-      // perform import
-      gui_progress_start(scr_trans()->create__importing);
-      dat_import(scr_file, 0, gui_progress_update);
-      gui_cleanup(false);
-
-      // clear flag
-      hmi_clear_flag(HMI_FLAG_PROCESS);
-
-      // write message
-      gui_message(scr_trans()->create__imported, SCR_MSG_TIMEOUT);
-    }
-
-    // start recording
-    rec_start(scr_file);
-
-    // set action
-    if (scr_file == 1) {
-      scr_action = STM_START_FIRST_MEASUREMENT;
-    } else {
-      scr_action = STM_START_MEASUREMENT;
-    }
-
-    return scr_view;
+    // write message
+    gui_message(scr_trans()->create__imported, SCR_MSG_TIMEOUT);
   }
+
+  // start recording
+  rec_start(scr_file);
+
+  // set action
+  if (scr_file == 1) {
+    scr_action = STM_START_FIRST_MEASUREMENT;
+  } else {
+    scr_action = STM_START_MEASUREMENT;
+  }
+
+  return scr_view;
 }
 
 static void* scr_edit() {
