@@ -75,7 +75,7 @@ static naos_param_t params[] = {
     {.name = "long-interval", .type = NAOS_LONG, .default_l = 60},
     {.name = "language", .type = NAOS_STRING, .default_s = "en"},
     {.name = "fahrenheit", .type = NAOS_BOOL, .default_b = false},
-    {.name = "developer", .type = NAOS_BOOL, .default_b = false},
+    {.name = "developer", .type = NAOS_BOOL, .default_b = true},
 };
 
 static naos_config_t config = {
