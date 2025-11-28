@@ -1909,7 +1909,7 @@ static void* scr_check() {
 
   // power
   gui_cleanup(false);
-  gui_write("Plugin USB power...", 0);
+  gui_write("Plug in USB power...", 0);
   for (;;) {
     sig_await(SIG_POWER, 0);
     if (al_power_get().has_usb) {
