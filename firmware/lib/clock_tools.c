@@ -75,6 +75,18 @@ int64_t al_clock_get_epoch() {
   return (int64_t)(tv.tv_sec) * 1000 + (int64_t)(tv.tv_usec) / 1000;
 }
 
+void al_clock_set_epoch(int64_t ts) {
+  // set time
+  struct timeval tv = {
+      .tv_sec = ts / 1000,
+      .tv_usec = (ts % 1000) * 1000,
+  };
+  settimeofday(&tv, NULL);
+
+  // update clock
+  al_clock_update();
+}
+
 void al_clock_epoch_time(int64_t ts, uint16_t *hour, uint16_t *minute, uint16_t *second) {
   // get time as calendar
   time_t t = ts / 1000;
