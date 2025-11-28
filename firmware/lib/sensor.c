@@ -34,6 +34,11 @@ static struct {
     [AL_SENSOR_RATE_60S] = {.target = 1.5f, .rate = 0.002f},  // max 12.5min
 };
 
+static float al_sensor_clamp(float v, float lo, float hi) {
+  // return clamped value
+  return v < lo ? lo : (v > hi ? hi : v);
+}
+
 static al_sensor_hal_err_t al_sensor_transfer(uint8_t target, uint8_t *wd, size_t wl, uint8_t *rd, size_t rl) {
   // perform transfer
   esp_err_t err = al_i2c_transfer(target, wd, wl, rd, rl, 1000);
@@ -66,9 +71,9 @@ static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
   // apply mode switch temperature compensation
   if (al_sensor_state.mode != AL_SENSOR_HAL_MANUAL) {
     // we use the formula "tmp − max(3 * exp(−0.015 * seconds), 0)" to compensate
-    // the temperature for the first couple of minutes after a mode switch
-    float seconds = (float)(data.epoch - al_sensor_switch_comp) / 1000.f;
-    float tmp_comp = tmp - fmaxf(3.f * expf(-0.015f * seconds), 0.f);
+    // the temperature for the first 10 minutes after a mode switch
+    float seconds = al_sensor_clamp((float)(data.epoch - al_sensor_switch_comp) / 1000.f, 0, 600);
+    float tmp_comp = tmp - 3.f * expf(-0.015f * seconds);
     float hum_comp = al_sensor_comp_rh(hum, tmp, tmp_comp);
     if (AL_SENSOR_DEBUG) {
       naos_log("al-sns: switch comp tmp=%.2f -> %.2f, hum=%.2f -> %.2f (seconds=%.1f)", tmp, tmp_comp, hum, hum_comp,
@@ -80,7 +85,7 @@ static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
 
   // advance long compensation if needed
   if (al_sensor_long_comp_curr != al_sensor_long_comp[al_sensor_state.mode].target) {
-    float diff = (float)(data.epoch - al_sensor_long_comp_last) / 1000.f;
+    float diff = al_sensor_clamp((float)(data.epoch - al_sensor_long_comp_last) / 1000.f, 0, 900);
     if (al_sensor_long_comp_curr < al_sensor_long_comp[al_sensor_state.mode].target) {
       al_sensor_long_comp_curr += diff * al_sensor_long_comp[al_sensor_state.mode].rate;
       if (al_sensor_long_comp_curr > al_sensor_long_comp[al_sensor_state.mode].target) {
