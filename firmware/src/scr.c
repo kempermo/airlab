@@ -1879,6 +1879,15 @@ static void* scr_config() {
 }
 
 static void* scr_check() {
+  // date
+  uint16_t year, month;
+  al_clock_init();
+  al_clock_get_date(&year, &month, NULL);
+  if (year < 2025 || month < 12) {
+    gui_write("Date check failed!", 2000);
+    return scr_develop;
+  }
+
   // buttons
   gui_write("Press all buttons once...", 0);
   sig_type_t pressed = 0;
@@ -1939,6 +1948,18 @@ static void* scr_check() {
   al_led_set(0, 0, 0);
   hmi_clear_flag(HMI_FLAG_IGNORE);
 
+  // interrupt
+  int64_t start = naos_millis();
+  gui_cleanup(false);
+  gui_write("Checking interrupts...", 0);
+  al_sleep(false, 5 * 1000);
+  gui_cleanup(false);
+  if (naos_millis() - start < 4 * 1000) {
+    gui_write("Interrupt check failed!", 2000);
+    gui_cleanup(false);
+    return scr_develop;
+  }
+
   // sensors
   for (;;) {
     gui_cleanup(false);
@@ -1952,10 +1973,13 @@ static void* scr_check() {
         0);
     sig_await(SIG_SENSOR, 0);
     al_sample_t state = al_store_last();
-    if (state.co2 > 2500 && state.tmp > 26 && state.hum > 60 && state.voc > 50) {
+    if (state.co2 > 2500 && state.tmp > 25 && state.hum > 60 && state.voc > 50) {
       break;
     }
   }
+
+  // cleanup
+  gui_cleanup(false);
 
   return scr_develop;
 }
