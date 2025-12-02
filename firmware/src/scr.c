@@ -1890,7 +1890,7 @@ static void* scr_check() {
 
   // interrupt
   int64_t start = naos_millis();
-  gui_write("Checking interrupts...", false);
+  gui_write("Checking interrupts...", true);
   al_sleep(false, 5 * 1000);
   gui_cleanup(false);
   if (naos_millis() - start < 4 * 1000) {
@@ -2262,9 +2262,9 @@ static void* scr_develop() {
 
       // write message
       if (deep) {
-        gui_write("Deep Sleeping...\nPress <A> to wake up.", false);
+        gui_write("Deep Sleeping...\nPress <A> to wake up.", true);
       } else {
-        gui_write("Light Sleeping...\nPress <A> to wake up.", false);
+        gui_write("Light Sleeping...\nPress <A> to wake up.", true);
       }
 
       // perform sleep
