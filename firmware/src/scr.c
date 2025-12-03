@@ -228,7 +228,7 @@ typedef struct {
   const char* edit__export_done;
   const char* explore__empty;
   const char* explore__create;
-  const char* explore__open;
+  const char* explore__select;
   const char* usb__disconnected;
   const char* usb__active;
   const char* usb__eject;
@@ -307,7 +307,7 @@ static const scr_trans_t scr_trans_map[] = {
             .edit__export_done = "Operación exitosa!",
             .explore__empty = "No hay registros guardados.",
             .explore__create = "Crear nuevo registro",
-            .explore__open = "Abrir",
+            .explore__select = "Seleccionar",
             .usb__disconnected = "USB no connectado!",
             .usb__active = "Modo USB activo",
             .usb__eject = "Modo USB desconectado",
@@ -347,14 +347,13 @@ static const scr_trans_t scr_trans_map[] = {
             .intro__infos =
                 {
                     "- CO2 -\nEl dióxido de carbono se mide\nen partes por millón (PPM).",
-                    "- CO2 -\nEn interiores deberías intentar\nmantenerte por debajo de 1500 ppm\nventilando con "
+                    "- CO2 -\nEn interiores deberías intentar\nmantenerte por debajo de 1500\nppm ventilando con "
                     "frecuencia.",
-                    "- VOC -\nCompuestos orgánicos volátiles\nson emitidos por sustancias químicas.\ncomo pinturas o "
-                    "productos de limpieza.",
-                    "- VOC -\n100 es el promedio de 24 h.\nes el promedio de 24 h\ncambios en el ambiente.",
-                    "- NOx -\nLos óxidos de nitrógeno son gases\nVgenerados por la combustión\npor ejemplo de autos o "
+                    "- VOC -\nCompuestos orgánicos volátiles\nson emitidos por sustancias\nquímicas como pinturas.",
+                    "- VOC -\n100 es el promedio de 24h.\nVariaciones indican\ncambios en el ambiente.",
+                    "- NOx -\nLos óxidos de nitrógeno son\ngases generados por combustión\npor ejemplo de autos o "
                     "estufas.",
-                    "- NOx -\n1 es el promedio de 24 h.\nes el promedio de 24 h\ncambios en el ambiente.",
+                    "- NOx -\n1 es el promedio de 24h.\nVariaciones indican\ncambios en el ambiente.",
                     "Eso es todo por ahora.\nAquí puedes aprender "
                     "más:\nnetworkedartifacts.com\n/manuals/airlab/air-parameters",
                 },
@@ -397,7 +396,7 @@ static const scr_trans_t scr_trans_map[] = {
             .edit__export_done = "Export erfolgreich!",
             .explore__empty = "Keine gespeicherte Messungen.",
             .explore__create = "Neue Messung erstellen",
-            .explore__open = "Öffnen",
+            .explore__select = "Auswählen",
             .usb__disconnected = "USB nicht angeschlossen!",
             .usb__active = "USB-Modus aktiv",
             .usb__eject = "USB-Modus getrennt",
@@ -485,7 +484,7 @@ static const scr_trans_t scr_trans_map[] = {
             .edit__export_done = "Export done!",
             .explore__empty = "No saved measurements.",
             .explore__create = "Create new measurement",
-            .explore__open = "Open",
+            .explore__select = "Select",
             .usb__disconnected = "USB not connected!",
             .usb__active = "USB Volume active",
             .usb__eject = "USB Volume ejected",
@@ -1605,7 +1604,7 @@ static void* scr_explore() {
   }
 
   // show list
-  int selected = gui_list((int)total + 1, start, &offset, scr_trans()->explore__open, scr_trans()->back, scr_explore_cb,
+  int selected = gui_list((int)total + 1, start, &offset, scr_trans()->explore__select, scr_trans()->back, scr_explore_cb,
                           NULL, SCR_ACTION_TIMEOUT);
   if (selected < 0) {
     return scr_menu;
