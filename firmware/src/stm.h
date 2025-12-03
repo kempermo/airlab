@@ -41,6 +41,7 @@ typedef struct {
   float nox_max;
   const char *text_de;
   const char *text_en;
+  const char *text_es;
   stm_mood_t mood;
   // ---
   bool selected;

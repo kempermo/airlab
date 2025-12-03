@@ -11,6 +11,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_FROM_INTRO,
         .text_de = "Willkommen im Air Lab! Sieh dich doch einmal um. Berühren ist erlaubt!",
         .text_en = "Welcome to the Air Lab! Please look around. Touching is allowed!",
+        .text_es = "",
         .mood = STM_HAPPY,
     },
     {
@@ -18,6 +19,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_START_FIRST_MEASUREMENT,
         .text_de = "Super, du hast gerade deine erste Messung gestartet!",
         .text_en = "Great, you've just started your first measurement!",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
@@ -25,6 +27,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_START_MEASUREMENT,
         .text_de = "So, dann lassen wir die Machine arbeiten.",
         .text_en = "So, let's let the machine work.",
+        .text_es = "",
         .mood = STM_WORKING,
     },
     {
@@ -32,6 +35,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_START_MEASUREMENT,
         .text_de = "Die Maschine läuft, jetzt heisst es abwarten!",
         .text_en = "The machine is running, now it's time to wait!",
+        .text_es = "",
         .mood = STM_WORKING,
     },
     {
@@ -39,6 +43,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_START_MEASUREMENT,
         .text_de = "Alles klar, Messung gestartet. Die Technik macht den Rest.",
         .text_en = "All set, measurement started. The tech will handle the rest.",
+        .text_es = "",
         .mood = STM_WORKING,
     },
     {
@@ -46,6 +51,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_FROM_MEASUREMENT,
         .text_de = "Ich bin am rechnen...",
         .text_en = "I'm calculating...",
+        .text_es = "",
         .mood = STM_WORKING,
     },
     {
@@ -53,6 +59,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_FROM_MEASUREMENT,
         .text_de = "Diesen Wert muss ich kurz nachprüfen.",
         .text_en = "I need to double-check this value.",
+        .text_es = "",
         .mood = STM_WORKING,
     },
     {
@@ -60,6 +67,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_FROM_MEASUREMENT,
         .text_de = "(RH + 454) x 10^3/0.544 = ?",
         .text_en = "(RH + 454) x 10^3/0.544 = ?",
+        .text_es = "",
         .mood = STM_WORKING,
     },
     {
@@ -67,6 +75,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_COMP_MEASUREMENT,
         .text_de = "Cool, du hast deine Messung abgeschlossen!",
         .text_en = "Cool, you've completed your measurement!",
+        .text_es = "",
         .mood = STM_HAPPY,
     },
     {
@@ -74,6 +83,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_FROM_ANALYSIS,
         .text_de = "Die Analyse ist der Anfang der Erkenntnis.",
         .text_en = "Analysis is the beginning of knowledge.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
@@ -81,6 +91,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_FROM_ANALYSIS,
         .text_de = "Daten ohne Analyse sind wie Bücher ohne Lesen.",
         .text_en = "Data without analysis is like books without reading.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
@@ -88,6 +99,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_FROM_ANALYSIS,
         .text_de = "Verstehen heisst, Muster in Zahlen zu sehen.",
         .text_en = "To understand is to see patterns in numbers.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
@@ -95,6 +107,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_FROM_ANALYSIS,
         .text_de = "Wer misst, misst manchmal Mist.",
         .text_en = "Measure twice, analyze once.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
@@ -102,6 +115,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_DEL_MEASUREMENT,
         .text_de = "Ein sauberes Labor ist die hälfte der Messung.",
         .text_en = "Maintaining a clean lab is half the measurement.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
@@ -109,6 +123,7 @@ stm_entry_t stm_entries[] = {
         .action = STM_DEL_MEASUREMENT,
         .text_de = "Aufräumen gehört genauso dazu wie messen.",
         .text_en = "Tidying up is just as much a part of science as measuring.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     /* Urgent Conditions */
@@ -117,6 +132,7 @@ stm_entry_t stm_entries[] = {
         .co2_min = 4000,
         .text_de = "Schmuuhhh, mir wird ganz schwindelig...",
         .text_en = "Ughhh, I'm getting dizzy...",
+        .text_es = "",
         .mood = STM_COLD,
     },
     {
@@ -124,6 +140,7 @@ stm_entry_t stm_entries[] = {
         .co2_min = 3000,
         .text_de = "Mir ist übel!",
         .text_en = "I feel sick!",
+        .text_es = "",
         .mood = STM_ANGRY1,
     },
     {
@@ -132,6 +149,7 @@ stm_entry_t stm_entries[] = {
         .co2_max = 3000,
         .text_de = "Ich kann hier kaum atmen!",
         .text_en = "I can hardly breathe here!",
+        .text_es = "",
         .mood = STM_ANGRY2,
     },
     {
@@ -140,6 +158,7 @@ stm_entry_t stm_entries[] = {
         .co2_max = 2000,
         .text_de = "Uuuu... ich bin müde.",
         .text_en = "Ugh... I'm tired.",
+        .text_es = "",
         .mood = STM_STANDING,
     },
     {
@@ -148,6 +167,7 @@ stm_entry_t stm_entries[] = {
         .co2_max = 1700,
         .text_de = "Jo, ich kann mich voll nicht konzentrieren.",
         .text_en = "Yo, I can't concentrate at all.",
+        .text_es = "",
         .mood = STM_ANGRY2,
     },
     {
@@ -156,6 +176,7 @@ stm_entry_t stm_entries[] = {
         .co2_max = 1400,
         .text_de = "Puh, langsam wird die Luft stickig.",
         .text_en = "Phew, the air is getting stuffy.",
+        .text_es = "",
         .mood = STM_STANDING,
     },
     {
@@ -163,6 +184,7 @@ stm_entry_t stm_entries[] = {
         .tmp_max = 10,
         .text_de = "Boa ey, ist das kalt hier!",
         .text_en = "Uff, it's cold in here!",
+        .text_es = "",
         .mood = STM_COLD,
     },
     {
@@ -171,6 +193,7 @@ stm_entry_t stm_entries[] = {
         .hum_min = 70,
         .text_de = "Sag mal, sind wir im Regenwald?",
         .text_en = "Hey, are we in the rainforest?",
+        .text_es = "",
         .mood = STM_ANGRY1,
     },
     {
@@ -178,6 +201,7 @@ stm_entry_t stm_entries[] = {
         .hum_max = 30,
         .text_de = "Ahem, mega trocken hier!",
         .text_en = "Ahem, super dry here!",
+        .text_es = "",
         .mood = STM_COLD,
     },
     {
@@ -186,6 +210,7 @@ stm_entry_t stm_entries[] = {
         .hum_max = 30,
         .text_de = "Uff, heiss und trocken hier drin!",
         .text_en = "Ugh, it's hot and dry in here!",
+        .text_es = "",
         .mood = STM_ANGRY1,
     },
     {
@@ -194,6 +219,7 @@ stm_entry_t stm_entries[] = {
         .hum_max = 30,
         .text_de = "Brrr... kalt und trocken, meine Haut spannt schon.",
         .text_en = "Brrr... cold and dry, my skin feels tight.",
+        .text_es = "",
         .mood = STM_COLD,
     },
     {
@@ -202,6 +228,7 @@ stm_entry_t stm_entries[] = {
         .voc_max = 250,
         .text_de = "Hmm, hier riecht es etwas streng.",
         .text_en = "Hmm, it's starting to smell a bit strong here.",
+        .text_es = "",
         .mood = STM_STANDING,
     },
     {
@@ -209,6 +236,7 @@ stm_entry_t stm_entries[] = {
         .voc_min = 250,
         .text_de = "Uff, die Luft ist voller Ausdünstungen!",
         .text_en = "Ugh, the air is full of fumes!",
+        .text_es = "",
         .mood = STM_ANGRY1,
     },
     {
@@ -217,6 +245,7 @@ stm_entry_t stm_entries[] = {
         .nox_max = 150,
         .text_de = "Da sind Abgase in der Luft!",
         .text_en = "There are exhaust fumes in the air!",
+        .text_es = "",
         .mood = STM_ANGRY2,
     },
     {
@@ -224,6 +253,7 @@ stm_entry_t stm_entries[] = {
         .nox_min = 150,
         .text_de = "Achtung, zu viele Stickoxide! Lüften empfohlen!",
         .text_en = "Warning, too much NOx! Ventilation recommended!",
+        .text_es = "",
         .mood = STM_ANGRY1,
     },
     /* Good Conditions */
@@ -235,6 +265,7 @@ stm_entry_t stm_entries[] = {
         .nox_max = 50,
         .text_de = "Alles im grünen Bereich, gute Luftqualität!",
         .text_en = "All good, air quality is fine!",
+        .text_es = "",
         .mood = STM_HAPPY,
     },
     {
@@ -243,6 +274,7 @@ stm_entry_t stm_entries[] = {
         .nox_max = 5,
         .text_de = "Ahhh... Ich liebe frische Luft!",
         .text_en = "Ahhh... I love fresh air!",
+        .text_es = "",
         .mood = STM_HAPPY,
     },
     {
@@ -251,125 +283,149 @@ stm_entry_t stm_entries[] = {
         .hum_max = 60,
         .text_de = "Die Luft hier ist jetzt richtig nice!",
         .text_en = "The air here is really nice now!",
+        .text_es = "",
         .mood = STM_HAPPY,
     },
     {
         .voc_max = 150,
         .text_de = "Schön, keine störenden Gerüche in der Luft!",
         .text_en = "Nice, no bothersome smells in the air!",
+        .text_es = "",
         .mood = STM_HAPPY,
     },
     {
         .nox_max = 50,
         .text_de = "Kaum Stickoxide, die Luft ist sauber!",
         .text_en = "Hardly any NOx, the air is clean!",
+        .text_es = "",
         .mood = STM_HAPPY,
     },
     /* Air Facts */
     {
         .text_de = "Warme Luft kann mehr Feuchtigkeit auf- nehmen als kalte Luft.",
         .text_en = "Warm air can absorb more moisture than cold air.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Pro Tag atmen wir 10'000 bis 20'000 Liter Luft.",
         .text_en = "We breathe 10,000 to 20,000 liters of air per day.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Die Luft ist ein Gemisch aus vielen verschiedenen Gasen.",
         .text_en = "The air is a mixture of many different gases.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "78% der Luft ist Stickstoff.",
         .text_en = "78% of the air is nitrogen.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "21% der Luft ist Sauerstoff.",
         .text_en = "21% of the air is oxygen.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Achtung! Luftschad- stoffe können dich krank machen!",
         .text_en = "Attention! Air pollutants can make you sick!",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "1% der Luft sind ganz viele verschiedene Spurengase.",
         .text_en = "1% of the air are many different trace gases.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Klug ist jener, der Schweres einfach sagt.",
         .text_en = "Wise is the one who says heavy things simply.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Auch Bakterien und Viren fliegen in der Luft herum!",
         .text_en = "Bacteria and viruses are also flying around in the air!",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Pro Tag atmest du ca. 2'500 Liter CO2 aus!",
         .text_en = "You exhale about 2,500 liters of CO2 per day!",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Ein Kubikmeter CO2 wiegt 1.98 kg.",
         .text_en = "One cubic meter of CO2 weighs 1.98 kg.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Zu trockene Luft kann deine Schleimhäute reizen.",
         .text_en = "Air that's too dry can irritate your mucous membranes.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Im Sommer fühlen sich 24°C oft angenehm an, im Winter eher kühl.",
         .text_en = "In summer, 24°C feels comfortable, but in winter it feels cool.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "In Klassenzimmern erreicht CO2 oft über 2000 ppm!",
         .text_en = "In classrooms, CO2 often exceeds 2000 ppm!",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "CO2 wird mit photoa- kustischer Spektro- skopie gemessen.",
         .text_en = "CO2 is measured using photoacoustic spectroscopy.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "VOC sind flüchtige organische Verbind- ungen, oft von Farben.",
         .text_en = "VOCs are volatile organic compounds, often from paints.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Stickoxide (NOx) stammen oft aus Verbrennung.",
         .text_en = "Nitrogen oxides (NOx) often come from combustion.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Der Luftdruck hier liegt bei etwa 1013 hPa auf Meereshöhe.",
         .text_en = "Air pressure is about 1013 hPa at sea level.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Gute Belüftung hilft, VOCs und NOx zu reduzieren.",
         .text_en = "Good ventilation helps reduce VOCs and NOx.",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     {
         .text_de = "Neue Möbel können VOCs freisetzen, am besten gut lüften!",
         .text_en = "New furniture can emit VOCs, best to ventilate well!",
+        .text_es = "",
         .mood = STM_POINTING,
     },
     /* Exercise Prompts */
     {
         .text_de = "Öffne das Fenster und schau, wie sich die Luft verändert!",
         .text_en = "Try opening the window and see how the air changes!",
+        .text_es = "",
         .mood = STM_HAPPY,
     },
 };
