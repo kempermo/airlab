@@ -32,10 +32,21 @@ static bool al_accel_read(uint8_t reg, uint8_t *val) {
 }
 
 void al_accel_init(bool reset) {
+  // force reset if interrupt config is incorrect
+  uint8_t int_cfg = 0;
+  bool ok = al_accel_read(0x18, &int_cfg);
+  if (!ok || int_cfg != 0b00010010) {
+    naos_log("al-acc: forcing reset: int_cfg=%d ok=%d", int_cfg, ok);
+    reset = true;
+  }
+
   // perform reset
   if (reset) {
     // reset device
     al_accel_write(0x15, 0b10000000);
+
+    // wait for reset to complete
+    naos_delay(5);  // 1ms per datasheet
 
     // configure interrupt driver, polarity and wake from sleep
     al_accel_write(0x18, 0b00010010);
