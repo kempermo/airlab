@@ -18,6 +18,12 @@ int main() {
   al_http_set(ENG_HTTP_TIMEOUT, 2000, NULL, NULL);
   al_http_run(NULL, 0, res, 1024);
 
+  // get response info
+  int status = al_http_get(ENG_HTTP_STATUS);
+  int length = al_http_get(ENG_HTTP_LENGTH);
+  int errno = al_http_get(ENG_HTTP_ERRNO);
+  al_logf("HTTP Status: %d, Length: %d, Errno: %d", status, length, errno);
+
   // prepare temperatures
   float max_temps[3] = {0};
   float min_temps[3] = {0};
