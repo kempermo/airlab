@@ -38,6 +38,9 @@ typedef struct {
   pthread_t thread;
   esp_http_client_config_t http_cfg;
   esp_http_client_handle_t http_client;
+  void *http_buf;
+  size_t http_buf_len;
+  size_t http_res_len;
 } eng_exec_context_t;
 
 static lv_color_t *eng_exec_buffer = NULL;
@@ -949,10 +952,7 @@ enum {
 
 static esp_err_t eng_exec_http_handler(esp_http_client_event_t *evt) {
   // get value
-  naos_value_t *val = evt->user_data;
-
-  // track length
-  static size_t len;
+  eng_exec_context_t *ctx = evt->user_data;
 
   // handle vents
   switch (evt->event_id) {
@@ -961,31 +961,25 @@ static esp_err_t eng_exec_http_handler(esp_http_client_event_t *evt) {
     case HTTP_EVENT_HEADER_SENT:
     case HTTP_EVENT_ON_HEADER:
       break;
-    case HTTP_EVENT_ON_DATA:
-      // clean the buffer on first call
-      if (len == 0) {
-        memset(val->buf, 0, val->len);
-      }
-
+    case HTTP_EVENT_ON_DATA: {
       // determine chunk
       size_t chunk = evt->data_len;
-      if (chunk > (val->len - len)) {
-        chunk = val->len - len;
+      if (chunk > (ctx->http_buf_len - ctx->http_res_len)) {
+        chunk = ctx->http_buf_len - ctx->http_res_len;
       }
 
       // copy chunk
       if (chunk) {
-        memcpy(val->buf + len, evt->data, chunk);
+        memcpy(ctx->http_buf + ctx->http_res_len, evt->data, chunk);
       }
 
       // increment
-      len += chunk;
+      ctx->http_res_len += chunk;
 
       break;
+    }
     case HTTP_EVENT_ON_FINISH:
     case HTTP_EVENT_DISCONNECTED:
-      len = 0;
-      break;
     case HTTP_EVENT_REDIRECT:
       break;
   }
@@ -1109,13 +1103,11 @@ static int eng_exec_op_http_run(wasm_exec_env_t env, uint8_t *req, int req_len, 
     esp_http_client_set_post_field(ctx->http_client, NULL, 0);
   }
 
-  // set response buffer
-  if (res && res_len > 0) {
-    naos_value_t val = {.buf = res, .len = res_len};
-    esp_http_client_set_user_data(ctx->http_client, &val);
-  } else {
-    esp_http_client_set_user_data(ctx->http_client, NULL);
-  }
+  // set up context
+  ctx->http_buf = res;
+  ctx->http_buf_len = res_len;
+  ctx->http_res_len = 0;
+  esp_http_client_set_user_data(ctx->http_client, ctx);
 
   // perform request
   esp_err_t err = esp_http_client_perform(ctx->http_client);
@@ -1138,7 +1130,7 @@ static int eng_exec_op_http_get(wasm_exec_env_t env, int field) {
       return esp_http_client_get_status_code(ctx->http_client);
     }
     case ENG_HTTP_LENGTH: {
-      return (int)esp_http_client_get_content_length(ctx->http_client);
+      return ctx->http_res_len;
     }
     case ENG_HTTP_ERRNO: {
       return esp_http_client_get_errno(ctx->http_client);
