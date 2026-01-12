@@ -2327,8 +2327,8 @@ static void* scr_develop() {
 
   // prepare labels
   const char* labels[] = {
-      "System Info", "Sensor Data",   "Self Check",   "Sleep Mode", "Power Reset",  "Power Off", "Shipping Mode",
-      "Clear Display", "Test Bubbles", "Touch Info", "Compensation", "Buzzer",    NULL,
+      "System Info",   "Self Check",   "Shipping Mode", "Sensor Data",  "Sleep Mode", "CPU Reset", "Power Off",
+      "Clear Display", "Test Bubbles", "Touch Info",    "Compensation", "Buzzer",     NULL,
   };
 
   for (;;) {
@@ -2343,18 +2343,51 @@ static void* scr_develop() {
       return scr_info;
     }
 
-    // handle sensor data
-    if (selected == 1) {
-      return scr_sensor;
-    }
-
     // handle device check
-    if (selected == 2) {
+    if (selected == 1) {
       return scr_check;
     }
 
-    // handle sleep
+    // handle ship mode
+    if (selected == 2) {
+      // disable developer mode
+      naos_set_b("developer", false);
+
+      // begin draw
+      gfx_begin(false, false);
+
+      // show image
+      lv_obj_t* img = lv_img_create(lv_scr_act());
+      lv_img_set_src(img, &img_shipping_mode);
+      lv_obj_align(img, LV_ALIGN_TOP_MID, 0, 20);
+
+      // show message
+      lv_obj_t* lbl = lv_label_create(lv_scr_act());
+      lv_obj_align(lbl, LV_ALIGN_BOTTOM_MID, 0, -20);
+      lv_label_set_text(lbl, "Yo! Plug in a USB-C cable,\nand press <A> to begin.");
+      lv_obj_set_style_text_line_space(lbl, 6, LV_PART_MAIN);
+      lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+
+      // end draw
+      gfx_end(false, false);
+
+      // show message
+      naos_delay(1000);
+
+      // enable ship mode
+      al_power_ship();
+
+      // clean up in case ship mode did not work
+      gui_cleanup(false);
+    }
+
+    // handle sensor data
     if (selected == 3) {
+      return scr_sensor;
+    }
+
+    // handle sleep
+    if (selected == 4) {
       // determine deep
       bool deep = gui_confirm("Which sleep mode?", "Deep", "Light", false, 0);
 
@@ -2387,46 +2420,13 @@ static void* scr_develop() {
     }
 
     // handle power reset
-    if (selected == 4) {
+    if (selected == 5) {
       esp_restart();
     }
 
     // handle power off
-    if (selected == 5) {
-      scr_power_off(false, false);
-    }
-
-    // handle ship mode
     if (selected == 6) {
-      // disable developer mode
-      naos_set_b("developer", false);
-
-      // begin draw
-      gfx_begin(false, false);
-
-      // show image
-      lv_obj_t* img = lv_img_create(lv_scr_act());
-      lv_img_set_src(img, &img_shipping_mode);
-      lv_obj_align(img, LV_ALIGN_TOP_MID, 0, 20);
-
-      // show message
-      lv_obj_t* lbl = lv_label_create(lv_scr_act());
-      lv_obj_align(lbl, LV_ALIGN_BOTTOM_MID, 0, -20);
-      lv_label_set_text(lbl, "Yo! Plug in a USB-C cable,\nand press <A> to begin.");
-      lv_obj_set_style_text_line_space(lbl, 6, LV_PART_MAIN);
-      lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-
-      // end draw
-      gfx_end(false, false);
-
-      // show message
-      naos_delay(1000);
-
-      // enable ship mode
-      al_power_ship();
-
-      // clean up in case ship mode did not work
-      gui_cleanup(false);
+      scr_power_off(false, false);
     }
 
     // handle clear display
