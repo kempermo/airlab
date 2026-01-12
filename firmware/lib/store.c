@@ -115,7 +115,7 @@ void al_store_set_base(int64_t base, bool move) {
 
   // log base change
   if (AL_STORE_DEBUG) {
-    naos_log("al-str: set base=%lld shift=%lld", al_store_base, shift);
+    naos_log("al-str: set base=%lld shift=%lld move=%d", al_store_base, shift, move);
   }
 
   // unlock mutex
