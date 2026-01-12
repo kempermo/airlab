@@ -2242,8 +2242,8 @@ static void* scr_settings() {
         "Product Information\n\nAir Lab - Portable Air Quality Monitor\nNA-AL1 / Made in Switzerland\n© 2025 Networked "
         "Artifacts Inc.\nhttps://networkedartifacts.com/airlab",
         "EU Regulations\n\nThis product complies with the following directives:\n2014/53/EU (RED)\n2011/65/EU (RoHS)",
-        "FCC Statement 1/2\n\nThis product contains a radio module\napproved under FCC ID 2AC7Z-ESPS3WROOM1.\nThis "
-        "device complies with Part 15 of the FCC rules.",
+        "FCC Statement 1/2\n\nThis device is certified under FCC ID 2BTBB-NA-AL1.\nThis device complies with Part 15 "
+        "of the FCC rules.",
         "FCC Statement 2/2\n\nOperation is subject to the following two conditions:\n1. This device may not cause "
         "harmful interference; and\n2. This device must accept any interference received,\nincluding interference that "
         "may cause undesired operation.",
