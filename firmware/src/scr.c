@@ -103,20 +103,48 @@ static void scr_power_off(bool low_power, bool msg) {
   al_power_off();
 }
 
-static void scr_launch(const char* file) {
-  // write message
-  gui_cleanup(false);
-  gui_write("Loading plugin...", false);
+static void scr_launch(const char* file, const char* binary) {
+  // prepare flag
+  bool updated = false;
 
-  // run plugin
-  bool ok = eng_run(file, "main");
+  for (;;) {
+    // write message
+    gui_cleanup(false);
+    if (!updated) {
+      gui_write("Loading plugin...", false);
+    } else {
+      gui_write("Reloading plugin...", false);
+    }
 
-  // clean screen
-  gui_cleanup(false);
+    // determine if screen
+    bool screen = strcmp(binary, "screen") == 0;
 
-  // show message on failure
-  if (!ok) {
-    gui_message("Failed to run plugin!", SCR_MSG_TIMEOUT);
+    // run plugin
+    bool ok = eng_run(file, binary);
+
+    // await button or re-launch for screens
+    if (screen && ok) {
+      // await event
+      sig_event_t event = sig_await(SIG_KEYS | SIG_LAUNCH, 0);
+
+      // handle launch
+      if (event.type == SIG_LAUNCH) {
+        file = event.plugin.file;
+        binary = event.plugin.binary;
+        updated = true;
+        continue;
+      }
+    }
+
+    // clean screen
+    gui_cleanup(false);
+
+    // show message on failure
+    if (!ok) {
+      gui_message("Failed to run plugin!", SCR_MSG_TIMEOUT);
+    }
+
+    break;
   }
 }
 
@@ -141,7 +169,7 @@ static bool scr_idle_sleep() {
     // start engine on launch
     if (event.type == SIG_LAUNCH) {
       // run engine
-      scr_launch(event.file);
+      scr_launch(event.plugin.file, event.plugin.binary);
 
       return false;
     }
@@ -2530,7 +2558,7 @@ static void* scr_engine() {
     }
 
     // launch plugin
-    scr_launch(eng_get(selected)->file);
+    scr_launch(eng_get(selected)->file, "main");
   }
 }
 
@@ -3064,7 +3092,7 @@ static void* scr_menu() {
     // start engine on launch
     if (event.type == SIG_LAUNCH) {
       // run engine
-      scr_launch(event.file);
+      scr_launch(event.plugin.file, event.plugin.binary);
 
       return scr_menu;
     }
