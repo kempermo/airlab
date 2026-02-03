@@ -144,6 +144,9 @@ void gfx_init(bool reset) {
   // assign theme to display
   lv_disp_set_theme(gfx_display, gfx_theme);
 
+  // disable screen scrolling
+  lv_obj_clear_flag(lv_scr_act(), LV_OBJ_FLAG_SCROLLABLE);
+
   // skip initial draw, if not reset
   gfx_skip = !reset;
 
