@@ -185,6 +185,7 @@ static float eng_exec_op_info(wasm_exec_env_t _, int i) {
 
 enum {
   ENG_CONFIG_BUTTON_REPEAT,
+  ENG_CONFIG_SCREEN_ROTATION,
 };
 
 static int eng_exec_op_config(wasm_exec_env_t _, int s, int a, int b, int c) {
@@ -197,6 +198,9 @@ static int eng_exec_op_config(wasm_exec_env_t _, int s, int a, int b, int c) {
   switch (s) {
     case ENG_CONFIG_BUTTON_REPEAT:
       hmi_set_button_repeat(a);
+      return 0;
+    case ENG_CONFIG_SCREEN_ROTATION:
+      lv_disp_set_rotation(NULL, a / 90);
       return 0;
     default:
       return -1;
@@ -1273,7 +1277,7 @@ static void *eng_exec_task(void *arg) {
 
   // create canvas
   ctx->canvas = lv_canvas_create(lv_scr_act());
-  lv_canvas_set_buffer(ctx->canvas, eng_exec_buffer, 296, 128, LV_IMG_CF_TRUE_COLOR);
+  lv_canvas_set_buffer(ctx->canvas, eng_exec_buffer, 296, 296, LV_IMG_CF_TRUE_COLOR);
   lv_obj_align(ctx->canvas, LV_ALIGN_TOP_LEFT, 0, 0);
   lv_canvas_fill_bg(ctx->canvas, lv_color_white(), LV_OPA_COVER);
 
@@ -1346,7 +1350,7 @@ void *eng_exec_start(eng_bundle_t *bundle, const char *binary) {
 
   // ensure frame buffer
   if (!eng_exec_buffer) {
-    eng_exec_buffer = al_calloc(1, LV_CANVAS_BUF_SIZE_TRUE_COLOR(296, 128));
+    eng_exec_buffer = al_calloc(1, LV_CANVAS_BUF_SIZE_TRUE_COLOR(296, 296));
   } else {
     memset(eng_exec_buffer, 0, LV_CANVAS_BUF_SIZE_TRUE_COLOR(296, 128));
   }

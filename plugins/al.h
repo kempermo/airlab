@@ -34,6 +34,7 @@ IMPORT("al_info") extern float al_info(al_info_t i);
 
 typedef enum {
   ENG_CONFIG_BUTTON_REPEAT,
+  ENG_CONFIG_SCREEN_ROTATION,
 } al_config_t;
 
 IMPORT("al_config") extern int al_config(al_config_t c, int a, int b, int d);
