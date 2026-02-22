@@ -100,7 +100,6 @@ static naos_param_t params[] = {
     {.name = "fahrenheit", .type = NAOS_BOOL, .default_b = false},
     {.name = "developer", .type = NAOS_BOOL, .default_b = true},
     {.name = "clock-cal", .type = NAOS_LONG, .func_l = clock_cal, .skip_func_init = true},  // ppm: -63..+126
-    {.name = "idle-screen", .type = NAOS_STRING},
 };
 
 static naos_config_t config = {
