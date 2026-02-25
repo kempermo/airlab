@@ -4,29 +4,32 @@
 
 ![](https://cdn.networkedartifacts.com/al1-gh__header__medium.webp)
 
-_Using its high-quality sensors, Air Lab measures CO2, temperature, relative humidity, air pollutants (VOC, NOx), and atmospheric pressure. The device can record measurements for multiple days, which you can analyze directly on-device – no computer or smartphone required._
+_Using its high-quality sensors, Air Lab measures CO2, temperature, relative humidity, air pollutants (VOC, NOx), and atmospheric pressure. The device can record measurements for multiple days, which you can analyze directly on-device – no computer or smartphone required._ [Read more about the product on our website.](https://networkedartifacts.com/airlab)
 
-[Read more about the product on our website.](https://networkedartifacts.com/airlab)
-
-## Getting Started
-
-**Welcome to the Air Lab open-source repository!** At Networked Artifacts, we firmly believe that open-source software is essential to delivering a product that remains accessible and customizable forever. Thus, we encourage you to join the development, report bugs, or fork the repository and customize it to your needs. And when you do, make sure to post your project using GitHub discussions!
+**Welcome to the Air Lab open-source repository!** At Networked Artifacts, we firmly believe that open-source software is essential to delivering a product that remains accessible and customizable forever. We encourage you to join the development, report bugs, or fork the repository and customize it to your needs. And when you do, make sure to post your project using GitHub discussions!
 
 ## Structure
 
-The repository contains the official device firmware, the board support library, technical documentation, and handy tools to work with Air Lab devices.
+- [`firmware`](firmware) — The official device firmware and board support library.
+- [`plugins`](plugins) — WASM-based plugins that run on-device, compiled with Zig.
+- [`tools`](tools) — The `airlab` CLI and supporting Go packages.
 
-- [`firmware`](https://github.com/networkedartifacts/airlab/tree/main/firmware): The official device firmware.
-- [`tools`](https://github.com/networkedartifacts/airlab/tree/main/tools): The `airlab` CLI and helpful Go packages.
+## Prerequisites
 
-Please consult the READMEs in the respective directories for further information.
+- **Firmware:** [NAOS](https://github.com/256dpi/naos) framework (bundles ESP-IDF and the toolchain)
+- **Plugins:** [Zig](https://ziglang.org) compiler
+- **Tools:** [Go](https://go.dev) 1.23+
+
+## Quick Start
+
+- **Build the firmware:** See [`firmware/README.md`](firmware/README.md) for setup, build, and flash instructions.
+- **Write a plugin:** See [`plugins/README.md`](plugins/README.md) for the plugin API, examples, and build workflow.
+- **Install the CLI:** See [`tools/README.md`](tools/README.md) for installation and command reference.
 
 ## Resources
 
-Please consult the following resources for further information:
-
 - Website: https://networkedartifacts.com/airlab
-- Manual: https://networkedartifacts.com/manuals/airlab
+- Manual: https://networkedartifacts.com/airlab/manual
 - Studio: https://studio.networkedartifacts.com
 
 ## Licenses
