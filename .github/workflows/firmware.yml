@@ -1,0 +1,25 @@
+name: Firmware
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firmware
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install naos
+        run: |
+          curl -L -o /usr/local/bin/naos https://github.com/256dpi/naos/releases/download/v0.14.1/naos-linux-amd64
+          chmod +x /usr/local/bin/naos
+      - name: Cache SDK
+        uses: actions/cache@v4
+        with:
+          path: ~/.naos
+          key: naos-${{ hashFiles('firmware/naos.json') }}
+      - name: Install SDK
+        run: naos install
+      - name: Build
+        run: naos build
