@@ -354,6 +354,8 @@ static naos_param_t com_params[] = {
     {.name = "mqtt-ha-topic", .type = NAOS_STRING, .default_s = "homeassistant"},
     {.name = "ble-pairing", .type = NAOS_BOOL, .default_b = true},
     {.name = "ble-bonding", .type = NAOS_BOOL},
+    {.name = "sleep-defer-ble", .type = NAOS_BOOL, .default_b = true},
+    {.name = "sleep-defer-mqtt", .type = NAOS_BOOL},
 };
 
 void com_init() {
