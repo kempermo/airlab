@@ -321,7 +321,7 @@ static void com_task() {
 
   // run network stack
   naos_ble_init((naos_ble_config_t){
-      .pairing = true,
+      .pairing = naos_get_b("ble-pairing"),
       .bonding = naos_get_b("ble-bonding"),
   });
   naos_wifi_init();
@@ -352,6 +352,7 @@ static void com_task() {
 static naos_param_t com_params[] = {
     {.name = "mqtt-ha", .type = NAOS_BOOL, .sync_b = &com_mqtt_ha},
     {.name = "mqtt-ha-topic", .type = NAOS_STRING, .default_s = "homeassistant"},
+    {.name = "ble-pairing", .type = NAOS_BOOL, .default_b = true},
     {.name = "ble-bonding", .type = NAOS_BOOL},
 };
 
