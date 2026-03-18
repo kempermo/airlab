@@ -161,19 +161,37 @@ static void al_clock_set(al_clock_state_t state) {
   al_clock_memory.years = state.year % 10;
   al_clock_memory.ten_years = state.year / 10;
 
-  // write RTC fully
-  al_clock_write(0x00, al_clock_memory.r0);
-  al_clock_write(0x01, al_clock_memory.r1);
-  al_clock_write(0x02, al_clock_memory.r2);
-  al_clock_write(0x03, al_clock_memory.r3);
-  al_clock_write(0x04, al_clock_memory.r4);
-  al_clock_write(0x05, al_clock_memory.r5);
+  // clear STOP and OF bits
+  al_clock_memory._stop = 0;
+  al_clock_memory._osc_fail = 0;
+
+  // set STOP=1 to halt oscillator divider chain
+  al_clock_write(0x00, al_clock_memory.r0 | 0x80);
+
+  // write all registers in reverse, R0 last clears STOP and restarts divider
   al_clock_write(0x06, al_clock_memory.r6);
+  al_clock_write(0x05, al_clock_memory.r5);
+  al_clock_write(0x04, al_clock_memory.r4);
+  al_clock_write(0x03, al_clock_memory.r3);
+  al_clock_write(0x02, al_clock_memory.r2);
+  al_clock_write(0x01, al_clock_memory.r1);
+  al_clock_write(0x00, al_clock_memory.r0);
 }
 
-void al_clock_init() {
+void al_clock_init(bool reset) {
   // get clock
   al_clock_state_t state = al_clock_get();
+
+  // check STOP and OF flags
+  if (al_clock_memory._stop || al_clock_memory._osc_fail) {
+    if (!reset) {
+      naos_log("al-clk: warning: STOP=%d OF=%d, clearing flags", al_clock_memory._stop, al_clock_memory._osc_fail);
+    }
+    al_clock_memory._stop = 0;
+    al_clock_memory._osc_fail = 0;
+    al_clock_write(0x00, al_clock_memory.r0);
+    al_clock_write(0x01, al_clock_memory.r1);
+  }
 
   // get time
   time_t t = time(NULL);

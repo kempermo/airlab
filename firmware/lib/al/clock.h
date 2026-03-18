@@ -1,6 +1,9 @@
 #ifndef AL_CLOCK_H
 #define AL_CLOCK_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
 /**
  * Get/Set the current date.
  *
@@ -53,8 +56,10 @@ void al_clock_epoch_date(int64_t ts, uint16_t *year, uint16_t *month, uint16_t *
 
 /**
  * Initialize the system time from the RTC clock.
+ *
+ * @param reset Whether the system did reset.
  */
-void al_clock_init();
+void al_clock_init(bool reset);
 
 /**
  * Update the RTC clock with the current system time.

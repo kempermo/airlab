@@ -104,7 +104,7 @@ al_trigger_t al_init() {
   al_accel_init(reset);
   al_buttons_init();
   al_epd_init();
-  al_clock_init();
+  al_clock_init(reset);
   al_touch_init(reset);
   al_store_init();
   al_ulp_init(reset);
