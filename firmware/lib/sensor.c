@@ -6,6 +6,7 @@
 #include <al/sensor.h>
 #include <al/clock.h>
 #include <al/store.h>
+#include <al/power.h>
 
 #include "internal.h"
 #include "sensor_hal.h"
@@ -23,7 +24,18 @@ AL_KEEP static GasIndexAlgorithmParams al_sensor_nox_params = {0};
 AL_KEEP static int64_t al_sensor_switch_comp = 0;
 AL_KEEP static float al_sensor_long_comp_curr = 0;
 AL_KEEP static int64_t al_sensor_long_comp_last = 0;
+AL_KEEP static float al_sensor_chg_comp_curr = 0;
 static float al_sensor_last_raw_temp = NAN;
+
+#define AL_SENSOR_CHG_COMP_RATE 0.002f  // ramp rate (°C/s)
+
+static const float al_sensor_chg_comp_target[] = {
+    [AL_POWER_PHASE_NONE] = 0.0f,
+    [AL_POWER_PHASE_USB] = -0.2f,   // max 1.6min
+    [AL_POWER_PHASE_PRE] = -0.3f,   // max 2.5min
+    [AL_POWER_PHASE_FAST] = -0.5f,  // max 4.2min
+    [AL_POWER_PHASE_TERM] = 0.3f,   // max 2.5min
+};
 
 static struct {
   float target;
@@ -113,6 +125,23 @@ static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
     tmp += al_sensor_long_comp_curr;
     if (AL_SENSOR_DEBUG) {
       naos_log("al-sns: long comp applied: %.3f°C", al_sensor_long_comp_curr);
+    }
+  }
+
+  // advance charging compensation
+  float chg_target = al_sensor_chg_comp_target[al_power_get().phase];
+  float chg_prev = al_sensor_chg_comp_curr;
+  al_sensor_chg_comp_curr = al_sensor_ramp(al_sensor_chg_comp_curr, chg_target, AL_SENSOR_CHG_COMP_RATE, comp_delta);
+  if (AL_SENSOR_DEBUG && al_sensor_chg_comp_curr != chg_prev) {
+    naos_log("al-sns: chg comp updated: curr=%.3f°C, target=%.3f°C", al_sensor_chg_comp_curr, chg_target);
+  }
+
+  // apply charging compensation
+  if (al_sensor_chg_comp_curr != 0.f) {
+    hum = al_sensor_comp_rh(hum, tmp, tmp + al_sensor_chg_comp_curr);
+    tmp += al_sensor_chg_comp_curr;
+    if (AL_SENSOR_DEBUG) {
+      naos_log("al-sns: chg comp applied: %.3f°C", al_sensor_chg_comp_curr);
     }
   }
 
