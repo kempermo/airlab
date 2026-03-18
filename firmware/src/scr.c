@@ -45,6 +45,7 @@ static stm_action_t scr_action = 0;
 DEV_KEEP static uint16_t scr_file = 0;
 DEV_KEEP static void* scr_return_timeout = NULL;
 DEV_KEEP static void* scr_return_unlock = NULL;
+DEV_KEEP static int scr_partial_count = 0;
 
 static const char* scr_field_fmt[] = {
     [AL_SAMPLE_CO2] = "%.0f ppm CO2", [AL_SAMPLE_TMP] = "%.1f °C",  [AL_SAMPLE_HUM] = "%.1f %% RH",
@@ -983,8 +984,15 @@ static void* scr_idle() {
     // get accelerometer state
     al_accel_state_t acc = al_accel_get();
 
+    // force full refresh periodically to prevent burn-in
+    scr_partial_count++;
+    bool refresh = scr_partial_count >= 60;
+    if (refresh) {
+      scr_partial_count = 0;
+    }
+
     // begin draw
-    gfx_begin(false, false);
+    gfx_begin(refresh, false);
 
     // determine vertical
     bool vertical = acc.rotation == 90 || acc.rotation == 270;
