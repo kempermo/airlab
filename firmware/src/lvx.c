@@ -534,6 +534,31 @@ void lvx_chart_draw(lvx_chart_t chart) {
   }
 }
 
+/* Modal */
+
+void lvx_modal_show(lvx_modal_t* modal, const char* text) {
+  // add background
+  modal->_bg = lv_obj_create(lv_scr_act());
+  lv_obj_set_size(modal->_bg, LV_PCT(100), LV_PCT(100));
+  lv_obj_set_style_border_width(modal->_bg, 0, LV_PART_MAIN);
+
+  // add label
+  modal->_lbl = lv_label_create(modal->_bg);
+  lv_obj_align(modal->_lbl, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(modal->_lbl, text);
+  lv_obj_set_style_text_line_space(modal->_lbl, 6, LV_PART_MAIN);
+  lv_obj_set_style_text_align(modal->_lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+}
+
+void lvx_modal_clear(lvx_modal_t* modal) {
+  // delete background if present
+  if (modal->_bg != NULL) {
+    lv_obj_del(modal->_bg);
+    modal->_bg = NULL;
+    modal->_lbl = NULL;
+  }
+}
+
 /* Helpers */
 
 void lvx_log_event(lv_event_t* event) {

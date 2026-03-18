@@ -112,6 +112,16 @@ typedef struct {
 
 void lvx_chart_draw(lvx_chart_t chart);
 
+/* Modal */
+
+typedef struct {
+  lv_obj_t *_bg;
+  lv_obj_t *_lbl;
+} lvx_modal_t;
+
+void lvx_modal_show(lvx_modal_t *modal, const char *text);
+void lvx_modal_clear(lvx_modal_t *modal);
+
 /* Helpers */
 
 void lvx_log_event(lv_event_t *event);
