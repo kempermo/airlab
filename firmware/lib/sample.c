@@ -85,6 +85,24 @@ int al_sample_search(al_sample_source_t *source, int32_t *offset) {
   return start;
 }
 
+size_t al_sample_count(al_sample_source_t *source, int32_t start, int32_t end) {
+  // find first sample at or after start
+  int32_t needle_start = start;
+  int first = al_sample_search(source, &needle_start);
+  if (first < 0) {
+    return 0;
+  }
+
+  // find first sample at or after end
+  int32_t needle_end = end;
+  int last = al_sample_search(source, &needle_end);
+  if (last < 0) {
+    return source->count(source->ctx) - first;
+  }
+
+  return last - first;
+}
+
 size_t al_sample_query(al_sample_source_t *source, al_sample_t *samples, size_t count, int32_t start,
                        int32_t resolution) {
   // zero samples

@@ -83,6 +83,16 @@ typedef struct {
 int al_sample_search(al_sample_source_t *source, int32_t *offset);
 
 /**
+ * Counts the number of samples in the given range.
+ *
+ * @param source The source to count.
+ * @param start The start offset.
+ * @param end The end offset.
+ * @return The number of samples in the range.
+ */
+size_t al_sample_count(al_sample_source_t *source, int32_t start, int32_t end);
+
+/**
  * Queries samples from a source and interpolates to match the given resolution.
  *
  * @param source The source to query.
