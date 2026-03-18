@@ -66,4 +66,11 @@ void al_clock_init(bool reset);
  */
 void al_clock_update();
 
+/**
+ * Set the calibration register of the RTC clock.
+ *
+ * @param ppm The calibration value in ppm (-63 to +126).
+ */
+void al_clock_set_calibration(int8_t ppm);
+
 #endif  // AL_CLOCK_H

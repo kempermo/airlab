@@ -4,6 +4,7 @@
 #include <naos/sys.h>
 #include <esp_heap_caps.h>
 
+#include <al/clock.h>
 #include <al/core.h>
 #include <al/power.h>
 #include <al/store.h>
@@ -17,6 +18,11 @@
 #include "rec.h"
 #include "com.h"
 #include "scr.h"
+
+static void clock_cal(int32_t value) {
+  // update clock calibration
+  al_clock_set_calibration((int8_t)value);
+}
 
 static float battery() {
   // return battery level
@@ -42,6 +48,9 @@ static void wake() {
 static void setup() {
   // init core
   al_trigger_t trigger = al_init();
+
+  // apply clock calibration
+  al_clock_set_calibration((int8_t)naos_get_l("clock-cal"));
 
   // determine reset
   bool reset = trigger == AL_RESET;
@@ -76,6 +85,7 @@ static naos_param_t params[] = {
     {.name = "language", .type = NAOS_STRING, .default_s = "en"},
     {.name = "fahrenheit", .type = NAOS_BOOL, .default_b = false},
     {.name = "developer", .type = NAOS_BOOL, .default_b = true},
+    {.name = "clock-cal", .type = NAOS_LONG, .func_l = clock_cal, .skip_func_init = true},  // ppm: -63..+126
 };
 
 static naos_config_t config = {

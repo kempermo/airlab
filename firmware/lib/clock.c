@@ -231,3 +231,33 @@ void al_clock_update() {
   // set clock
   al_clock_set(state);
 }
+
+void al_clock_set_calibration(int8_t ppm) {
+  // convert ppm to register value
+  // S=0 (slow down): each step = +2 ppm => N = ppm / 2
+  // S=1 (speed up): each step = -4 ppm => N = abs(ppm) / 4
+  uint8_t val;
+  if (ppm > 0) {
+    // speed up: S=1
+    uint8_t mag = ppm / 4;
+    if (mag > 31) {
+      mag = 31;
+    }
+    val = mag | 0x20;
+  } else if (ppm < 0) {
+    // slow down: S=0
+    uint8_t mag = (-ppm) / 2;
+    if (mag > 31) {
+      mag = 31;
+    }
+    val = mag;
+  } else {
+    val = 0;
+  }
+
+  // write CAL_CFG1 register (0x07)
+  al_clock_write(0x07, val);
+
+  // log
+  naos_log("al-clk: calibration set to %d ppm (reg=0x%02X)", ppm, val);
+}
