@@ -1176,9 +1176,20 @@ static void* scr_view() {
     size_t index = (size_t)roundf(a32_safe_map_f((float)position, (float)start, (float)end, 0, LVX_CHART_SIZE - 1));
 
     // query samples (only if parameters changed)
+    lvx_modal_t modal = {0};
     if (source_count > 0 &&
         (start != last_start || resolution != last_resolution || source_count != last_source_count)) {
+      if (al_sample_count(&source, start, start + LVX_CHART_SIZE * resolution) > 4096) {
+        gfx_begin(false, false);
+        lvx_modal_show(&modal, "Loading samples...");
+        gfx_end(false, false);
+      }
       num = al_sample_query(&source, samples, LVX_CHART_SIZE, start, resolution);
+      if (modal._bg != NULL) {
+        gfx_begin(false, false);
+        lvx_modal_clear(&modal);
+        gfx_end(false, false);
+      }
       last_start = start;
       last_resolution = resolution;
       last_source_count = source_count;
