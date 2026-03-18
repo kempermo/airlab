@@ -8,26 +8,28 @@
 void al_clock_get_date(uint16_t *year, uint16_t *month, uint16_t *day) {
   // get time as calendar
   time_t t = time(NULL);
-  struct tm *cal = localtime(&t);
+  struct tm cal;
+  localtime_r(&t, &cal);
 
   // set day, month and year
-  if (year != NULL) *year = cal->tm_year + 1900;
-  if (month != NULL) *month = cal->tm_mon + 1;
-  if (day != NULL) *day = cal->tm_mday;
+  if (year != NULL) *year = cal.tm_year + 1900;
+  if (month != NULL) *month = cal.tm_mon + 1;
+  if (day != NULL) *day = cal.tm_mday;
 }
 
 void al_clock_set_date(uint16_t year, uint16_t month, uint16_t day) {
   // get time as calendar
   time_t t = time(NULL);
-  struct tm *cal = localtime(&t);
+  struct tm cal;
+  localtime_r(&t, &cal);
 
   // set day, month and year
-  cal->tm_year = year - 1900;
-  cal->tm_mon = month - 1;
-  cal->tm_mday = day;
+  cal.tm_year = year - 1900;
+  cal.tm_mon = month - 1;
+  cal.tm_mday = day;
 
   // make time
-  t = mktime(cal);
+  t = mktime(&cal);
 
   // set time
   struct timeval tv = {.tv_sec = t};
@@ -40,26 +42,28 @@ void al_clock_set_date(uint16_t year, uint16_t month, uint16_t day) {
 void al_clock_get_time(uint16_t *hour, uint16_t *minute, uint16_t *seconds) {
   // get time as calendar
   time_t t = time(NULL);
-  struct tm *cal = localtime(&t);
+  struct tm cal;
+  localtime_r(&t, &cal);
 
   // set hour, minute and seconds
-  if (hour != NULL) *hour = cal->tm_hour;
-  if (minute != NULL) *minute = cal->tm_min;
-  if (seconds != NULL) *seconds = cal->tm_sec;
+  if (hour != NULL) *hour = cal.tm_hour;
+  if (minute != NULL) *minute = cal.tm_min;
+  if (seconds != NULL) *seconds = cal.tm_sec;
 }
 
 void al_clock_set_time(uint16_t hour, uint16_t minute, uint16_t seconds) {
   // get time as calendar
   time_t t = time(NULL);
-  struct tm *cal = localtime(&t);
+  struct tm cal;
+  localtime_r(&t, &cal);
 
   // set hour, minute and seconds
-  cal->tm_hour = hour;
-  cal->tm_min = minute;
-  cal->tm_sec = seconds;
+  cal.tm_hour = hour;
+  cal.tm_min = minute;
+  cal.tm_sec = seconds;
 
   // make time
-  t = mktime(cal);
+  t = mktime(&cal);
 
   // set time
   struct timeval tv = {.tv_sec = t};
@@ -92,21 +96,23 @@ void al_clock_set_epoch(int64_t ts) {
 void al_clock_epoch_time(int64_t ts, uint16_t *hour, uint16_t *minute, uint16_t *second) {
   // get time as calendar
   time_t t = ts / 1000;
-  struct tm *cal = localtime(&t);
+  struct tm cal;
+  localtime_r(&t, &cal);
 
   // set hour and minute
-  if (hour != NULL) *hour = cal->tm_hour;
-  if (minute != NULL) *minute = cal->tm_min;
-  if (second != NULL) *second = cal->tm_sec;
+  if (hour != NULL) *hour = cal.tm_hour;
+  if (minute != NULL) *minute = cal.tm_min;
+  if (second != NULL) *second = cal.tm_sec;
 }
 
 void al_clock_epoch_date(int64_t ts, uint16_t *year, uint16_t *month, uint16_t *day) {
   // get time as calendar
   time_t t = ts / 1000;
-  struct tm *cal = localtime(&t);
+  struct tm cal;
+  localtime_r(&t, &cal);
 
   // set day, month and year
-  if (year != NULL) *year = cal->tm_year + 1900;
-  if (month != NULL) *month = cal->tm_mon + 1;
-  if (day != NULL) *day = cal->tm_mday;
+  if (year != NULL) *year = cal.tm_year + 1900;
+  if (month != NULL) *month = cal.tm_mon + 1;
+  if (day != NULL) *day = cal.tm_mday;
 }

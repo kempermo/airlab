@@ -177,18 +177,19 @@ void al_clock_init() {
 
   // get time
   time_t t = time(NULL);
-  struct tm *cal = localtime(&t);
+  struct tm cal;
+  localtime_r(&t, &cal);
 
   // update time
-  cal->tm_year = state.year - 1900;
-  cal->tm_mon = state.month - 1;
-  cal->tm_mday = state.day;
-  cal->tm_hour = state.hours;
-  cal->tm_min = state.minutes;
-  cal->tm_sec = state.seconds;
+  cal.tm_year = state.year - 1900;
+  cal.tm_mon = state.month - 1;
+  cal.tm_mday = state.day;
+  cal.tm_hour = state.hours;
+  cal.tm_min = state.minutes;
+  cal.tm_sec = state.seconds;
 
   // set time
-  t = mktime(cal);
+  t = mktime(&cal);
   struct timeval tv = {.tv_sec = t};
   settimeofday(&tv, NULL);
 }
@@ -196,16 +197,17 @@ void al_clock_init() {
 void al_clock_update() {
   // get time
   time_t t = time(NULL);
-  struct tm *cal = localtime(&t);
+  struct tm cal;
+  localtime_r(&t, &cal);
 
   // prepare state
   al_clock_state_t state = {
-      .year = cal->tm_year + 1900,
-      .month = cal->tm_mon + 1,
-      .day = cal->tm_mday,
-      .hours = cal->tm_hour,
-      .minutes = cal->tm_min,
-      .seconds = cal->tm_sec,
+      .year = cal.tm_year + 1900,
+      .month = cal.tm_mon + 1,
+      .day = cal.tm_mday,
+      .hours = cal.tm_hour,
+      .minutes = cal.tm_min,
+      .seconds = cal.tm_sec,
   };
 
   // set clock
