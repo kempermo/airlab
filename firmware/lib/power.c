@@ -238,7 +238,11 @@ void al_power_check() {
       .has_usb = has_usb,
       .can_fast = can_fast,
       .charging = charging,
+      .phase = (al_power_phase_t)al_power_memory.reg8.chrg_stat,
   };
+  if (state.phase == AL_POWER_PHASE_NONE && has_usb) {
+    state.phase = AL_POWER_PHASE_USB;
+  }
   if (AL_POWER_DEBUG) {
     naos_log("al-pwr: state bat_level=%f has_usb=%d can_fast=%d", state.bat_level, state.has_usb, state.can_fast);
   }

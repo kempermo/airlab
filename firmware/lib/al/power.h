@@ -4,6 +4,17 @@
 #include <stdbool.h>
 
 /**
+ * The charge phase reported by the PMIC.
+ */
+typedef enum {
+  AL_POWER_PHASE_NONE = 0,
+  AL_POWER_PHASE_PRE = 1,
+  AL_POWER_PHASE_FAST = 2,
+  AL_POWER_PHASE_TERM = 3,
+  AL_POWER_PHASE_USB = 4,
+} al_power_phase_t;
+
+/**
  * The power state.
  */
 typedef struct {
@@ -13,6 +24,7 @@ typedef struct {
   bool has_usb;
   bool can_fast;
   bool charging;
+  al_power_phase_t phase;
 } al_power_state_t;
 
 /**
