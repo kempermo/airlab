@@ -25,6 +25,7 @@
 #define HMI_LED_WHITE .7f, .15f, .2f
 
 static bool hmi_power_light = true;
+static bool hmi_co2_light = true;
 
 static naos_mutex_t hmi_mutex;
 static float hmi_touch_scroll = 0;
@@ -228,21 +229,23 @@ static void hmi_led_check() {
 
   /* handle alerts */
 
-  // get sensor data
-  al_sample_t sample = al_store_last();
+  if (hmi_co2_light) {
+    // get sensor data
+    al_sample_t sample = al_store_last();
 
-  // handle high alert
-  if (sample.co2 > 1500) {
-    al_led_set(HMI_LED_RED);
-    naos_unlock(hmi_mutex);
-    return;
-  }
+    // handle high alert
+    if (sample.co2 > 1500) {
+      al_led_set(HMI_LED_RED);
+      naos_unlock(hmi_mutex);
+      return;
+    }
 
-  // handle elevated alert
-  if (sample.co2 > 1000) {
-    al_led_flash(HMI_LED_SLOW, HMI_LED_RED);
-    naos_unlock(hmi_mutex);
-    return;
+    // handle elevated alert
+    if (sample.co2 > 1000) {
+      al_led_flash(HMI_LED_SLOW, HMI_LED_RED);
+      naos_unlock(hmi_mutex);
+      return;
+    }
   }
 
   /* handle states */
@@ -264,7 +267,9 @@ static void hmi_led_check() {
 }
 
 static naos_param_t hmi_params[] = {
-    {.name = "power-light", .type = NAOS_BOOL, .sync_b = &hmi_power_light, .default_b = true}};
+    {.name = "power-light", .type = NAOS_BOOL, .sync_b = &hmi_power_light, .default_b = true},
+    {.name = "co2-light", .type = NAOS_BOOL, .sync_b = &hmi_co2_light, .default_b = true},
+};
 
 void hmi_init() {
   // register parameters
