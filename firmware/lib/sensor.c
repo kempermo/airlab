@@ -39,6 +39,17 @@ static float al_sensor_clamp(float v, float lo, float hi) {
   return v < lo ? lo : (v > hi ? hi : v);
 }
 
+static float al_sensor_ramp(float curr, float target, float rate, float dt) {
+  if (curr < target) {
+    curr += dt * rate;
+    return curr > target ? target : curr;
+  } else if (curr > target) {
+    curr -= dt * rate;
+    return curr < target ? target : curr;
+  }
+  return curr;
+}
+
 static al_sensor_hal_err_t al_sensor_transfer(uint8_t target, uint8_t *wd, size_t wl, uint8_t *rd, size_t rl) {
   // perform transfer
   esp_err_t err = al_i2c_transfer(target, wd, wl, rd, rl, 1000);
@@ -83,24 +94,16 @@ static al_sample_t al_sensor_ingest(al_sensor_hal_data_t data) {
     hum = hum_comp;
   }
 
-  // advance long compensation if needed
-  if (al_sensor_long_comp_curr != al_sensor_long_comp[al_sensor_state.mode].target) {
-    float diff = al_sensor_clamp((float)(data.epoch - al_sensor_long_comp_last) / 1000.f, 0, 900);
-    if (al_sensor_long_comp_curr < al_sensor_long_comp[al_sensor_state.mode].target) {
-      al_sensor_long_comp_curr += diff * al_sensor_long_comp[al_sensor_state.mode].rate;
-      if (al_sensor_long_comp_curr > al_sensor_long_comp[al_sensor_state.mode].target) {
-        al_sensor_long_comp_curr = al_sensor_long_comp[al_sensor_state.mode].target;
-      }
-    } else {
-      al_sensor_long_comp_curr -= diff * al_sensor_long_comp[al_sensor_state.mode].rate;
-      if (al_sensor_long_comp_curr < al_sensor_long_comp[al_sensor_state.mode].target) {
-        al_sensor_long_comp_curr = al_sensor_long_comp[al_sensor_state.mode].target;
-      }
-    }
-    if (AL_SENSOR_DEBUG) {
-      naos_log("al-sns: long comp updated: diff=%.3fs, curr=%.3f°C, target=%.3f°C", diff, al_sensor_long_comp_curr,
-               al_sensor_long_comp[al_sensor_state.mode].target);
-    }
+  // calculate time delta for compensation ramps
+  float comp_delta = al_sensor_clamp((float)(data.epoch - al_sensor_long_comp_last) / 1000.f, 0, 900);
+
+  // advance long compensation
+  float long_target = al_sensor_long_comp[al_sensor_state.mode].target;
+  float long_rate = al_sensor_long_comp[al_sensor_state.mode].rate;
+  float long_prev = al_sensor_long_comp_curr;
+  al_sensor_long_comp_curr = al_sensor_ramp(al_sensor_long_comp_curr, long_target, long_rate, comp_delta);
+  if (AL_SENSOR_DEBUG && al_sensor_long_comp_curr != long_prev) {
+    naos_log("al-sns: long comp updated: curr=%.3f°C, target=%.3f°C", al_sensor_long_comp_curr, long_target);
   }
   al_sensor_long_comp_last = data.epoch;
 
