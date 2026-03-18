@@ -1117,6 +1117,12 @@ static void* scr_view() {
     position = source.stop(source.ctx);
   }
 
+  // cache tracking for sample queries
+  int32_t last_start = -1;
+  int32_t last_resolution = -1;
+  size_t last_source_count = 0;
+  size_t num = 0;
+
   for (;;) {
     // get source info
     size_t source_count = source.count(source.ctx);
@@ -1169,13 +1175,16 @@ static void* scr_view() {
     // calculate index
     size_t index = (size_t)roundf(a32_safe_map_f((float)position, (float)start, (float)end, 0, LVX_CHART_SIZE - 1));
 
-    // query samples
-    size_t num = 0;
-    if (source_count > 0) {
+    // query samples (only if parameters changed)
+    if (source_count > 0 &&
+        (start != last_start || resolution != last_resolution || source_count != last_source_count)) {
       num = al_sample_query(&source, samples, LVX_CHART_SIZE, start, resolution);
-      if (recording) {
-        index = num - 1;
-      }
+      last_start = start;
+      last_resolution = resolution;
+      last_source_count = source_count;
+    }
+    if (recording) {
+      index = num > 0 ? num - 1 : 0;
     }
 
     // ensure index is within valid sample range
