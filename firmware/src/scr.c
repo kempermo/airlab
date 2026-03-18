@@ -2633,8 +2633,15 @@ static void* scr_develop() {
         float tmp = al_sample_read(sample, AL_SAMPLE_TMP);
         float hum = al_sample_read(sample, AL_SAMPLE_HUM);
 
+        // get charger phase
+        static const char* phase_names[] = {
+            [AL_POWER_PHASE_NONE] = "None", [AL_POWER_PHASE_USB] = "USB",   [AL_POWER_PHASE_PRE] = "Pre",
+            [AL_POWER_PHASE_FAST] = "Fast", [AL_POWER_PHASE_TERM] = "Term",
+        };
+        const char* phase = phase_names[al_power_get().phase];
+
         // update screen
-        gui_write(lvx_fmt("Rate: %d\nTemp: %.1f\nHum: %.1f", rate, tmp, hum), false);
+        gui_write(lvx_fmt("Rate: %d\nTemp: %.1f\nHum: %.1f\nPhase: %s", rate, tmp, hum, phase), false);
 
         // await event
         sig_event_t event = sig_await(SIG_SENSOR | SIG_ESCAPE | SIG_ENTER, 0);
