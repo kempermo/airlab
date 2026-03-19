@@ -14,10 +14,10 @@ const char *lvx_truncate(const char *str, size_t max_len);
 
 typedef struct {
   const char *format;
-  uint16_t value;
-  uint16_t min;
-  uint16_t step;
-  uint16_t max;
+  int value;
+  int min;
+  int step;
+  int max;
   bool fixed;
   // ---
   lv_obj_t *_col;

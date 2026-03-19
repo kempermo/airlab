@@ -337,8 +337,8 @@ int gui_list_strings(int start, int* offset, const char** strings, const char* s
   return ret;
 }
 
-bool gui_wheel(const char* title, int32_t* value, int32_t min, int32_t step, int32_t max, const char* ok,
-               const char* cancel, const char* format, int64_t timeout) {
+bool gui_wheel(const char* title, int* value, int min, int step, int max, const char* ok, const char* cancel,
+               const char* format, int64_t timeout) {
   // begin draw
   gfx_begin(false, false);
 

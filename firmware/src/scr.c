@@ -625,8 +625,10 @@ static bool scr_time() {
   lvx_wheel_t minute = {.value = 30, .min = 0, .max = 59, .format = "%02d", .fixed = true};
 
   // assign current time
-  uint16_t seconds;
-  al_clock_get_time(&hour.value, &minute.value, &seconds);
+  uint16_t cur_hour, cur_minute, seconds;
+  al_clock_get_time(&cur_hour, &cur_minute, &seconds);
+  hour.value = cur_hour;
+  minute.value = cur_minute;
 
   // add wheels
   lvx_wheel_create(&hour, row);
@@ -704,7 +706,11 @@ static bool scr_date() {
   lvx_wheel_t day = {.value = 15, .min = 1, .max = 31, .format = "%02d", .fixed = true};
 
   // assign current date
-  al_clock_get_date(&year.value, &month.value, &day.value);
+  uint16_t cur_year, cur_month, cur_day;
+  al_clock_get_date(&cur_year, &cur_month, &cur_day);
+  year.value = cur_year;
+  month.value = cur_month;
+  day.value = cur_day;
 
   // add wheels
   lvx_wheel_create(&year, row);
@@ -2015,7 +2021,7 @@ static void* scr_config() {
 
       case 5: {
         // use wheel to change long interval
-        int32_t value = naos_get_l("long-interval");
+        int value = naos_get_l("long-interval");
         if (gui_wheel(t->config__long_interval, &value, 30, 10, 900, t->save, t->cancel, "%lds", SCR_ACTION_TIMEOUT)) {
           naos_set_l("long-interval", value);
         }
