@@ -269,6 +269,7 @@ typedef struct {
   const char* config__ble_bonding;
   const char* config__ble_clear;
   const char* config__ble_cleared;
+  const char* config__clock_cal;
   const char* config__reset;
   const char* menu__no_data;
   const char* intro__hello1;
@@ -355,6 +356,7 @@ static const scr_trans_t scr_trans_map[] = {
             .config__ble_bonding = "Bluetooth Bonding",
             .config__ble_clear = "Borrar dispositivos BT",
             .config__ble_cleared = "Dispositivos borrados!",
+            .config__clock_cal = "Calibración del reloj",
             .config__reset = "Resetear de fábrica",
             .menu__no_data = "Sin Datos",
             .intro__hello1 = "Hola! Yo soy el Profesor Robin,\ndirector científico en el Air Lab.",
@@ -451,6 +453,7 @@ static const scr_trans_t scr_trans_map[] = {
             .config__ble_bonding = "Bluetooth Bonding",
             .config__ble_clear = "BT Geräte löschen",
             .config__ble_cleared = "Geräte gelöscht!",
+            .config__clock_cal = "Uhrkalibrierung",
             .config__reset = "Zurücksetzen",
             .menu__no_data = "Keine Daten",
             .intro__hello1 = "Hi! Ich bin Professor Robin,\nWissenschaftsleiter am Air Lab.",
@@ -546,6 +549,7 @@ static const scr_trans_t scr_trans_map[] = {
             .config__ble_bonding = "Bluetooth Bonding",
             .config__ble_clear = "Clear BT Devices",
             .config__ble_cleared = "Devices cleared!",
+            .config__clock_cal = "Clock Calibration",
             .config__reset = "Full Reset",
             .menu__no_data = "No Data",
             .intro__hello1 = "Hi! I'm Professor Robin,\nhead of sciences at Air Lab.",
@@ -1920,6 +1924,12 @@ static gui_list_item_t scr_config_cb(int num, void* ctx) {
     }
     case 18: {
       return (gui_list_item_t){
+          .title = t->config__clock_cal,
+          .info = lvx_fmt("%dppm", naos_get_l("clock-cal")),
+      };
+    }
+    case 19: {
+      return (gui_list_item_t){
           .title = t->config__reset,
           .info = t->execute,
       };
@@ -1940,7 +1950,7 @@ static void* scr_config() {
 
   for (;;) {
     // select parameter
-    int choice = gui_list(19, selected, &offset, t->change, t->back, scr_config_cb, NULL, SCR_ACTION_TIMEOUT);
+    int choice = gui_list(20, selected, &offset, t->change, t->back, scr_config_cb, NULL, SCR_ACTION_TIMEOUT);
     if (choice < 0) {
       return scr_settings;
     }
@@ -2105,6 +2115,16 @@ static void* scr_config() {
       }
 
       case 18: {
+        // use wheel to change clock calibration
+        int value = naos_get_l("clock-cal");
+        if (gui_wheel(t->config__clock_cal, &value, -63, 1, 126, t->save, t->cancel, "%dppm", SCR_ACTION_TIMEOUT)) {
+          naos_set_l("clock-cal", value);
+        }
+
+        break;
+      }
+
+      case 19: {
         // check recording
         if (rec_running()) {
           gui_message(scr_trans()->recording, SCR_MSG_TIMEOUT);
