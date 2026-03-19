@@ -1070,6 +1070,11 @@ static void* scr_idle() {
   // cleanup
   gui_cleanup(false);
 
+  // default to menu if return was cleared (e.g. by re-entry via interrupt)
+  if (scr_return_unlock == NULL) {
+    scr_return_unlock = scr_menu;
+  }
+
   return scr_return_unlock;
 }
 
