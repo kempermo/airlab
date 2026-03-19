@@ -15,6 +15,7 @@
 #include <al/store.h>
 #include <al/storage.h>
 #include <al/clock.h>
+#include <al/power.h>
 
 #include "com.h"
 #include "sig.h"
@@ -306,6 +307,51 @@ static void com_ha_config_sensor(const char *hat, const char *did, const char *f
   free(buf);
 }
 
+static void com_ha_config_binary_sensor(const char *hat, const char *did, const char *fwv, const char *bt,
+                                        const char *uid, const char *t, const char *n, const char *dc) {
+  // allocate buffer
+  void *buf = malloc(128 + 1024);
+  if (!buf) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
+
+  // calculate topic
+  int r = snprintf(buf, 128, "%s/binary_sensor/%s/%s/config", hat, did, uid);
+  if (r < 0 || r >= 128) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
+
+  // calculate message
+#define BIN_SEN_TPL                          \
+  ("{"                                       \
+   "  \"name\": \"%s\","                     \
+   "  \"state_topic\": \"%s/%s\","           \
+   "  \"device_class\": \"%s\","             \
+   "  \"payload_on\": \"ON\","               \
+   "  \"payload_off\": \"OFF\","             \
+   "  \"unique_id\": \"%s-%s\","             \
+   "  \"device\": {"                         \
+   "    \"ids\": \"%s\","                    \
+   "    \"name\": \"Air Lab\","              \
+   "    \"mf\": \"Networked Artifacts\","    \
+   "    \"mdl\": \"NA-AL1\","               \
+   "    \"sw\": \"%s\","                     \
+   "    \"sn\": \"%s\","                     \
+   "    \"hw\": \"R4\""                      \
+   "  }"                                     \
+   "}")
+  r = snprintf(buf + 128, 1024, BIN_SEN_TPL, n, bt, t, dc, did, uid, did, fwv, did);
+  if (r < 0 || r >= 1024) {
+    ESP_ERROR_CHECK(ESP_FAIL);
+  }
+
+  // publish discovery message
+  naos_publish_s(buf, buf + 128, 0, false, NAOS_GLOBAL);
+
+  // release buffer
+  free(buf);
+}
+
 static void com_pub_sensor(al_sample_t sample, al_sample_field_t field, const char *topic, int res) {
   // format value
   char value[16] = {0};
@@ -346,6 +392,14 @@ static void com_task() {
     com_pub_sensor(sample, AL_SAMPLE_VOC, "voc", 0);
     com_pub_sensor(sample, AL_SAMPLE_NOX, "nox", 0);
     com_pub_sensor(sample, AL_SAMPLE_PRS, "prs", 0);
+
+    // get power state
+    al_power_state_t power = al_power_get();
+
+    // publish battery/powery info
+    naos_publish_d("bat", power.bat_level * 100.f, 0, false, NAOS_LOCAL);
+    naos_publish_s("usb", power.has_usb ? "ON" : "OFF", 0, false, NAOS_LOCAL);
+    naos_publish_s("chg", power.charging ? "ON" : "OFF", 0, false, NAOS_LOCAL);
   }
 }
 
@@ -405,13 +459,18 @@ void com_online() {
   const char *av = naos_get_s("app-version");
   const char *bt = naos_get_s("base-topic");
 
-  // configure sensors
+  // configure primary sensors
   com_ha_config_sensor(hat, did, av, bt, "al-co2", "co2", "CO2", "ppm", "carbon_dioxide", 0);
   com_ha_config_sensor(hat, did, av, bt, "al-tmp", "tmp", "Temperature", "°C", "temperature", 1);
   com_ha_config_sensor(hat, did, av, bt, "al-hum", "hum", "Humidity", "%", "humidity", 1);
   com_ha_config_sensor(hat, did, av, bt, "al-voc", "voc", "VOC", "", "aqi", 0);
   com_ha_config_sensor(hat, did, av, bt, "al-nox", "nox", "NOx", "", "aqi", 0);
   com_ha_config_sensor(hat, did, av, bt, "al-prs", "prs", "Pressure", "hPa", "atmospheric_pressure", 0);
+
+  // configure power sensors
+  com_ha_config_sensor(hat, did, av, bt, "al-bat", "bat", "Battery", "%", "battery", 0);
+  com_ha_config_binary_sensor(hat, did, av, bt, "al-usb", "usb", "USB", "plug");
+  com_ha_config_binary_sensor(hat, did, av, bt, "al-chg", "chg", "Charging", "power");
 }
 
 void com_log(const char *msg, size_t len) {
