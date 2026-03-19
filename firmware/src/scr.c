@@ -1090,6 +1090,9 @@ static void* scr_idle() {
         if (event.type & SIG_KEYS) {
           eng_bundle_free(screens);
           gui_cleanup(false);
+          if (scr_return_unlock == NULL) {
+            return scr_menu;
+          }
           return scr_return_unlock;
         }
       }
@@ -1223,6 +1226,11 @@ static void* scr_idle() {
 
   // cleanup
   gui_cleanup(false);
+
+  // default to menu if return was cleared
+  if (scr_return_unlock == NULL) {
+    return scr_menu;
+  }
 
   return scr_return_unlock;
 }
