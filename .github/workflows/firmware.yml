@@ -32,6 +32,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/firmware/v')
         uses: softprops/action-gh-release@v1
         with:
-          files: na-airlab.zip
+          files: firmware/na-airlab.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
