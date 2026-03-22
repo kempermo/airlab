@@ -1,0 +1,5 @@
+name: pollen-example
+title: Pollen Example
+version: v0.1.0
+binary:
+  main: ./main.wasm
