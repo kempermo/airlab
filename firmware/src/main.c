@@ -29,7 +29,7 @@ static float battery() {
   return al_power_get().bat_level;
 }
 
-static const char *power_state_str(al_power_state_t power) {
+static const char* power_state_str(al_power_state_t power) {
   if (power.charging) {
     return "charging";
   } else if (power.has_usb) {

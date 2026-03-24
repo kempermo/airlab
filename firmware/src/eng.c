@@ -168,8 +168,8 @@ bool eng_run_config(const char *file, const char *mode, eng_bundle_t *args) {
 
   // verify plugin name matches filename
   size_t file_len = strlen(file);
-  if (file_len < 4 || strcmp(file + file_len - 4, ".alp") != 0 ||
-      strncmp(file, name, file_len - 4) != 0 || name[file_len - 4] != '\0') {
+  if (file_len < 4 || strcmp(file + file_len - 4, ".alp") != 0 || strncmp(file, name, file_len - 4) != 0 ||
+      name[file_len - 4] != '\0') {
     naos_log("eng_run_config: plugin name '%s' does not match file '%s'", name, file);
     eng_bundle_free(bundle);
     return false;

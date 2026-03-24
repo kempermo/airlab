@@ -346,23 +346,23 @@ static void com_ha_config_binary_sensor(const char *hat, const char *did, const 
   }
 
   // calculate message
-#define BIN_SEN_TPL                          \
-  ("{"                                       \
-   "  \"name\": \"%s\","                     \
-   "  \"state_topic\": \"%s/%s\","           \
-   "  \"device_class\": \"%s\","             \
-   "  \"payload_on\": \"ON\","               \
-   "  \"payload_off\": \"OFF\","             \
-   "  \"unique_id\": \"%s-%s\","             \
-   "  \"device\": {"                         \
-   "    \"ids\": \"%s\","                    \
-   "    \"name\": \"Air Lab\","              \
-   "    \"mf\": \"Networked Artifacts\","    \
-   "    \"mdl\": \"NA-AL1\","               \
-   "    \"sw\": \"%s\","                     \
-   "    \"sn\": \"%s\","                     \
-   "    \"hw\": \"R4\""                      \
-   "  }"                                     \
+#define BIN_SEN_TPL                       \
+  ("{"                                    \
+   "  \"name\": \"%s\","                  \
+   "  \"state_topic\": \"%s/%s\","        \
+   "  \"device_class\": \"%s\","          \
+   "  \"payload_on\": \"ON\","            \
+   "  \"payload_off\": \"OFF\","          \
+   "  \"unique_id\": \"%s-%s\","          \
+   "  \"device\": {"                      \
+   "    \"ids\": \"%s\","                 \
+   "    \"name\": \"Air Lab\","           \
+   "    \"mf\": \"Networked Artifacts\"," \
+   "    \"mdl\": \"NA-AL1\","             \
+   "    \"sw\": \"%s\","                  \
+   "    \"sn\": \"%s\","                  \
+   "    \"hw\": \"R4\""                   \
+   "  }"                                  \
    "}")
   r = snprintf(buf + 128, 1024, BIN_SEN_TPL, n, bt, t, dc, did, uid, did, fwv, did);
   if (r < 0 || r >= 1024) {
