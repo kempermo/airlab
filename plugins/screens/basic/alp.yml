@@ -1,0 +1,81 @@
+name: na.basic
+title: Basic
+version: v0.1.0
+binary:
+  screen: ./main.wasm
+config:
+  screen:
+    sections:
+      - title: Values
+        items:
+          - key: primary
+            title: Primary
+            type: string
+            default: co2
+            options:
+              - value: co2
+                label: CO2
+              - value: tmp
+                label: Temperature
+              - value: hum
+                label: Humidity
+              - value: voc
+                label: VOC
+              - value: nox
+                label: NOx
+              - value: prs
+                label: Pressure
+          - key: left
+            title: Bottom Left
+            type: string
+            options:
+              - value: ""
+                label: None
+              - value: co2
+                label: CO2
+              - value: tmp
+                label: Temperature
+              - value: hum
+                label: Humidity
+              - value: voc
+                label: VOC
+              - value: nox
+                label: NOx
+              - value: prs
+                label: Pressure
+          - key: center
+            title: Bottom Center
+            type: string
+            options:
+              - value: ""
+                label: None
+              - value: co2
+                label: CO2
+              - value: tmp
+                label: Temperature
+              - value: hum
+                label: Humidity
+              - value: voc
+                label: VOC
+              - value: nox
+                label: NOx
+              - value: prs
+                label: Pressure
+          - key: right
+            title: Bottom Right
+            type: string
+            options:
+              - value: ""
+                label: None
+              - value: co2
+                label: CO2
+              - value: tmp
+                label: Temperature
+              - value: hum
+                label: Humidity
+              - value: voc
+                label: VOC
+              - value: nox
+                label: NOx
+              - value: prs
+                label: Pressure
