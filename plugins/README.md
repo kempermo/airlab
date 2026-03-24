@@ -6,8 +6,8 @@ Air Lab supports WASM-based plugins that run on-device via [WAMR](https://github
 
 ## Adding a Plugin
 
-1. Create a new directory (e.g. `myplugin/`) with a `main.c` source file and an `alp.yml` manifest.
-2. Add the directory name to `.PHONY`, the `foreach` list, and the `all:` target in the [`Makefile`](Makefile).
+1. Create a new directory (e.g. `examples/myplugin/`) with a `main.c` source file and an `alp.yml` manifest.
+2. Add the directory name to `.PHONY`, the `foreach` list, and the `all:` target in the [`Makefile`](examples/Makefile).
 
 After that, you can build the plugin using `make myplugin`.
 
@@ -19,12 +19,12 @@ After that, you can build the plugin using `make myplugin`.
 
 ## Writing a Plugin
 
-A minimal plugin consists of a C source file and a manifest. Here is the [`hello`](hello/) example:
+A minimal plugin consists of a C source file and a manifest. Here is the [`hello`](examples/hello/) example:
 
-**`hello/main.c`:**
+**`examples/hello/main.c`:**
 
 ```c
-#include "../al.h"
+#include "../../al.h"
 
 int main() {
   al_clear(0);
@@ -34,7 +34,7 @@ int main() {
 }
 ```
 
-**`hello/alp.yml`:**
+**`examples/hello/alp.yml`:**
 
 ```yaml
 name: hello-world
@@ -43,7 +43,7 @@ version: v0.1.0
 binary: ./main.wasm
 ```
 
-The plugin includes [`al.h`](al.h), which provides the full device API. The `alp.yml` manifest defines the plugin metadata. The `name` field is the plugin identifier, `title` is the display name, `version` must be valid semver, and `binary` points to the compiled WASM file. Plugins that use sprites list them under `sprites:` (see the [`sprite`](sprite/) example).
+The plugin includes [`al.h`](al.h), which provides the full device API. The `alp.yml` manifest defines the plugin metadata. The `name` field is the plugin identifier, `title` is the display name, `version` must be valid semver, and `binary` points to the compiled WASM file. Plugins that use sprites list them under `sprites:` (see the [`sprite`](examples/sprite/) example).
 
 ## Building
 

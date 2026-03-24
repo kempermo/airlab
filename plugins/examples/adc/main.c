@@ -1,6 +1,4 @@
-#include <stdbool.h>
-
-#include "../al.h"
+#include "../../al.h"
 
 int main() {
   // configure GPIO

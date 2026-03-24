@@ -1,6 +1,4 @@
-#include <stdbool.h>
-
-#include "../al.h"
+#include "../../al.h"
 
 #define MIN_DUTY 160
 #define MAX_DUTY 420

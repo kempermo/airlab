@@ -1,4 +1,4 @@
-#include "../al.h"
+#include "../../al.h"
 
 int main() {
   // clear screen

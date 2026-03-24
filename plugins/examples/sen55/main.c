@@ -1,4 +1,4 @@
-#include "../al.h"
+#include "../../al.h"
 
 #define SEN55 0x69
 
