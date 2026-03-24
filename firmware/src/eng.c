@@ -101,8 +101,8 @@ void eng_reload() {
     strncpy(info->version, version, sizeof(info->version));
 
     // check for binaries
-    info->has_main = eng_bundle_binary(b, "main", NULL) != NULL;
-    info->has_screen = eng_bundle_binary(b, "screen", NULL) != NULL;
+    info->has_main = eng_bundle_locate(b, ENG_BUNDLE_TYPE_BINARY, "main", NULL) >= 0;
+    info->has_screen = eng_bundle_locate(b, ENG_BUNDLE_TYPE_BINARY, "screen", NULL) >= 0;
 
     // free bundle
     eng_bundle_free(b);
