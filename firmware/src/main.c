@@ -29,10 +29,23 @@ static float battery() {
   return al_power_get().bat_level;
 }
 
+static const char *power_state_str(al_power_state_t power) {
+  if (power.charging) {
+    return "charging";
+  } else if (power.has_usb) {
+    return "powered";
+  } else {
+    return "battery";
+  }
+}
+
 static void sync() {
   // update storage metric
   naos_set_d("int-storage", al_storage_info(AL_STORAGE_INT).usage);
   naos_set_d("ext-storage", al_storage_info(AL_STORAGE_EXT).usage);
+
+  // update power state
+  naos_set_s("power-state", power_state_str(al_power_get()));
 
   // configure interval
   if (naos_get_l("long-interval") != al_store_get_interval()) {
@@ -79,6 +92,7 @@ static void setup() {
 static naos_param_t params[] = {
     {.name = "int-storage", .type = NAOS_DOUBLE, .mode = NAOS_VOLATILE | NAOS_LOCKED},
     {.name = "ext-storage", .type = NAOS_DOUBLE, .mode = NAOS_VOLATILE | NAOS_LOCKED},
+    {.name = "power-state", .type = NAOS_STRING, .mode = NAOS_VOLATILE | NAOS_LOCKED},
     {.name = "sleep-rate", .type = NAOS_LONG, .default_l = 30},
     {.name = "record-rate", .type = NAOS_LONG, .default_l = 5},
     {.name = "long-interval", .type = NAOS_LONG, .default_l = 60},
