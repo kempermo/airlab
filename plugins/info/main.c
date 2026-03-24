@@ -7,9 +7,6 @@ int main() {
     // clear screen
     al_clear(0);
 
-    // log number
-    al_logf("Screen: %d", n);
-
     // handle screen
     char buf[128];
     switch (n) {

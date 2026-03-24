@@ -82,7 +82,7 @@ int main() {
 
     // display data
     al_clear(0);
-    al_write(0, 24, 4, 16, 1, buffer, AL_WRITE_ALIGN_CENTER);
+    al_write(AL_W / 2, 24, 4, 16, 1, buffer, AL_WRITE_ALIGN_CENTER);
 
     // wait a bit
     al_yield_result_t res = al_yield(1000, 0);

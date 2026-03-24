@@ -19,8 +19,11 @@ int main() {
     // set duty
     al_gpio(AL_GPIO_WRITE_PWM, AL_GPIO_A, duty);
 
-    // log duty
-    al_logf("duty=%d", duty);
+    // show duty
+    char buf[32];
+    snprintf(buf, sizeof(buf), "Duty: %d", duty);
+    al_clear(0);
+    al_write(AL_W / 2, AL_H / 2 - 8, 0, 16, 1, buf, AL_WRITE_ALIGN_CENTER);
 
     // await event
     al_yield_result_t res = al_yield(0, 0);

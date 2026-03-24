@@ -30,7 +30,8 @@ int main() {
 
   // format result
   char result[128];
-  sprintf(result, "Alder: %.0f, Ash: %.0f, Beech: %.0f\nBirch: %.0f, Grasses: %.0f\nHazel: %.0f, Oak: %.0f", alder, ash, beech, birch, grasses, hazel, oak);
+  sprintf(result, "Alder: %.0f, Ash: %.0f, Beech: %.0f\nBirch: %.0f, Grasses: %.0f\nHazel: %.0f, Oak: %.0f", alder, ash,
+          beech, birch, grasses, hazel, oak);
 
   // write result
   al_clear(0);
