@@ -12,6 +12,8 @@ typedef struct {
   char title[64];
   char version[64];
   size_t size;
+  bool has_main;
+  bool has_screen;
 } eng_plugin_t;
 
 void eng_reload();

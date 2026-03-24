@@ -2658,7 +2658,8 @@ static void* scr_engine() {
     }
 
     // launch plugin
-    scr_launch(eng_get(selected)->file, "main");
+    eng_plugin_t* plugin = eng_get(selected);
+    scr_launch(plugin->file, plugin->has_main ? "main" : "screen");
   }
 }
 
