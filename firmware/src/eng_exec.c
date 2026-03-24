@@ -1568,8 +1568,8 @@ fail:
   return NULL;
 }
 
-void *eng_exec_start(eng_bundle_t *bundle, const char *binary, eng_perm_t perms, eng_bundle_t *config_schema,
-                     eng_bundle_t *config_values) {
+void *eng_exec_start(eng_bundle_t *bundle, const char *binary, eng_perm_t perms, bool cleanup,
+                     eng_bundle_t *config_schema, eng_bundle_t *config_values) {
   // check binary
   if (!eng_bundle_binary(bundle, binary, NULL)) {
     naos_log("eng_exec_start: binary '%s' not found", binary);
@@ -1594,7 +1594,14 @@ void *eng_exec_start(eng_bundle_t *bundle, const char *binary, eng_perm_t perms,
   ctx->config_values = config_values;
 
   // clear screen
-  gui_cleanup(false);
+  if (cleanup) {
+    gui_cleanup(false);
+  } else {
+    gfx_begin(false, false);
+    lv_disp_set_rotation(NULL, LV_DISP_ROT_NONE);
+    lv_obj_clean(lv_scr_act());
+    gfx_end(true, false);
+  }
 
   // ensure frame buffer
   if (!eng_exec_buffer) {

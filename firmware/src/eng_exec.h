@@ -14,8 +14,8 @@ typedef enum {
   ENG_PERM_ALL = 0xFFFFFFFF,        // all permissions
 } eng_perm_t;
 
-void *eng_exec_start(eng_bundle_t *bundle, const char *binary, eng_perm_t perms, eng_bundle_t *config_schema,
-                     eng_bundle_t *config_values);
+void *eng_exec_start(eng_bundle_t *bundle, const char *binary, eng_perm_t perms, bool cleanup,
+                     eng_bundle_t *config_schema, eng_bundle_t *config_values);
 void eng_exec_wait(void *ref);
 
 #endif  // ENG_EXEC_H

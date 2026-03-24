@@ -198,7 +198,7 @@ bool eng_run_config(const char *file, const char *mode, eng_bundle_t *args) {
   }
 
   // start execution
-  void *ref = eng_exec_start(bundle, mode, perms, config_schema, config_values);
+  void *ref = eng_exec_start(bundle, mode, perms, !is_screen, config_schema, config_values);
   if (!ref) {
     if (config_values && config_values != args) {
       eng_bundle_free(config_values);
