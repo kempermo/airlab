@@ -1001,11 +1001,13 @@ static void* scr_idle() {
   // track screen start time
   int64_t screen_start = naos_millis();
 
-  // load screen bundle
-  eng_bundle_t* screens = eng_bundle_load("config", "screens.alb");
+  for (;;) {
+    // load screen bundle
+    eng_bundle_t* screens = eng_bundle_load("config", "screens.alb");
+    if (!screens) {
+      break;
+    }
 
-  // check if present
-  if (screens) {
     // count screens
     uint16_t count = 0;
     for (int i = 0; i < screens->sections_num; i++) {
@@ -1015,112 +1017,91 @@ static void* scr_idle() {
     }
 
     // check if there are screens
-    if (count > 0) {
-      for (;;) {
-        // wrap index
-        if (screen_index < 0) {
-          screen_index = count - 1;
-        } else if (screen_index >= count) {
-          screen_index = 0;
-        }
+    if (count == 0) {
+      eng_bundle_free(screens);
+      break;
+    }
 
-        // find nth ATTR section
-        const char* file = NULL;
-        const char* key = NULL;
-        uint16_t n = 0;
-        for (int i = 0; i < screens->sections_num; i++) {
-          if (screens->sections[i].type == ENG_BUNDLE_TYPE_ATTR) {
-            if (n == screen_index) {
-              key = screens->sections[i].name;
-              file = eng_bundle_read(screens, &screens->sections[i]);
-              break;
-            }
-            n++;
-          }
-        }
+    // wrap index
+    if (screen_index < 0) {
+      screen_index = count - 1;
+    } else if (screen_index >= count) {
+      screen_index = 0;
+    }
 
-        // parse args from config section
-        size_t a_len = 0;
-        void* a_data = NULL;
-        if (key) {
-          a_data = eng_bundle_config(screens, key, &a_len);
-        }
-
-        // parse args bundle if present
-        eng_bundle_t* args = NULL;
-        if (a_data && a_len > 0) {
-          args = eng_bundle_parse(a_data, a_len);
-        }
-
-        // advance index if 60s have elapsed
-        if (naos_millis() - screen_start >= 60 * 1000) {
-          screen_index++;
-          screen_start = naos_millis();
-        }
-
-        // run screen
-        bool ok = eng_run_config(file, "screen", args);
-
-        // free args bundle
-        if (args) {
-          eng_bundle_free(args);
-        }
-
-        // stop if screen failed to run
-        if (!ok) {
-          gui_cleanup(false);
+    // find nth ATTR section
+    const char* file = NULL;
+    const char* key = NULL;
+    uint16_t n = 0;
+    for (int i = 0; i < screens->sections_num; i++) {
+      if (screens->sections[i].type == ENG_BUNDLE_TYPE_ATTR) {
+        if (n == screen_index) {
+          key = screens->sections[i].name;
+          file = eng_bundle_read(screens, &screens->sections[i]);
           break;
         }
-
-        // sleep until woken
-        sig_event_t event = scr_idle_sleep();
-
-        // handle left/right
-        if (event.type == SIG_LEFT) {
-          screen_index--;
-          screen_start = naos_millis();
-          continue;
-        } else if (event.type == SIG_RIGHT) {
-          screen_index++;
-          screen_start = naos_millis();
-          continue;
-        }
-
-        // exit on other keys
-        if (event.type & SIG_KEYS) {
-          eng_bundle_free(screens);
-          gui_cleanup(false);
-          if (scr_return_unlock == NULL) {
-            return scr_menu;
-          }
-          return scr_return_unlock;
-        }
-
-        // reload screen bundle
-        eng_bundle_free(screens);
-        screens = eng_bundle_load("config", "screens.alb");
-        if (!screens) {
-          break;
-        }
-
-        // recount screens
-        count = 0;
-        for (int i = 0; i < screens->sections_num; i++) {
-          if (screens->sections[i].type == ENG_BUNDLE_TYPE_ATTR) {
-            count++;
-          }
-        }
-
-        // break if no more screens
-        if (count == 0) {
-          eng_bundle_free(screens);
-          break;
-        }
+        n++;
       }
+    }
+
+    // parse args from config section
+    size_t a_len = 0;
+    void* a_data = NULL;
+    if (key) {
+      a_data = eng_bundle_config(screens, key, &a_len);
+    }
+
+    // parse args bundle if present
+    eng_bundle_t* args = NULL;
+    if (a_data && a_len > 0) {
+      args = eng_bundle_parse(a_data, a_len);
+    }
+
+    // advance index if 60s have elapsed
+    if (naos_millis() - screen_start >= 60 * 1000) {
+      screen_index++;
+      screen_start = naos_millis();
+    }
+
+    // run screen
+    bool ok = eng_run_config(file, "screen", args);
+
+    // free args bundle
+    if (args) {
+      eng_bundle_free(args);
     }
 
     // free screens bundle
     eng_bundle_free(screens);
+
+    // stop if screen failed to run
+    if (!ok) {
+      gui_cleanup(false);
+      break;
+    }
+
+    // sleep until woken
+    sig_event_t event = scr_idle_sleep();
+
+    // handle left/right
+    if (event.type == SIG_LEFT) {
+      screen_index--;
+      screen_start = naos_millis();
+      continue;
+    } else if (event.type == SIG_RIGHT) {
+      screen_index++;
+      screen_start = naos_millis();
+      continue;
+    }
+
+    // exit on other keys
+    if (event.type & SIG_KEYS) {
+      gui_cleanup(false);
+      if (scr_return_unlock == NULL) {
+        return scr_menu;
+      }
+      return scr_return_unlock;
+    }
   }
 
   /* Default Screen */
