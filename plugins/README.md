@@ -37,17 +37,18 @@ int main() {
 **`examples/hello/alp.yml`:**
 
 ```yaml
-name: hello-world
-title: Hello World
+name: example.hello
+title: "Example: Hello"
 version: v0.1.0
-binary: ./main.wasm
+binary:
+  main: ./main.wasm
 ```
 
-The plugin includes [`al.h`](al.h), which provides the full device API. The `alp.yml` manifest defines the plugin metadata. The `name` field is the plugin identifier, `title` is the display name, `version` must be valid semver, and `binary` points to the compiled WASM file. Plugins that use sprites list them under `sprites:` (see the [`sprite`](examples/sprite/) example).
+The plugin includes [`al.h`](al.h), which provides the full device API. The `alp.yml` manifest defines the plugin metadata. The `name` field is the plugin identifier, `title` is the display name, `version` must be valid semver, and `binary` is an object whose `main` key points to the compiled WASM file. Plugins that use sprites list them under `sprites:` (see the [`sprite`](examples/sprite/) example).
 
 ## Building
 
-The [`Makefile`](Makefile) provides targets for each plugin:
+The [`Makefile`](examples/Makefile) provides targets for each plugin:
 
 ```bash
 make hello                  # compile and bundle
@@ -122,6 +123,15 @@ The [`al.h`](al.h) header defines all functions available to plugins. The displa
 | `al_http_set(field, num, str1, str2)` | Set request fields (URL, method, headers, auth, timeout). |
 | `al_http_run(req, req_len, res, res_len)` | Execute the request with optional body, receive response. |
 | `al_http_get(field)` | Get response fields (status, length, errno). |
+
+**Config:**
+
+| Function | Description |
+|----------|-------------|
+| `al_config_get_s(key, value, value_len)` | Read a string config value. |
+| `al_config_get_b(key)` | Read a boolean config value. |
+| `al_config_get_i(key)` | Read an integer config value. |
+| `al_config_get_f(key)` | Read a float config value. |
 
 **Utils:**
 

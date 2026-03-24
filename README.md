@@ -15,6 +15,7 @@ This repository is meant to be cloned or forked by anyone wanting to collaborate
 - [`firmware`](firmware) — The official device firmware and board support library.
 - [`plugins`](plugins) — WASM-based plugins that run on-device, compiled with Zig.
 - [`tools`](tools) — The `airlab` CLI and supporting Go packages.
+- [`docs`](docs) — Additional documentation (bundle format, configuration, screens).
 
 ## Prerequisites
 
@@ -42,8 +43,8 @@ This repository is meant to be cloned or forked by anyone wanting to collaborate
 
 ## Licenses
 
-The source code and materials in this repository are open source and licensed under the Apache License 2.0. This license allows you to use, modify, and redistribute the code freely, including for commercial purposes, provided you comply with the terms of the license. See [LICENSE.md](LICENSE.md) for the full license text.
+The source code and materials in this repository are open source and licensed under the Apache License 2.0. This license allows you to use, modify, and redistribute the code freely, including for commercial purposes, provided you comply with the terms of the license. See [LICENSE](LICENSE) for the full license text.
 
-Please note that certain graphics, names, and logos included in this repository are Networked Artifacts Inc. trademarks or copyrighted materials. These assets are not covered by the Apache 2.0 license and may not be used in derivative products without prior written permission. See [ASSETS-EULA.md](ASSETS-EULA.md) for terms governing the use of included graphics and branding assets.
+Please note that certain graphics, names, and logos included in this repository are Networked Artifacts Inc. trademarks or copyrighted materials. These assets are not covered by the Apache 2.0 license and may not be used in derivative products without prior written permission. See [ASSETS-EULA](ASSETS-EULA) for terms governing the use of included graphics and branding assets.
 
 In case of uncertainty about the license, please contact us directly at https://networkedartifacts.com/contact.
