@@ -998,6 +998,9 @@ static void* scr_idle() {
 
   /* Multi-Screen Idle */
 
+  // track screen start time
+  int64_t screen_start = naos_millis();
+
   // load screen bundle
   eng_bundle_t* screens = eng_bundle_load("config", "screens.alb");
 
@@ -1013,9 +1016,6 @@ static void* scr_idle() {
 
     // check if there are screens
     if (count > 0) {
-      // track screen start time
-      int64_t screen_start = naos_millis();
-
       for (;;) {
         // wrap index
         if (screen_index < 0) {
@@ -1094,6 +1094,27 @@ static void* scr_idle() {
             return scr_menu;
           }
           return scr_return_unlock;
+        }
+
+        // reload screen bundle
+        eng_bundle_free(screens);
+        screens = eng_bundle_load("config", "screens.alb");
+        if (!screens) {
+          break;
+        }
+
+        // recount screens
+        count = 0;
+        for (int i = 0; i < screens->sections_num; i++) {
+          if (screens->sections[i].type == ENG_BUNDLE_TYPE_ATTR) {
+            count++;
+          }
+        }
+
+        // break if no more screens
+        if (count == 0) {
+          eng_bundle_free(screens);
+          break;
         }
       }
     }
