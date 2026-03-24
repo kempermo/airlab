@@ -1,5 +1,5 @@
-name: gpio-example
-title: GPIO Example
+name: example.gpio
+title: "Example: GPIO"
 version: v0.1.0
 binary:
   main: ./main.wasm

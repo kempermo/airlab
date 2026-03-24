@@ -1,5 +1,5 @@
-name: hello-world
-title: Hello World
+name: example.hello
+title: "Example: Hello"
 version: v0.1.0
 binary:
   main: ./main.wasm

@@ -1,5 +1,5 @@
-name: i2c-example
-title: I2C Example
+name: example.i2c
+title: "Example: I2C"
 version: v0.1.0
 binary:
   main: ./main.wasm

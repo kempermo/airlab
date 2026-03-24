@@ -1,5 +1,5 @@
-name: config-example
-title: Config Example
+name: example.config
+title: "Example: Config"
 version: v0.1.0
 binary:
   main: ./main.wasm

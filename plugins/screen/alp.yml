@@ -1,5 +1,5 @@
-name: screen-example
-title: Screen Example
+name: example.screen
+title: "Example: Screen"
 version: v0.1.0
 binary:
   screen: ./main.wasm

@@ -1,5 +1,5 @@
-name: weather-example
-title: Weather Example
+name: example.weather
+title: "Example: Weather"
 version: v0.1.0
 binary:
   main: ./main.wasm

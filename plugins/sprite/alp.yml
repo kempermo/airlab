@@ -1,5 +1,5 @@
-name: sprite-example
-title: Sprite Example
+name: example.sprite
+title: "Example: Sprite"
 version: v0.1.0
 binary:
   main: ./main.wasm

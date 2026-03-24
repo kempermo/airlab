@@ -1,5 +1,5 @@
-name: pollen-example
-title: Pollen Example
+name: example.pollen
+title: "Example: Pollen"
 version: v0.1.0
 binary:
   main: ./main.wasm

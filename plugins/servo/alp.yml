@@ -1,5 +1,5 @@
-name: servo-example
-title: Servo Example
+name: example.servo
+title: "Example: Servo"
 version: v0.1.0
 binary:
   main: ./main.wasm

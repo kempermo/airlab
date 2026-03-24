@@ -1,5 +1,5 @@
-name: sen55-example
-title: SEN55 Example
+name: example.sen55
+title: "Example: SEN55"
 version: v0.1.0
 binary:
   main: ./main.wasm

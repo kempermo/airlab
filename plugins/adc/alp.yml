@@ -1,5 +1,5 @@
-name: adc-example
-title: ADC Example
+name: example.adc
+title: "Example: ADC"
 version: v0.1.0
 binary:
   main: ./main.wasm

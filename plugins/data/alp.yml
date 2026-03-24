@@ -1,5 +1,5 @@
-name: data-example
-title: Data Example
+name: example.data
+title: "Example: Data"
 version: v0.1.0
 binary:
   main: ./main.wasm
