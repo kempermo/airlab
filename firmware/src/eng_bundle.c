@@ -119,6 +119,21 @@ eng_bundle_t *eng_bundle_parse(void *buf, size_t len) {
     }
   }
 
+  // validate checksums for buffered sections
+  for (int i = 0; i < b->sections_num; i++) {
+    eng_bundle_section_t *s = &b->sections[i];
+    size_t crc_len = iter.modern ? s->len + 1 : s->len;
+    if (s->len == 0 || s->off + crc_len > len) {
+      continue;
+    }
+    uint32_t crc32 = esp_crc32_le(0, buf + s->off, crc_len);
+    if (crc32 != s->crc32) {
+      naos_log("eng_bundle_parse: crc32 mismatch for section '%s'", s->name);
+      eng_bundle_free(b);
+      return NULL;
+    }
+  }
+
   // print sections
   if (ENG_BUNDLE_DEBUG) {
     naos_log("eng_bundle_parse: found %d sections", b->sections_num);
