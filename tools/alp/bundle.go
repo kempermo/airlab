@@ -34,9 +34,10 @@ func (bt BundleType) String() string {
 }
 
 type BundleSection struct {
-	Type BundleType
-	Name string
-	Data []byte
+	Type  BundleType
+	Flags uint16
+	Name  string
+	Data  []byte
 }
 
 type Bundle struct {
@@ -50,24 +51,38 @@ func DecodeBundle(data []byte) (*Bundle, error) {
 	}
 
 	// check magic
-	if string(data[0:4]) != "ALP\x00" {
+	modern := string(data[0:4]) == "ALB\x00"
+	if !modern && string(data[0:4]) != "ALP\x00" {
 		return nil, fmt.Errorf("invalid bundle: bad magic")
 	}
 
 	// check header length
 	headerLen := int(enc.Uint32(data[4:8]))
-	if headerLen > len(data) || headerLen < 10 {
+	minHeader := 10
+	if modern {
+		minHeader = 14
+	}
+	if headerLen > len(data) || headerLen < minHeader {
 		return nil, fmt.Errorf("invalid bundle: bad header length")
 	}
 
 	// read sections
 	sections := int(enc.Uint16(data[8:10]))
 
+	// read and verify total size for modern bundles
+	offset := 10
+	if modern {
+		totalSize := int(enc.Uint32(data[10:14]))
+		if totalSize != len(data) {
+			return nil, fmt.Errorf("invalid bundle: total size mismatch")
+		}
+		offset = 14
+	}
+
 	// prepare bundle
 	b := &Bundle{}
 
 	// read section headers
-	offset := 10
 	var offsets []int
 	var checksums []uint32
 	for i := 0; i < sections; i++ {
@@ -79,6 +94,16 @@ func DecodeBundle(data []byte) (*Bundle, error) {
 		// read section type
 		typ := BundleType(data[offset])
 		offset += 1
+
+		// read section flags (ALB only)
+		var flags uint16
+		if modern {
+			if offset+2 > len(data) {
+				return nil, fmt.Errorf("invalid bundle: section %d: header too short for flags", i)
+			}
+			flags = enc.Uint16(data[offset : offset+2])
+			offset += 2
+		}
 
 		// read section offset
 		offsets = append(offsets, int(enc.Uint32(data[offset:offset+4])))
@@ -102,10 +127,27 @@ func DecodeBundle(data []byte) (*Bundle, error) {
 
 		// add section
 		b.Sections = append(b.Sections, BundleSection{
-			Type: typ,
-			Name: name,
-			Data: make([]byte, size),
+			Type:  typ,
+			Flags: flags,
+			Name:  name,
+			Data:  make([]byte, size),
 		})
+	}
+
+	// verify header checksum for modern bundles
+	if modern {
+		// check space for header checksum
+		if offset+4 > headerLen {
+			return nil, fmt.Errorf("invalid bundle: missing header checksum")
+		}
+
+		// verify header checksum (covers bytes before the checksum field)
+		expectedCRC := enc.Uint32(data[offset : offset+4])
+		actualCRC := crc32.ChecksumIEEE(data[:offset])
+		if actualCRC != expectedCRC {
+			return nil, fmt.Errorf("invalid bundle: header checksum mismatch")
+		}
+		offset += 4
 	}
 
 	// check lengths
@@ -124,6 +166,9 @@ func DecodeBundle(data []byte) (*Bundle, error) {
 		offset += len(s.Data) + 1
 		checksum := crc32.NewIEEE()
 		_, _ = checksum.Write(b.Sections[i].Data)
+		if modern {
+			_, _ = checksum.Write([]byte{0}) // include null terminator
+		}
 		if checksum.Sum32() != checksums[i] {
 			return nil, fmt.Errorf("invalid bundle: section %d: checksum mismatch", i)
 		}
@@ -153,23 +198,33 @@ func (b *Bundle) Encode() []byte {
 	// prepare buffer
 	var out []byte
 
-	// calculate header size
-	headerLength := 10
+	// calculate header size (includes total size, per-section flags, and header checksum)
+	headerLength := 14 // magic(4) + header_len(4) + section_count(2) + total_size(4)
 	for _, section := range b.Sections {
-		headerLength += 1 + 4 + 4 + 4 + len(section.Name) + 1
+		headerLength += 1 + 2 + 4 + 4 + 4 + len(section.Name) + 1 // type + flags + offset + size + crc32 + name + null
+	}
+	headerLength += 4 // header checksum
+
+	// calculate total size
+	totalSize := headerLength
+	for _, section := range b.Sections {
+		totalSize += len(section.Data) + 1
 	}
 
 	// write header
-	out = append(out, 'A', 'L', 'P', 0x00)
+	out = append(out, 'A', 'L', 'B', 0x00)
 	out = enc.AppendUint32(out, uint32(headerLength))
 	out = enc.AppendUint16(out, uint16(len(b.Sections)))
+	out = enc.AppendUint32(out, uint32(totalSize))
 
 	// write section headers
 	offset := headerLength
 	for _, section := range b.Sections {
 		checksum := crc32.NewIEEE()
 		_, _ = checksum.Write(section.Data)
+		_, _ = checksum.Write([]byte{0}) // include null terminator
 		out = append(out, byte(section.Type))
+		out = enc.AppendUint16(out, section.Flags)
 		out = enc.AppendUint32(out, uint32(offset))
 		out = enc.AppendUint32(out, uint32(len(section.Data)))
 		out = enc.AppendUint32(out, checksum.Sum32())
@@ -177,6 +232,9 @@ func (b *Bundle) Encode() []byte {
 		out = append(out, 0)
 		offset += len(section.Data) + 1
 	}
+
+	// write header checksum
+	out = enc.AppendUint32(out, crc32.ChecksumIEEE(out))
 
 	// write section data
 	for _, section := range b.Sections {

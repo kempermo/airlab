@@ -35,10 +35,13 @@ func pluginAnalyze(file string) error {
 		return err
 	}
 
+	// print magic
+	fmt.Printf("Format: %q\n", string(data[0:4]))
+
 	// print sections
 	fmt.Printf("Sections: (%d total, %d bytes)\n", len(bundle.Sections), len(data))
 	for _, sec := range bundle.Sections {
-		fmt.Printf(" - [%s] %-20s %d bytes\n", sec.Type, sec.Name, len(sec.Data))
+		fmt.Printf(" - [%s] %-20s %d bytes (flags: 0x%04x)\n", sec.Type, sec.Name, len(sec.Data), sec.Flags)
 		switch {
 		case sec.Type == alp.BundleTypeAttr:
 			fmt.Printf("       %s\n", string(sec.Data))
