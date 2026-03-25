@@ -1,4 +1,4 @@
-package alp
+package alb
 
 import (
 	"bytes"
@@ -12,9 +12,9 @@ var enc = binary.LittleEndian
 type BundleType byte
 
 const (
-	BundleTypeAttr     BundleType = 0
-	BundleTypeBinary   BundleType = 1
-	BundleTypeSprite   BundleType = 2
+	BundleTypeAttr   BundleType = 0
+	BundleTypeBinary BundleType = 1
+	BundleTypeSprite BundleType = 2
 	BundleTypeConfig BundleType = 3
 )
 

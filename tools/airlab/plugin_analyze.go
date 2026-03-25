@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/networkedartifacts/airlab/tools/alp"
+	"github.com/networkedartifacts/airlab/tools/alb"
 )
 
 var pluginAnalyzeCmd = &cobra.Command{
@@ -30,7 +30,7 @@ func pluginAnalyze(file string) error {
 	}
 
 	// decode bundle
-	bundle, err := alp.DecodeBundle(data)
+	bundle, err := alb.DecodeBundle(data)
 	if err != nil {
 		return err
 	}
@@ -43,15 +43,15 @@ func pluginAnalyze(file string) error {
 	for _, sec := range bundle.Sections {
 		fmt.Printf(" - [%s] %-20s %d bytes (flags: 0x%04x)\n", sec.Type, sec.Name, len(sec.Data), sec.Flags)
 		switch {
-		case sec.Type == alp.BundleTypeAttr:
+		case sec.Type == alb.BundleTypeAttr:
 			fmt.Printf("       %s\n", string(sec.Data))
-		case sec.Type == alp.BundleTypeConfig:
-			sub, err := alp.DecodeBundle(sec.Data)
+		case sec.Type == alb.BundleTypeConfig:
+			sub, err := alb.DecodeBundle(sec.Data)
 			if err != nil {
 				fmt.Printf("       (failed to decode: %v)\n", err)
 				continue
 			}
-			config, err := alp.DecodeConfig(sub)
+			config, err := alb.DecodeConfig(sub)
 			if err != nil {
 				fmt.Printf("       (failed to decode: %v)\n", err)
 				continue

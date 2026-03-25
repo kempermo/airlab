@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 
+	"github.com/networkedartifacts/airlab/tools/alb"
 	"github.com/networkedartifacts/airlab/tools/alp"
 )
 
@@ -82,7 +83,7 @@ func pluginBundle(dir, out string) error {
 	/* create bundle */
 
 	// prepare bundle
-	var bundle alp.Bundle
+	var bundle alb.Bundle
 
 	// add attributes
 	bundle.AddAttr("name", []byte(manifest.Name))
@@ -96,8 +97,8 @@ func pluginBundle(dir, out string) error {
 		if err != nil {
 			return err
 		}
-		bundle.Sections = append(bundle.Sections, alp.BundleSection{
-			Type: alp.BundleTypeBinary,
+		bundle.Sections = append(bundle.Sections, alb.BundleSection{
+			Type: alb.BundleTypeBinary,
 			Name: key,
 			Data: binData,
 		})
@@ -110,11 +111,11 @@ func pluginBundle(dir, out string) error {
 			return err
 		}
 		if filepath.Ext(sprite) == ".png" {
-			spriteData = alp.SpriteFromPNG(spriteData, 1).Encode()
+			spriteData = alb.SpriteFromPNG(spriteData, 1).Encode()
 			sprite = strings.TrimSuffix(sprite, ".png")
 		}
-		bundle.Sections = append(bundle.Sections, alp.BundleSection{
-			Type: alp.BundleTypeSprite,
+		bundle.Sections = append(bundle.Sections, alb.BundleSection{
+			Type: alb.BundleTypeSprite,
 			Name: lo.Must(filepath.Rel(root, sprite)),
 			Data: spriteData,
 		})
@@ -127,8 +128,8 @@ func pluginBundle(dir, out string) error {
 			if err != nil {
 				return fmt.Errorf("config %q: %w", key, err)
 			}
-			bundle.Sections = append(bundle.Sections, alp.BundleSection{
-				Type: alp.BundleTypeConfig,
+			bundle.Sections = append(bundle.Sections, alb.BundleSection{
+				Type: alb.BundleTypeConfig,
 				Name: key,
 				Data: configBundle.Encode(),
 			})

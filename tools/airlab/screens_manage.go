@@ -9,7 +9,7 @@ import (
 	"github.com/256dpi/naos/pkg/msg"
 	"github.com/spf13/cobra"
 
-	"github.com/networkedartifacts/airlab/tools/alp"
+	"github.com/networkedartifacts/airlab/tools/alb"
 )
 
 var screensShowCmd = &cobra.Command{
@@ -62,10 +62,10 @@ func screensShow() error {
 	}
 
 	// collect configs by id
-	configs := map[string]*alp.Bundle{}
+	configs := map[string]*alb.Bundle{}
 	for _, sec := range bundle.Sections {
-		if sec.Type == alp.BundleTypeConfig {
-			cb, err := alp.DecodeBundle(sec.Data)
+		if sec.Type == alb.BundleTypeConfig {
+			cb, err := alb.DecodeBundle(sec.Data)
 			if err == nil {
 				configs[sec.Name] = cb
 			}
@@ -79,7 +79,7 @@ func screensShow() error {
 	}
 	var screens []screen
 	for _, sec := range bundle.Sections {
-		if sec.Type == alp.BundleTypeAttr {
+		if sec.Type == alb.BundleTypeAttr {
 			screens = append(screens, screen{id: sec.Name, plugin: string(sec.Data)})
 		}
 	}
@@ -94,14 +94,14 @@ func screensShow() error {
 		fmt.Printf("  %d: %s (%s)\n", i, s.id, s.plugin)
 		if cb, ok := configs[s.id]; ok {
 			for _, sec := range cb.Sections {
-				if sec.Type != alp.BundleTypeBinary || len(sec.Data) < 2 {
+				if sec.Type != alb.BundleTypeBinary || len(sec.Data) < 2 {
 					continue
 				}
-				typ := alp.ConfigTypeFromByte(sec.Data[0])
+				typ := alb.ConfigTypeFromByte(sec.Data[0])
 				if typ == "" {
 					continue
 				}
-				val, _ := alp.DecodeConfigValue(typ, sec.Data[1:])
+				val, _ := alb.DecodeConfigValue(typ, sec.Data[1:])
 				if val == nil {
 					continue
 				}
@@ -131,15 +131,15 @@ func screensSet(id, plugin string, pairs []string) error {
 	screensRemoveSections(bundle, id)
 
 	// add attr section
-	bundle.Sections = append(bundle.Sections, alp.BundleSection{
-		Type: alp.BundleTypeAttr,
+	bundle.Sections = append(bundle.Sections, alb.BundleSection{
+		Type: alb.BundleTypeAttr,
 		Name: id,
 		Data: []byte(plugin),
 	})
 
 	// add config section if pairs given
 	if len(pairs) > 0 {
-		var config alp.Bundle
+		var config alb.Bundle
 		for _, pair := range pairs {
 			parts := strings.SplitN(pair, "=", 2)
 			if len(parts) != 2 {
@@ -148,16 +148,16 @@ func screensSet(id, plugin string, pairs []string) error {
 			key, raw := parts[0], parts[1]
 			typ, val := screensInferValue(raw)
 			var data []byte
-			data = append(data, alp.ConfigValueTypeByte(typ))
-			data = append(data, alp.EncodeConfigValue(typ, val)...)
-			config.Sections = append(config.Sections, alp.BundleSection{
-				Type: alp.BundleTypeBinary,
+			data = append(data, alb.ConfigValueTypeByte(typ))
+			data = append(data, alb.EncodeConfigValue(typ, val)...)
+			config.Sections = append(config.Sections, alb.BundleSection{
+				Type: alb.BundleTypeBinary,
 				Name: key,
 				Data: data,
 			})
 		}
-		bundle.Sections = append(bundle.Sections, alp.BundleSection{
-			Type: alp.BundleTypeConfig,
+		bundle.Sections = append(bundle.Sections, alb.BundleSection{
+			Type: alb.BundleTypeConfig,
 			Name: id,
 			Data: config.Encode(),
 		})
@@ -204,15 +204,15 @@ func screensClear(id string) error {
 	return nil
 }
 
-func screensDownload(man *msg.ManagedDevice) (*alp.Bundle, error) {
+func screensDownload(man *msg.ManagedDevice) (*alb.Bundle, error) {
 	// download existing bundle
-	var bundle *alp.Bundle
+	var bundle *alb.Bundle
 	err := man.UseSession(func(s *msg.Session) error {
 		data, err := msg.ReadFile(s, screensFile, nil, time.Minute)
 		if err != nil {
 			return nil // ignore error (file may not exist)
 		}
-		bundle, err = alp.DecodeBundle(data)
+		bundle, err = alb.DecodeBundle(data)
 		if err != nil {
 			return nil // ignore decode error
 		}
@@ -224,13 +224,13 @@ func screensDownload(man *msg.ManagedDevice) (*alp.Bundle, error) {
 
 	// ensure bundle
 	if bundle == nil {
-		bundle = &alp.Bundle{}
+		bundle = &alb.Bundle{}
 	}
 
 	return bundle, nil
 }
 
-func screensUpload(man *msg.ManagedDevice, bundle *alp.Bundle) error {
+func screensUpload(man *msg.ManagedDevice, bundle *alb.Bundle) error {
 	// encode bundle
 	data := bundle.Encode()
 
@@ -255,33 +255,33 @@ func screensUpload(man *msg.ManagedDevice, bundle *alp.Bundle) error {
 	return nil
 }
 
-func screensInferValue(raw string) (alp.ConfigType, any) {
+func screensInferValue(raw string) (alb.ConfigType, any) {
 	// try bool
 	switch strings.ToLower(raw) {
 	case "true":
-		return alp.ConfigTypeBool, true
+		return alb.ConfigTypeBool, true
 	case "false":
-		return alp.ConfigTypeBool, false
+		return alb.ConfigTypeBool, false
 	}
 
 	// try int
 	if v, err := strconv.Atoi(raw); err == nil {
-		return alp.ConfigTypeInt, v
+		return alb.ConfigTypeInt, v
 	}
 
 	// try float
 	if v, err := strconv.ParseFloat(raw, 64); err == nil {
-		return alp.ConfigTypeFloat, v
+		return alb.ConfigTypeFloat, v
 	}
 
 	// default to string
-	return alp.ConfigTypeString, raw
+	return alb.ConfigTypeString, raw
 }
 
-func screensRemoveSections(bundle *alp.Bundle, id string) {
-	var filtered []alp.BundleSection
+func screensRemoveSections(bundle *alb.Bundle, id string) {
+	var filtered []alb.BundleSection
 	for _, sec := range bundle.Sections {
-		if sec.Name == id && (sec.Type == alp.BundleTypeAttr || sec.Type == alp.BundleTypeConfig) {
+		if sec.Name == id && (sec.Type == alb.BundleTypeAttr || sec.Type == alb.BundleTypeConfig) {
 			continue
 		}
 		filtered = append(filtered, sec)

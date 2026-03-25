@@ -7,16 +7,18 @@ import (
 
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
+
+	"github.com/networkedartifacts/airlab/tools/alb"
 )
 
 // Manifest describes a plugin manifest (alp.yml).
 type Manifest struct {
-	Name    string            `yaml:"name"`
-	Title   string            `yaml:"title"`
-	Version string            `yaml:"version"`
-	Binary  map[string]string `yaml:"binary"`
-	Config  map[string]Config `yaml:"config"`
-	Sprites []string          `yaml:"sprites"`
+	Name    string                `yaml:"name"`
+	Title   string                `yaml:"title"`
+	Version string                `yaml:"version"`
+	Binary  map[string]string     `yaml:"binary"`
+	Config  map[string]alb.Config `yaml:"config"`
+	Sprites []string              `yaml:"sprites"`
 }
 
 // LoadManifest loads and parses a manifest from the given directory.

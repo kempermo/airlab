@@ -9,6 +9,7 @@ import (
 	"github.com/256dpi/naos/pkg/msg"
 	"github.com/spf13/cobra"
 
+	"github.com/networkedartifacts/airlab/tools/alb"
 	"github.com/networkedartifacts/airlab/tools/alp"
 )
 
@@ -71,7 +72,7 @@ func pluginConfig(dir string, pairs []string, device string, del bool) error {
 	}
 
 	// build type map from schema
-	typeMap := map[string]alp.ConfigType{}
+	typeMap := map[string]alb.ConfigType{}
 	for _, section := range mainConfig.Sections {
 		for _, item := range section.Items {
 			typeMap[item.Key] = item.Type
@@ -111,7 +112,7 @@ func pluginConfig(dir string, pairs []string, device string, del bool) error {
 	return pluginConfigSet(man, fileName, typeMap, values)
 }
 
-func pluginConfigShow(man *msg.ManagedDevice, fileName string, typeMap map[string]alp.ConfigType) error {
+func pluginConfigShow(man *msg.ManagedDevice, fileName string, typeMap map[string]alb.ConfigType) error {
 	// download existing config
 	var data []byte
 	err := man.UseSession(func(s *msg.Session) error {
@@ -124,7 +125,7 @@ func pluginConfigShow(man *msg.ManagedDevice, fileName string, typeMap map[strin
 	}
 
 	// decode bundle
-	bundle, err := alp.DecodeBundle(data)
+	bundle, err := alb.DecodeBundle(data)
 	if err != nil {
 		return err
 	}
@@ -132,16 +133,16 @@ func pluginConfigShow(man *msg.ManagedDevice, fileName string, typeMap map[strin
 	// print values
 	fmt.Printf("==> Config: %s\n", fileName)
 	for _, sec := range bundle.Sections {
-		if sec.Type != alp.BundleTypeBinary || len(sec.Data) < 2 {
+		if sec.Type != alb.BundleTypeBinary || len(sec.Data) < 2 {
 			continue
 		}
 
 		// read type byte and decode value
-		typ := alp.ConfigTypeFromByte(sec.Data[0])
+		typ := alb.ConfigTypeFromByte(sec.Data[0])
 		if typ == "" {
 			continue
 		}
-		val, _ := alp.DecodeConfigValue(typ, sec.Data[1:])
+		val, _ := alb.DecodeConfigValue(typ, sec.Data[1:])
 		if val == nil {
 			continue
 		}
@@ -152,15 +153,15 @@ func pluginConfigShow(man *msg.ManagedDevice, fileName string, typeMap map[strin
 	return nil
 }
 
-func pluginConfigSet(man *msg.ManagedDevice, fileName string, typeMap map[string]alp.ConfigType, values map[string]any) error {
+func pluginConfigSet(man *msg.ManagedDevice, fileName string, typeMap map[string]alb.ConfigType, values map[string]any) error {
 	// download existing config
-	var existing *alp.Bundle
+	var existing *alb.Bundle
 	err := man.UseSession(func(s *msg.Session) error {
 		data, err := msg.ReadFile(s, fileName, nil, time.Minute)
 		if err != nil {
 			return nil // ignore errors (file may not exist)
 		}
-		existing, err = alp.DecodeBundle(data)
+		existing, err = alb.DecodeBundle(data)
 		if err != nil {
 			return nil // ignore decode errors
 		}
@@ -171,11 +172,11 @@ func pluginConfigSet(man *msg.ManagedDevice, fileName string, typeMap map[string
 	}
 
 	// merge: start with existing values, override with new ones
-	merged := map[string]alp.BundleSection{}
+	merged := map[string]alb.BundleSection{}
 	if existing != nil {
 		fmt.Printf("==> Existing: %d values\n", len(existing.Sections))
 		for _, sec := range existing.Sections {
-			if sec.Type == alp.BundleTypeBinary {
+			if sec.Type == alb.BundleTypeBinary {
 				merged[sec.Name] = sec
 			}
 		}
@@ -185,17 +186,17 @@ func pluginConfigSet(man *msg.ManagedDevice, fileName string, typeMap map[string
 	for key, val := range values {
 		typ := typeMap[key]
 		var data []byte
-		data = append(data, alp.ConfigValueTypeByte(typ))
-		data = append(data, alp.EncodeConfigValue(typ, val)...)
-		merged[key] = alp.BundleSection{
-			Type: alp.BundleTypeBinary,
+		data = append(data, alb.ConfigValueTypeByte(typ))
+		data = append(data, alb.EncodeConfigValue(typ, val)...)
+		merged[key] = alb.BundleSection{
+			Type: alb.BundleTypeBinary,
 			Name: key,
 			Data: data,
 		}
 	}
 
 	// build bundle
-	var bundle alp.Bundle
+	var bundle alb.Bundle
 	for _, sec := range merged {
 		bundle.Sections = append(bundle.Sections, sec)
 	}
@@ -224,11 +225,11 @@ func pluginConfigSet(man *msg.ManagedDevice, fileName string, typeMap map[string
 	return nil
 }
 
-func parseConfigValue(typ alp.ConfigType, raw string) (any, error) {
+func parseConfigValue(typ alb.ConfigType, raw string) (any, error) {
 	switch typ {
-	case alp.ConfigTypeString:
+	case alb.ConfigTypeString:
 		return raw, nil
-	case alp.ConfigTypeBool:
+	case alb.ConfigTypeBool:
 		switch strings.ToLower(raw) {
 		case "true", "1", "yes":
 			return true, nil
@@ -237,13 +238,13 @@ func parseConfigValue(typ alp.ConfigType, raw string) (any, error) {
 		default:
 			return nil, fmt.Errorf("invalid bool value: %q", raw)
 		}
-	case alp.ConfigTypeInt:
+	case alb.ConfigTypeInt:
 		v, err := strconv.Atoi(raw)
 		if err != nil {
 			return nil, fmt.Errorf("invalid int value: %q", raw)
 		}
 		return v, nil
-	case alp.ConfigTypeFloat:
+	case alb.ConfigTypeFloat:
 		v, err := strconv.ParseFloat(raw, 64)
 		if err != nil {
 			return nil, fmt.Errorf("invalid float value: %q", raw)
