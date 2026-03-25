@@ -9,20 +9,27 @@ import (
 	"github.com/networkedartifacts/airlab/tools/alb"
 )
 
-var pluginAnalyzeCmd = &cobra.Command{
+var bundleCmd = &cobra.Command{
+	Use:   "bundle",
+	Short: "Bundle management tools",
+}
+
+var bundleAnalyzeCmd = &cobra.Command{
 	Use:   "analyze <file>",
 	Short: "Analyze a plugin bundle file",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return pluginAnalyze(args[0])
+		return bundleAnalyze(args[0])
 	},
 }
 
 func init() {
-	pluginCmd.AddCommand(pluginAnalyzeCmd)
+	bundleCmd.AddCommand(bundleAnalyzeCmd)
+
+	rootCmd.AddCommand(bundleCmd)
 }
 
-func pluginAnalyze(file string) error {
+func bundleAnalyze(file string) error {
 	// read file
 	data, err := os.ReadFile(file)
 	if err != nil {
