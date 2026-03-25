@@ -14,6 +14,7 @@ typedef enum {
 
 typedef struct {
   eng_bundle_type_t type;
+  uint16_t flags;
   const char *name;
   size_t off;
   size_t len;
@@ -27,6 +28,7 @@ typedef struct {
   void *buffer;
   size_t buffer_len;
   bool buffer_int;
+  bool modern;
   eng_bundle_section_t *sections;
   uint16_t sections_num;
 } eng_bundle_t;

@@ -15,8 +15,10 @@ typedef struct {
   size_t len;
   size_t pos;
   size_t header_len;
+  size_t total_size;
   uint16_t sections;
   uint16_t current;
+  bool modern;
 } eng_bundle_iter_t;
 
 static uint16_t eng_bundle_le16(const void *buf) {
@@ -32,8 +34,25 @@ static uint32_t eng_bundle_le32(const void *buf) {
 }
 
 static bool eng_bundle_iter_init(eng_bundle_iter_t *i, const void *buf, size_t len) {
-  // check bundle header
-  if (len < 10 || memcmp(buf, "ALP\0", 4) != 0) {
+  // check minimum length
+  if (len < 10) {
+    naos_log("eng_bundle_iter_init: invalid bundle header");
+    return false;
+  }
+
+  // check magic
+  bool modern = false;
+  if (memcmp(buf, "ALP\0", 4) == 0) {
+    // legacy magic
+  } else if (memcmp(buf, "ALB\0", 4) == 0) {
+    modern = true;
+  } else {
+    naos_log("eng_bundle_iter_init: invalid magic");
+    return false;
+  }
+
+  // check modern minimum length
+  if (modern && len < 14) {
     naos_log("eng_bundle_iter_init: invalid bundle header");
     return false;
   }
@@ -42,13 +61,23 @@ static bool eng_bundle_iter_init(eng_bundle_iter_t *i, const void *buf, size_t l
   uint32_t header_len = eng_bundle_le32(buf + 4);
   uint16_t sections = eng_bundle_le16(buf + 8);
 
+  // read total size for modern bundles
+  size_t pos = 10;
+  size_t total_size = 0;
+  if (modern) {
+    total_size = eng_bundle_le32(buf + 10);
+    pos = 14;
+  }
+
   // initialize iterator
   *i = (eng_bundle_iter_t){
       .buf = buf,
       .len = len,
-      .pos = 10,
+      .pos = pos,
       .header_len = header_len,
+      .total_size = total_size,
       .sections = sections,
+      .modern = modern,
   };
 
   return true;
@@ -66,8 +95,22 @@ static bool eng_bundle_iter_next(eng_bundle_iter_t *i, eng_bundle_section_t *s) 
     return false;
   }
 
-  // get type and length
+  // get type
   s->type = i->buf[i->pos++];
+
+  // get flags (ALB only)
+  if (i->modern) {
+    if (i->pos + 2 > i->len) {
+      naos_log("eng_bundle_iter_next: incomplete section flags");
+      return false;
+    }
+    s->flags = eng_bundle_le16(i->buf + i->pos);
+    i->pos += 2;
+  } else {
+    s->flags = 0;
+  }
+
+  // get offset and length
   s->off = eng_bundle_le32(i->buf + i->pos);
   i->pos += 4;
   s->len = eng_bundle_le32(i->buf + i->pos);
@@ -104,6 +147,7 @@ eng_bundle_t *eng_bundle_parse(void *buf, size_t len) {
   *b = (eng_bundle_t){
       .buffer = buf,
       .buffer_len = len,
+      .modern = iter.modern,
   };
 
   // allocate sections
@@ -114,6 +158,22 @@ eng_bundle_t *eng_bundle_parse(void *buf, size_t len) {
   for (int i = 0; i < iter.sections; i++) {
     eng_bundle_section_t *s = &b->sections[i];
     if (!eng_bundle_iter_next(&iter, s)) {
+      eng_bundle_free(b);
+      return NULL;
+    }
+  }
+
+  // verify modern header checksum
+  if (iter.modern) {
+    if (iter.pos + 4 > iter.len) {
+      naos_log("eng_bundle_parse: missing header checksum");
+      eng_bundle_free(b);
+      return NULL;
+    }
+    uint32_t expected = eng_bundle_le32(iter.buf + iter.pos);
+    uint32_t actual = esp_crc32_le(0, iter.buf, iter.pos);
+    if (actual != expected) {
+      naos_log("eng_bundle_parse: header checksum mismatch");
       eng_bundle_free(b);
       return NULL;
     }
@@ -178,6 +238,13 @@ eng_bundle_t *eng_bundle_load(const char *dir, const char *file) {
   // check header length
   if (iter.header_len > (size_t)size) {
     naos_log("eng_bundle_load: invalid bundle header length");
+    free(buffer);
+    return NULL;
+  }
+
+  // verify total size for modern bundles
+  if (iter.modern && iter.total_size != (size_t)size) {
+    naos_log("eng_bundle_load: total size mismatch");
     free(buffer);
     return NULL;
   }
@@ -265,7 +332,8 @@ void *eng_bundle_read(eng_bundle_t *b, eng_bundle_section_t *s) {
   ((uint8_t *)data)[s->len] = 0;
 
   // validate checksum
-  uint32_t crc32 = esp_crc32_le(0, data, s->len);
+  size_t crc_len = b->modern ? s->len + 1 : s->len;
+  uint32_t crc32 = esp_crc32_le(0, data, crc_len);
   if (crc32 != s->crc32) {
     naos_log("eng_bundle_read: crc32 mismatch for section '%s'", s->name);
     free(data);
