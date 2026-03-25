@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 
-	"github.com/networkedartifacts/airlab/tools/alb"
 	"github.com/networkedartifacts/airlab/tools/alp"
 )
 
@@ -27,26 +24,10 @@ func init() {
 }
 
 func pluginBundle(dir, out string) error {
-	// determine root
-	root, err := filepath.Abs(dir)
-	if err != nil {
-		return err
-	}
-
 	// load manifest
 	manifest, err := alp.LoadManifest(dir)
 	if err != nil {
 		return err
-	}
-
-	// resolves sprites
-	var sprites []string
-	for _, sprite := range manifest.Sprites {
-		matches, err := filepath.Glob(filepath.Join(root, sprite))
-		if err != nil {
-			return err
-		}
-		sprites = append(sprites, matches...)
 	}
 
 	// print fields
@@ -57,14 +38,6 @@ func pluginBundle(dir, out string) error {
 	// print binaries
 	for key, bin := range manifest.Binary {
 		fmt.Printf("==> Binary: %s (%s)\n", bin, key)
-	}
-
-	// print sprites
-	if len(sprites) > 0 {
-		fmt.Printf("Sprites:\n")
-		for _, sprite := range sprites {
-			fmt.Printf(" - %s\n", sprite)
-		}
 	}
 
 	// print configs
@@ -80,60 +53,10 @@ func pluginBundle(dir, out string) error {
 		}
 	}
 
-	/* create bundle */
-
-	// prepare bundle
-	var bundle alb.Bundle
-
-	// add attributes
-	bundle.AddAttr("name", []byte(manifest.Name))
-	bundle.AddAttr("title", []byte(manifest.Title))
-	bundle.AddAttr("version", []byte(manifest.Version))
-
-	// add binaries
-	for key, bin := range manifest.Binary {
-		binPath := filepath.Join(root, bin)
-		binData, err := os.ReadFile(binPath)
-		if err != nil {
-			return err
-		}
-		bundle.Sections = append(bundle.Sections, alb.BundleSection{
-			Type: alb.BundleTypeBinary,
-			Name: key,
-			Data: binData,
-		})
-	}
-
-	// add sprites
-	for _, sprite := range sprites {
-		spriteData, err := os.ReadFile(sprite)
-		if err != nil {
-			return err
-		}
-		if filepath.Ext(sprite) == ".png" {
-			spriteData = alb.SpriteFromPNG(spriteData, 1).Encode()
-			sprite = strings.TrimSuffix(sprite, ".png")
-		}
-		bundle.Sections = append(bundle.Sections, alb.BundleSection{
-			Type: alb.BundleTypeSprite,
-			Name: lo.Must(filepath.Rel(root, sprite)),
-			Data: spriteData,
-		})
-	}
-
-	// add configs
-	for key, cfg := range manifest.Config {
-		if len(cfg.Sections) > 0 {
-			configBundle, err := cfg.Encode()
-			if err != nil {
-				return fmt.Errorf("config %q: %w", key, err)
-			}
-			bundle.Sections = append(bundle.Sections, alb.BundleSection{
-				Type: alb.BundleTypeConfig,
-				Name: key,
-				Data: configBundle.Encode(),
-			})
-		}
+	// build bundle
+	bundle, err := alp.BuildBundle(manifest, dir)
+	if err != nil {
+		return err
 	}
 
 	// determine output file
