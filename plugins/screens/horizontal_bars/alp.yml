@@ -1,0 +1,5 @@
+name: na.horizontal_bars
+title: Horizontal Bars
+version: v0.1.0
+binary:
+  screen: ./main.wasm
