@@ -1057,8 +1057,8 @@ static void* scr_idle() {
       args = eng_bundle_parse(a_data, a_len);
     }
 
-    // advance index if 60s have elapsed
-    if (naos_millis() - screen_start >= 60 * 1000) {
+    // advance index if 60s have elapsed and cycling is enabled
+    if (naos_get_b("idle-auto-cycle") && naos_millis() - screen_start >= 60 * 1000) {
       screen_index++;
       screen_start = naos_millis();
     }
