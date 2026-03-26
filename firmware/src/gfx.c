@@ -195,8 +195,9 @@ void gfx_end(bool skip, bool wait) {
 
   // await signal
   if (wait) {
-    naos_await(gfx_signal, 1, false, -1);
-    if (GFX_DEBUG) {
+    if (!naos_await(gfx_signal, 1, false, 1000)) {
+      naos_log("gfx: cancelled wait");
+    } else if (GFX_DEBUG) {
       naos_log("gfx: end done");
     }
   }
