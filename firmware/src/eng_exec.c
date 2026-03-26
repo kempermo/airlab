@@ -274,6 +274,10 @@ static int eng_exec_op_yield(wasm_exec_env_t env, int timeout, int flags) {
     // lock graphics
     gfx_begin(flags & ENG_YIELD_REFRESH, flags & ENG_YIELD_INVERT);
 
+    // clear dirty flag to avoid waiting for a flush that will never come
+    eng_exec_context_t *ctx = wasm_runtime_get_user_data(env);
+    ctx->canvas_dirty = false;
+
     // clean up the WASM runtime here if needed
     wasm_runtime_set_exception(wasm_runtime_get_module_inst(env), "killed");
 
