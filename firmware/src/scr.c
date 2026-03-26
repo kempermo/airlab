@@ -1001,6 +1001,9 @@ static void* scr_idle() {
   // track screen start time
   int64_t screen_start = naos_millis();
 
+  // track skipped screens
+  uint16_t skipped = 0;
+
   for (;;) {
     // load screen bundle
     eng_bundle_t* screens = eng_bundle_load("config", "screens.alb");
@@ -1074,11 +1077,20 @@ static void* scr_idle() {
     // free screens bundle
     eng_bundle_free(screens);
 
-    // stop if screen failed to run
+    // skip to next screen if it failed to run
     if (!ok) {
       gui_cleanup(false);
-      break;
+      skipped++;
+      if (skipped >= count) {
+        break;
+      }
+      screen_index++;
+      screen_start = naos_millis();
+      continue;
     }
+
+    // reset skipped counter
+    skipped = 0;
 
     // sleep until woken
     sig_event_t event = scr_idle_sleep();
