@@ -30,21 +30,20 @@ int main() {
   al_clear(0);
 
   int col_w = AL_W / NUM_COLS;
-  int bar_w = col_w - 2;
+  int bar_w = col_w - 6;
   int max_stripes = BAR_AREA_H / STRIPE_H;
 
   for (int i = 0; i < NUM_COLS; i++) {
     col_t *c = &cols[i];
     int x = i * col_w;
 
-    // read and display value
+    // read value
     float val = al_info(c->info);
     char buf[16];
     snprintf(buf, sizeof(buf), c->fmt, val);
-    al_write(x + 1, 2, 0, 16, 1, buf, 0);
 
     // display unit
-    al_write(x + 1, UNIT_Y, 0, 16, 1, c->unit, 0);
+    al_write(x+col_w/2, UNIT_Y+4, 0, 14, 1, c->unit, AL_WRITE_ALIGN_CENTER);
 
     // normalize to [0,1] against fixed range
     float ratio = (val - c->min_val) / (c->max_val - c->min_val);
@@ -57,6 +56,10 @@ int main() {
       int y = BAR_BOT - (s + 1) * STRIPE_H + GAP;
       al_rect(x + 1, y, bar_w, LINE_H, 1, 0);
     }
+
+    // display value
+    int yPos = BAR_BOT - (fill_stripes + 1) * STRIPE_H + GAP - 16;
+    al_write(x+col_w/2, yPos, 0, 16, 1, buf, AL_WRITE_ALIGN_CENTER);
   }
 
   return 0;

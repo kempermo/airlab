@@ -1,0 +1,5 @@
+name: na.fine_statistics
+title: Fine Statistics
+version: v0.1.0
+binary:
+  screen: ./main.wasm
