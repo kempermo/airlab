@@ -1,6 +1,6 @@
 .PHONY: adc config data gfx gpio hello http i2c info pollen sen55 servo sprite weather
 
-COMPILE := zig cc -target wasm32-wasi -Wl,-z,stack-size=65536 -Wl,--initial-memory=262144 -Wl,--max-memory=262144 -Os
+COMPILE := zig cc -mcpu=mvp -target wasm32-wasi -Wl,-z,stack-size=65536 -Wl,--initial-memory=262144 -Wl,--max-memory=262144 -Os
 UPLOAD ?= 0
 LAUNCH ?= 0
 
