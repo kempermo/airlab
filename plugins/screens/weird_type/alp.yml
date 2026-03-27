@@ -6,6 +6,17 @@ binary:
 config:
   screen:
     sections:
+      - title: Font
+        items:
+          - key: font
+            title: Font
+            type: string
+            default: pixel
+            options:
+              - value: pixel
+                label: Pixel Square
+              - value: comic
+                label: Comic Sans Bold
       - title: Values
         items:
           - key: sensor

@@ -56,24 +56,27 @@ int main() {
     snprintf(buf, sizeof(buf), r->fmt, val);
 
     // compute box dimensions
-    int box_w = (int)strlen(buf) * 9 + BOX_PAD_X * 2;
+    int box_w = (int)strlen(buf) * 9 + BOX_PAD_X * 2+6;
     if (box_w < 22) box_w = 22;
-    int box_h = tick_bot - tick_top;
+    int box_h = tick_bot+20 - tick_top-20;
     int box_x = val_x - box_w / 2;
     if (box_x < 0) box_x = 0;
     if (box_x + box_w > SCALE_W) box_x = SCALE_W - box_w;
 
     // draw ticks across full row
     for (int tx = 0; tx <= SCALE_W; tx += TICK_STEP) {
-      al_line(tx, tick_top+8, tx, tick_bot-8, 1, 1);
+      if(tx%5 == 0)
+        al_line(tx, tick_top+5, tx, tick_bot-5, 1, 1);
+      else
+        al_line(tx, tick_top+10, tx, tick_bot-10, 1, 1);
     }
 
     // draw inverted value box
-    al_rect(box_x, tick_top, box_w, box_h, 1, 0);
+    al_rect(box_x, tick_top+3, box_w, 22, 1, 0);
 
     // draw value text in white inside box
     int text_y = tick_top + (box_h - 16) / 2;
-    al_write(box_x + box_w / 2, text_y, 0, 16, 0, buf, AL_WRITE_ALIGN_CENTER);
+    al_write(box_x + box_w / 2, text_y+1, 0, 16, 0, buf, AL_WRITE_ALIGN_CENTER);
 
     // draw unit label (font 8, vertically centered, right-aligned)
     int unit_y = ry + (ROW_H - 8) / 2;
