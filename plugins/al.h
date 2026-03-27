@@ -29,9 +29,25 @@ typedef enum {
   AL_INFO_ACCEL_ROTATION,
   AL_INFO_STORAGE_INT,
   AL_INFO_STORAGE_EXT,
+  AL_INFO_STORE_STOP,
 } al_info_t;
 
 IMPORT("al_info") extern float al_info(al_info_t i);
+
+typedef enum {
+  AL_QUERY_CO2,
+  AL_QUERY_TMP,
+  AL_QUERY_HUM,
+  AL_QUERY_VOC,
+  AL_QUERY_NOX,
+  AL_QUERY_PRS,
+} al_query_field_t;
+
+IMPORT("al_query")
+extern int _al_query(int field, float *values, int values_len, int start, int resolution);
+int al_query(al_query_field_t field, float *values, int count, int start, int resolution) {
+  return _al_query((int)field, values, count * sizeof(float), start, resolution);
+}
 
 typedef enum {
   ENG_CONFIG_BUTTON_REPEAT,

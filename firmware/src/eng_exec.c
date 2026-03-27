@@ -150,6 +150,7 @@ enum {
   ENG_INFO_ACCEL_ROTATION,
   ENG_INFO_STORAGE_INT,
   ENG_INFO_STORAGE_EXT,
+  ENG_INFO_STORE_STOP,
 };
 
 static float eng_exec_op_info(wasm_exec_env_t _, int i) {
@@ -192,9 +193,56 @@ static float eng_exec_op_info(wasm_exec_env_t _, int i) {
       return al_storage_info(AL_STORAGE_INT).usage;
     case ENG_INFO_STORAGE_EXT:
       return al_storage_info(AL_STORAGE_EXT).usage;
+    case ENG_INFO_STORE_STOP: {
+      al_sample_source_t source = al_store_source();
+      return (float)source.stop(source.ctx);
+    }
     default:
       return -1;
   }
+}
+
+static int eng_exec_op_query(wasm_exec_env_t env, int field, float *values, int values_len, int start, int resolution) {
+  // check field
+  if (field < AL_SAMPLE_CO2 || field > AL_SAMPLE_PRS) {
+    return -1;
+  }
+
+  // calculate count
+  int count = values_len / sizeof(float);
+  if (count <= 0) {
+    return -1;
+  }
+
+  // validate buffer
+  if (!eng_valid_buf(env, values, values_len, false)) {
+    return -1;
+  }
+
+  // log
+  if (ENG_EXEC_DEBUG) {
+    naos_log("eng_exec_op_query: field=%d count=%d start=%d resolution=%d", field, count, start, resolution);
+  }
+
+  // allocate samples
+  al_sample_t *samples = eng_exec_malloc(count * sizeof(al_sample_t));
+  if (!samples) {
+    return -1;
+  }
+
+  // query samples
+  al_sample_source_t source = al_store_source();
+  size_t num = al_sample_query(&source, samples, count, start, resolution);
+
+  // extract field values
+  for (size_t i = 0; i < num; i++) {
+    values[i] = al_sample_read(samples[i], (al_sample_field_t)field);
+  }
+
+  // free samples
+  eng_exec_free(samples);
+
+  return (int)num;
 }
 
 enum {
@@ -1416,6 +1464,7 @@ static void eng_exec_op_log(wasm_exec_env_t env, uint8_t *msg, int msg_len) {
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/export_native_api.md
 static NativeSymbol eng_exec_ops[] = {
     {"al_info", eng_exec_op_info, "(i)f", NULL},
+    {"al_query", eng_exec_op_query, "(i*~ii)i", NULL},
     {"al_config", eng_exec_op_config, "(iiii)i", NULL},
     {"al_yield", eng_exec_op_yield, "(ii)i", NULL},
     {"al_delay", eng_exec_op_delay, "(i)", NULL},
@@ -1450,10 +1499,6 @@ static void *eng_exec_task(void *arg) {
   // get context
   eng_exec_context_t *ctx = arg;
 
-  // prepare variables
-  char error_buf[128];
-  uint32_t stack_size = 8 * 1024, heap_size = 32 * 1024;
-
   // prepare runtime init args
   RuntimeInitArgs init_args = {0};
 
@@ -1485,16 +1530,21 @@ static void *eng_exec_task(void *arg) {
     return NULL;
   }
 
+  // prepare WASM state
+  char error_buf[128];
+  wasm_module_t module = NULL;
+  wasm_module_inst_t module_inst = NULL;
+  wasm_exec_env_t exec_env = NULL;
+  uint32_t stack_size = 8 * 1024, heap_size = 32 * 1024;
+
   // load application
-  wasm_module_t module = wasm_runtime_load(main, main_len, error_buf, sizeof(error_buf));
+  module = wasm_runtime_load(main, main_len, error_buf, sizeof(error_buf));
   if (!module) {
     naos_log("eng_exec_task: loading WASM module failed: %s", error_buf);
     goto fail;
   }
 
   // instantiate module
-  wasm_module_inst_t module_inst;
-  memset(&module_inst, 0, sizeof(wasm_module_inst_t));
   module_inst = wasm_runtime_instantiate(module, stack_size, heap_size, error_buf, sizeof(error_buf));
   if (!module_inst) {
     naos_log("eng_exec_task: instantiating WASM module failed: %s", error_buf);
@@ -1502,8 +1552,6 @@ static void *eng_exec_task(void *arg) {
   }
 
   // create execution environment
-  wasm_exec_env_t exec_env;
-  memset(&exec_env, 0, sizeof(wasm_exec_env_t));
   exec_env = wasm_runtime_create_exec_env(module_inst, stack_size);
   if (!exec_env) {
     naos_log("eng_exec_task: creating WASM execution environment failed");

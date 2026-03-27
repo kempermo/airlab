@@ -1,0 +1,34 @@
+name: na.graph
+title: Graph
+version: v0.1.0
+binary:
+  screen: ./main.wasm
+config:
+  screen:
+    sections:
+      - title: Settings
+        items:
+          - key: field
+            title: Sensor
+            type: string
+            default: tmp
+            options:
+              - value: co2
+                label: CO2
+              - value: tmp
+                label: Temperature
+              - value: hum
+                label: Humidity
+              - value: voc
+                label: VOC
+              - value: nox
+                label: NOx
+              - value: prs
+                label: Pressure
+          - key: span
+            title: Time Span (min)
+            type: int
+            default: 15
+            min: 5
+            max: 1440
+            step: 5
