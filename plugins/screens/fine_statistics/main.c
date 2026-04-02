@@ -71,7 +71,7 @@ int main() {
       float norm = (values[j] - s_min) / range;
       int x = offset + j;
       int y = spark_bot - (int)(norm * spark_h + 0.5f);
-      al_rect(x - 1, y - 1, 3, 3, 1, 0);
+      al_rect(x - 1, y - 1, 2, 2, 1, 0);
     }
 
     /*
